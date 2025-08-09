@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statute of Limitations Calculator - Neal Pathak Portfolio</title>
+    <link rel="stylesheet" href="statute-calculator.css">
+</head>
+<body>
+    <div class="calculator-container">
+        <header class="calculator-header">
+            <div class="header-content">
+                <h1>⚖️ Statute of Limitations Calculator</h1>
+                <nav class="calculator-nav">
+                    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="calculator-content">
+            <div class="intro-section">
+                <div class="intro-card">
+                    <h2>Legal Deadline Calculator</h2>
+                    <p>
+                        Calculate important legal deadlines based on statutes of limitations across different jurisdictions and case types. 
+                        This tool helps legal professionals and individuals understand critical filing deadlines.
+                    </p>
+                    <div class="disclaimer">
+                        <strong>Disclaimer:</strong> This calculator provides general information only. Always consult with a qualified attorney 
+                        for specific legal advice and verify current statutes in your jurisdiction.
+                    </div>
+                </div>
+            </div>
+
+            <div class="calculator-section">
+                <div class="input-panel">
+                    <h3>Case Information</h3>
+                    
+                    <div class="form-group">
+                        <label for="jurisdiction">Jurisdiction</label>
+                        <select id="jurisdiction">
+                            <option value="">Select Jurisdiction</option>
+                            <option value="federal">Federal</option>
+                            <option value="california">California</option>
+                            <option value="new-york">New York</option>
+                            <option value="texas">Texas</option>
+                            <option value="florida">Florida</option>
+                            <option value="illinois">Illinois</option>
+                            <option value="pennsylvania">Pennsylvania</option>
+                            <option value="ohio">Ohio</option>
+                            <option value="georgia">Georgia</option>
+                            <option value="north-carolina">North Carolina</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="caseType">Case Type</label>
+                        <select id="caseType">
+                            <option value="">Select Case Type</option>
+                            <option value="personal-injury">Personal Injury</option>
+                            <option value="medical-malpractice">Medical Malpractice</option>
+                            <option value="product-liability">Product Liability</option>
+                            <option value="breach-contract">Breach of Contract</option>
+                            <option value="fraud">Fraud</option>
+                            <option value="defamation">Defamation</option>
+                            <option value="employment">Employment Claims</option>
+                            <option value="property-damage">Property Damage</option>
+                            <option value="debt-collection">Debt Collection</option>
+                            <option value="wrongful-death">Wrongful Death</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="incidentDate">Incident/Discovery Date</label>
+                        <input type="date" id="incidentDate" required>
+                        <div class="field-note">
+                            Date when the incident occurred or when it was discovered (depending on case type)
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialCircumstances">Special Circumstances</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="minorInvolved">
+                                Minor involved (may extend deadline)
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="fraudConcealment">
+                                Fraud or concealment by defendant
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="continuingViolation">
+                                Continuing violation doctrine applies
+                            </label>
+                        </div>
+                    </div>
+
+                    <button id="calculateButton" class="calculate-btn">Calculate Deadline</button>
+                </div>
+
+                <div class="results-panel">
+                    <h3>Calculation Results</h3>
+                    <div id="results" class="results-content">
+                        <div class="no-results">
+                            <p>Enter case details and click "Calculate Deadline" to see results.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reference-section">
+                <div class="reference-card">
+                    <h3>📚 Common Statute Periods by Case Type</h3>
+                    <div class="reference-grid">
+                        <div class="reference-item">
+                            <strong>Personal Injury:</strong> Typically 2-3 years from injury date
+                        </div>
+                        <div class="reference-item">
+                            <strong>Medical Malpractice:</strong> Usually 2-3 years from discovery
+                        </div>
+                        <div class="reference-item">
+                            <strong>Contract Breach:</strong> Generally 4-6 years from breach
+                        </div>
+                        <div class="reference-item">
+                            <strong>Fraud:</strong> Often 3-4 years from discovery
+                        </div>
+                        <div class="reference-item">
+                            <strong>Product Liability:</strong> Typically 2-3 years from injury
+                        </div>
+                        <div class="reference-item">
+                            <strong>Employment Claims:</strong> Usually 180-300 days (varies by type)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-card">
+                    <h3>⚠️ Important Considerations</h3>
+                    <ul class="tips-list">
+                        <li><strong>Discovery Rule:</strong> Some statutes begin when the injury/issue is discovered, not when it occurred</li>
+                        <li><strong>Tolling:</strong> Certain circumstances can pause or extend the statute period</li>
+                        <li><strong>Filing vs. Service:</strong> Some jurisdictions require service within the statute period, not just filing</li>
+                        <li><strong>Federal vs. State:</strong> Different rules may apply depending on the court system</li>
+                        <li><strong>Exceptions:</strong> Many jurisdictions have specific exceptions that can extend or shorten periods</li>
+                        <li><strong>Professional Advice:</strong> Always consult current statutes and legal counsel for specific cases</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="statute-calculator.js"></script>
+</body>
+</html>

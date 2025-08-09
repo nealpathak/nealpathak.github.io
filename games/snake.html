@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game - Neal Pathak Portfolio</title>
+    <link rel="stylesheet" href="snake-styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>🐍 Snake Game</h1>
+            <nav class="game-nav">
+                <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+            </nav>
+        </header>
+
+        <div class="game-content">
+            <div class="game-info">
+                <div class="score-display">
+                    <span class="label">Score:</span>
+                    <span id="score">0</span>
+                </div>
+                <div class="high-score-display">
+                    <span class="label">High Score:</span>
+                    <span id="highScore">0</span>
+                </div>
+                <div class="speed-display">
+                    <span class="label">Speed:</span>
+                    <span id="speed">1</span>
+                </div>
+            </div>
+
+            <div class="game-area">
+                <canvas id="gameCanvas" width="400" height="400"></canvas>
+                <div id="gameOverScreen" class="game-over-screen">
+                    <h2>Game Over!</h2>
+                    <p>Final Score: <span id="finalScore">0</span></p>
+                    <p id="highScoreMessage"></p>
+                    <button id="restartBtn" class="game-btn">Play Again</button>
+                </div>
+                <div id="startScreen" class="start-screen">
+                    <h2>Snake Game</h2>
+                    <p>Use arrow keys or WASD to move</p>
+                    <p>Eat the red food to grow and increase your score!</p>
+                    <button id="startBtn" class="game-btn">Start Game</button>
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <div class="controls-section">
+                    <h3>Controls</h3>
+                    <div class="control-grid">
+                        <button class="control-btn" data-direction="up">↑</button>
+                        <div></div>
+                        <div></div>
+                        <button class="control-btn" data-direction="left">←</button>
+                        <button class="control-btn" data-direction="down">↓</button>
+                        <button class="control-btn" data-direction="right">→</button>
+                    </div>
+                    <p class="control-hint">Or use Arrow Keys / WASD</p>
+                </div>
+                
+                <div class="game-actions">
+                    <button id="pauseBtn" class="action-btn">Pause</button>
+                    <button id="resetBtn" class="action-btn">Reset</button>
+                </div>
+            </div>
+
+            <div class="game-instructions">
+                <h3>How to Play</h3>
+                <ul>
+                    <li>Control the snake using arrow keys or WASD</li>
+                    <li>Eat the red food to grow longer and increase score</li>
+                    <li>Avoid hitting the walls or your own tail</li>
+                    <li>Speed increases as your score gets higher</li>
+                    <li>Try to beat your high score!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="snake-game.js"></script>
+</body>
+</html>

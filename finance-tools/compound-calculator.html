@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compound Interest Calculator - Neal Pathak Portfolio</title>
+    <link rel="stylesheet" href="compound-calculator.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="calculator-container">
+        <header class="calculator-header">
+            <div class="header-content">
+                <h1>📈 Compound Interest Calculator</h1>
+                <nav class="calculator-nav">
+                    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="calculator-content">
+            <div class="intro-section">
+                <div class="intro-card">
+                    <h2>The Power of Compound Interest</h2>
+                    <p>
+                        Calculate how your investments can grow over time with compound interest. This tool helps you understand 
+                        the impact of different contribution strategies, interest rates, and time horizons on your financial goals.
+                    </p>
+                    <div class="einstein-quote">
+                        <em>"Compound interest is the eighth wonder of the world. He who understands it, earns it; he who doesn't, pays it."</em>
+                        <br><span style="font-size: 0.9rem; color: var(--light-text);">— Often attributed to Albert Einstein</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calculator-section">
+                <div class="input-panel">
+                    <h3>Investment Parameters</h3>
+                    
+                    <div class="form-group">
+                        <label for="initialAmount">Initial Investment</label>
+                        <div class="input-with-prefix">
+                            <span class="currency-prefix">$</span>
+                            <input type="number" id="initialAmount" value="10000" min="0" step="100">
+                        </div>
+                        <div class="field-note">Starting amount you plan to invest</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="monthlyContribution">Monthly Contribution</label>
+                        <div class="input-with-prefix">
+                            <span class="currency-prefix">$</span>
+                            <input type="number" id="monthlyContribution" value="500" min="0" step="50">
+                        </div>
+                        <div class="field-note">Additional amount invested each month</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="annualRate">Annual Interest Rate</label>
+                        <div class="input-with-suffix">
+                            <input type="number" id="annualRate" value="7" min="0" max="30" step="0.1">
+                            <span class="percent-suffix">%</span>
+                        </div>
+                        <div class="field-note">Expected annual return (e.g., 7% for stock market average)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeHorizon">Time Horizon</label>
+                        <div class="input-with-suffix">
+                            <input type="number" id="timeHorizon" value="30" min="1" max="50" step="1">
+                            <span class="years-suffix">years</span>
+                        </div>
+                        <div class="field-note">How long you plan to invest</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="compoundFrequency">Compounding Frequency</label>
+                        <select id="compoundFrequency">
+                            <option value="12" selected>Monthly</option>
+                            <option value="4">Quarterly</option>
+                            <option value="2">Semi-annually</option>
+                            <option value="1">Annually</option>
+                            <option value="365">Daily</option>
+                        </select>
+                        <div class="field-note">How often interest is compounded</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contributionIncrease">Annual Contribution Increase</label>
+                        <div class="input-with-suffix">
+                            <input type="number" id="contributionIncrease" value="3" min="0" max="10" step="0.5">
+                            <span class="percent-suffix">%</span>
+                        </div>
+                        <div class="field-note">Yearly increase in contributions (to account for raises)</div>
+                    </div>
+
+                    <button id="calculateButton" class="calculate-btn">Calculate Growth</button>
+                    
+                    <div class="quick-scenarios">
+                        <h4>Quick Scenarios</h4>
+                        <div class="scenario-buttons">
+                            <button class="scenario-btn" data-scenario="conservative">Conservative</button>
+                            <button class="scenario-btn" data-scenario="moderate">Moderate</button>
+                            <button class="scenario-btn" data-scenario="aggressive">Aggressive</button>
+                            <button class="scenario-btn" data-scenario="retirement">Retirement</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="results-panel">
+                    <h3>Growth Projection</h3>
+                    <div id="results" class="results-content">
+                        <div class="metric-cards">
+                            <div class="metric-card">
+                                <div class="metric-label">Final Balance</div>
+                                <div class="metric-value" id="finalBalance">$0</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Total Contributions</div>
+                                <div class="metric-value" id="totalContributions">$0</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Interest Earned</div>
+                                <div class="metric-value" id="interestEarned">$0</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Growth Multiple</div>
+                                <div class="metric-value" id="growthMultiple">0x</div>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-container">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                        
+                        <div class="breakdown-section">
+                            <h4>Year-by-Year Breakdown</h4>
+                            <div id="yearlyBreakdown" class="yearly-table">
+                                <!-- Dynamic content will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="education-section">
+                <div class="education-card">
+                    <h3>💡 Understanding Compound Interest</h3>
+                    <div class="education-content">
+                        <div class="concept-item">
+                            <strong>The Compound Effect:</strong> Unlike simple interest, compound interest earns returns on both 
+                            your original investment AND previous earnings, creating exponential growth over time.
+                        </div>
+                        <div class="concept-item">
+                            <strong>Time is Your Friend:</strong> Starting early, even with small amounts, often beats starting 
+                            late with larger amounts due to the power of compounding.
+                        </div>
+                        <div class="concept-item">
+                            <strong>Frequency Matters:</strong> More frequent compounding (daily vs. annually) can significantly 
+                            boost returns over long periods.
+                        </div>
+                        <div class="concept-item">
+                            <strong>Consistency Wins:</strong> Regular contributions, even small ones, can dramatically 
+                            increase your final balance through dollar-cost averaging.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tips-card">
+                    <h3>🎯 Investment Tips</h3>
+                    <div class="tips-list">
+                        <div class="tip-item">
+                            <strong>Start Early:</strong> Time is the most powerful factor in compound growth. Even $25/month 
+                            starting at age 25 can outperform $100/month starting at age 35.
+                        </div>
+                        <div class="tip-item">
+                            <strong>Automate Contributions:</strong> Set up automatic transfers to take advantage of dollar-cost 
+                            averaging and ensure consistent investing.
+                        </div>
+                        <div class="tip-item">
+                            <strong>Increase Contributions:</strong> Boost your contributions with raises and windfalls to 
+                            accelerate wealth building.
+                        </div>
+                        <div class="tip-item">
+                            <strong>Stay Invested:</strong> Avoid withdrawing funds early. Let compound interest work its magic 
+                            over the full time horizon.
+                        </div>
+                        <div class="tip-item">
+                            <strong>Consider Tax Advantages:</strong> Use 401(k), IRA, and other tax-advantaged accounts to 
+                            maximize your compound growth potential.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="disclaimer-section">
+                <div class="disclaimer-card">
+                    <h4>📝 Important Disclaimer</h4>
+                    <p>
+                        This calculator provides educational estimates based on the parameters you enter. Actual investment 
+                        returns vary and may be higher or lower than projected. Past performance does not guarantee future results. 
+                        Market volatility, fees, taxes, and inflation can significantly impact actual returns.
+                    </p>
+                    <p>
+                        <strong>This tool is for educational purposes only and does not constitute financial advice.</strong> 
+                        Consult with a qualified financial advisor for personalized investment guidance.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="compound-calculator.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIX vs SPY Market Dashboard - Neal Pathak Portfolio</title>
+    <link rel="stylesheet" href="market-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1>📈 VIX vs SPY Market Dashboard</h1>
+                <nav class="dashboard-nav">
+                    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="controls-section">
+                <div class="time-controls">
+                    <h3>Time Period</h3>
+                    <div class="time-buttons">
+                        <button class="time-btn active" data-period="1m">1M</button>
+                        <button class="time-btn" data-period="3m">3M</button>
+                        <button class="time-btn" data-period="6m">6M</button>
+                        <button class="time-btn" data-period="1y">1Y</button>
+                        <button class="time-btn" data-period="2y">2Y</button>
+                        <button class="time-btn" data-period="5y">5Y</button>
+                    </div>
+                </div>
+                
+                <div class="refresh-controls">
+                    <button id="refreshData" class="refresh-btn">🔄 Refresh Data</button>
+                    <div class="last-updated">
+                        Last updated: <span id="lastUpdated">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>SPY Current</h3>
+                    <div class="metric-value" id="spyPrice">Loading...</div>
+                    <div class="metric-change" id="spyChange">--</div>
+                </div>
+                <div class="metric-card">
+                    <h3>VIX Current</h3>
+                    <div class="metric-value" id="vixPrice">Loading...</div>
+                    <div class="metric-change" id="vixChange">--</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Correlation</h3>
+                    <div class="metric-value" id="correlation">Loading...</div>
+                    <div class="metric-subtitle">30-day rolling</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Volatility Regime</h3>
+                    <div class="metric-value" id="volatilityRegime">Loading...</div>
+                    <div class="metric-subtitle">Market condition</div>
+                </div>
+            </div>
+
+            <div class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>SPY Price vs VIX Levels</h2>
+                        <div class="chart-legend">
+                            <span class="legend-item">
+                                <span class="legend-color spy-color"></span>SPY Price
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-color vix-color"></span>VIX Level
+                            </span>
+                        </div>
+                    </div>
+                    <canvas id="priceChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h2>VIX vs SPY Correlation Analysis</h2>
+                        <div class="chart-info">
+                            <span class="info-text">Scatter plot showing inverse relationship</span>
+                        </div>
+                    </div>
+                    <canvas id="correlationChart"></canvas>
+                </div>
+            </div>
+
+            <div class="insights-section">
+                <div class="insight-card">
+                    <h3>📊 Market Insights</h3>
+                    <div id="marketInsights">
+                        <div class="insight-item">
+                            <strong>VIX Overview:</strong> The VIX, known as the "fear index," measures expected volatility in the S&P 500 over the next 30 days based on options pricing.
+                        </div>
+                        <div class="insight-item">
+                            <strong>Typical Relationship:</strong> VIX and SPY generally exhibit an inverse correlation - when markets decline rapidly, volatility (fear) increases.
+                        </div>
+                        <div class="insight-item">
+                            <strong>Volatility Regimes:</strong> 
+                            <ul>
+                                <li><strong>Low (VIX &lt; 15):</strong> Calm markets, steady growth</li>
+                                <li><strong>Normal (15-25):</strong> Typical market conditions</li>
+                                <li><strong>Elevated (25-35):</strong> Increased uncertainty</li>
+                                <li><strong>High (35+):</strong> Market stress, potential opportunities</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insight-card">
+                    <h3>⚡ Key Statistics</h3>
+                    <div id="keyStatistics">
+                        <div class="stat-row">
+                            <span class="stat-label">Current VIX Percentile (1Y):</span>
+                            <span class="stat-value" id="vixPercentile">Loading...</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">SPY 30-day Volatility:</span>
+                            <span class="stat-value" id="spyVolatility">Loading...</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Days Since VIX > 30:</span>
+                            <span class="stat-value" id="daysSinceSpike">Loading...</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Max Drawdown (Period):</span>
+                            <span class="stat-value" id="maxDrawdown">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="technical-note">
+                <h4>📝 Technical Notes</h4>
+                <p>
+                    <strong>Data Source:</strong> Yahoo Finance API • 
+                    <strong>Update Frequency:</strong> Real-time during market hours • 
+                    <strong>Calculations:</strong> Rolling correlations use 30-day windows • 
+                    <strong>Volatility:</strong> Annualized standard deviation of returns
+                </p>
+                <p class="disclaimer">
+                    <em>This dashboard is for educational and analytical purposes only. Not financial advice.</em>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading market data...</p>
+        </div>
+    </div>
+
+    <script src="market-dashboard.js"></script>
+</body>
+</html>

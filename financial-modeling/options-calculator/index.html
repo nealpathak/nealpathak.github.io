@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Options P&L Calculator — Neal Pathak</title>
+  <meta name="description" content="Model options strategies, visualize payoff diagrams, and calculate breakevens and risk profiles.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    .strategy-bar {
+      display: flex;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-xl);
+    }
+
+    .strategy-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-xs) var(--space-md);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .strategy-btn:hover {
+      border-color: #ccc;
+      color: var(--color-text);
+    }
+
+    .strategy-btn.active {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+    }
+
+    .builder {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: var(--space-xl);
+      align-items: start;
+    }
+
+    .legs-panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .legs-panel h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .leg {
+      padding: var(--space-md) 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .leg:last-of-type {
+      border-bottom: none;
+    }
+
+    .leg__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-md);
+    }
+
+    .leg__title {
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+
+    .leg__remove {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-sans);
+    }
+
+    .leg__remove:hover {
+      color: var(--color-risk);
+    }
+
+    .leg__fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-sm);
+    }
+
+    .leg__fields .form-group {
+      gap: 2px;
+    }
+
+    .leg__fields label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    .leg__fields input,
+    .leg__fields select {
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+    }
+
+    .underlying-input {
+      margin-bottom: var(--space-lg);
+      display: flex;
+      gap: var(--space-md);
+      align-items: end;
+    }
+
+    .underlying-input .form-group {
+      flex: 1;
+    }
+
+    .add-leg-btn {
+      width: 100%;
+      margin-top: var(--space-md);
+      justify-content: center;
+      font-size: var(--text-sm);
+      padding: var(--space-sm);
+      color: var(--color-text-tertiary);
+      border-style: dashed;
+    }
+
+    .add-leg-btn:hover {
+      color: var(--color-text);
+    }
+
+    /* Chart & Results */
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+    }
+
+    .payoff-chart-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .payoff-chart-container h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .payoff-canvas-wrapper {
+      position: relative;
+      height: 360px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-md);
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .stat-card__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .stat-card__value {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      margin-top: var(--space-xs);
+      letter-spacing: -0.02em;
+    }
+
+    .stat-card__value.positive { color: var(--color-data); }
+    .stat-card__value.negative { color: var(--color-risk); }
+    .stat-card__value.neutral { color: var(--color-text); }
+
+    @media (max-width: 768px) {
+      .builder {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="mailto:nealpathak@icloud.com">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--finance">Financial Modeling</span>
+        <h1>Options P&L Calculator</h1>
+        <p>Model single-leg and multi-leg options strategies. Visualize payoff diagrams, calculate breakevens, and understand your risk profile before entering a trade.</p>
+      </div>
+    </section>
+
+    <section class="case-study">
+      <div class="container">
+        <h2>Why this exists</h2>
+        <p>Between 2017 and 2022, I managed a personal equities and options portfolio using volatility-driven strategies. The hardest part of options trading isn't finding a thesis — it's understanding the exact risk you're taking on. A vertical spread that looks attractive can hide unfavorable risk-reward once you account for premium, commissions, and probability.</p>
+        <p>This calculator makes the payoff structure immediately visible. Input your legs, see the diagram, know your max loss before you commit capital. It supports the common strategies I traded most — covered calls, spreads, straddles — and lets you build custom multi-leg positions.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <!-- Preset Strategies -->
+        <div class="strategy-bar">
+          <button class="strategy-btn active" data-strategy="custom">Custom</button>
+          <button class="strategy-btn" data-strategy="long-call">Long Call</button>
+          <button class="strategy-btn" data-strategy="long-put">Long Put</button>
+          <button class="strategy-btn" data-strategy="covered-call">Covered Call</button>
+          <button class="strategy-btn" data-strategy="bull-spread">Bull Call Spread</button>
+          <button class="strategy-btn" data-strategy="bear-spread">Bear Put Spread</button>
+          <button class="strategy-btn" data-strategy="iron-condor">Iron Condor</button>
+          <button class="strategy-btn" data-strategy="straddle">Long Straddle</button>
+          <button class="strategy-btn" data-strategy="strangle">Long Strangle</button>
+        </div>
+
+        <!-- Builder -->
+        <div class="builder">
+          <div class="legs-panel">
+            <div class="underlying-input">
+              <div class="form-group">
+                <label>Underlying Price</label>
+                <input type="number" id="underlyingPrice" value="100" step="0.01">
+              </div>
+            </div>
+            <h3>Position Legs</h3>
+            <div id="legsContainer"></div>
+            <button class="btn add-leg-btn" id="addLegBtn">+ Add Leg</button>
+          </div>
+
+          <div class="results-panel">
+            <div class="stats-row" id="statsRow"></div>
+            <div class="payoff-chart-container">
+              <h3>Payoff at Expiration</h3>
+              <div class="payoff-canvas-wrapper">
+                <canvas id="payoffChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="mailto:nealpathak@icloud.com">Email</a></li>
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // State
+    // ==============================
+    let legs = [];
+    let payoffChart = null;
+    let legIdCounter = 0;
+
+    const underlyingInput = document.getElementById('underlyingPrice');
+    const legsContainer = document.getElementById('legsContainer');
+    const addLegBtn = document.getElementById('addLegBtn');
+    const strategyBtns = document.querySelectorAll('.strategy-btn');
+
+    // ==============================
+    // Preset Strategies
+    // ==============================
+    const presets = {
+      'custom': () => {
+        legs = [];
+        addLeg({ type: 'call', direction: 'long', strike: 105, premium: 3.00, qty: 1 });
+      },
+      'long-call': () => {
+        legs = [];
+        addLeg({ type: 'call', direction: 'long', strike: 105, premium: 3.00, qty: 1 });
+      },
+      'long-put': () => {
+        legs = [];
+        addLeg({ type: 'put', direction: 'long', strike: 95, premium: 2.50, qty: 1 });
+      },
+      'covered-call': () => {
+        legs = [];
+        addLeg({ type: 'stock', direction: 'long', strike: 0, premium: 0, qty: 100 });
+        addLeg({ type: 'call', direction: 'short', strike: 110, premium: 2.50, qty: 1 });
+      },
+      'bull-spread': () => {
+        legs = [];
+        addLeg({ type: 'call', direction: 'long', strike: 100, premium: 5.00, qty: 1 });
+        addLeg({ type: 'call', direction: 'short', strike: 110, premium: 2.00, qty: 1 });
+      },
+      'bear-spread': () => {
+        legs = [];
+        addLeg({ type: 'put', direction: 'long', strike: 100, premium: 5.00, qty: 1 });
+        addLeg({ type: 'put', direction: 'short', strike: 90, premium: 2.00, qty: 1 });
+      },
+      'iron-condor': () => {
+        legs = [];
+        addLeg({ type: 'put', direction: 'long', strike: 85, premium: 0.80, qty: 1 });
+        addLeg({ type: 'put', direction: 'short', strike: 90, premium: 2.00, qty: 1 });
+        addLeg({ type: 'call', direction: 'short', strike: 110, premium: 2.00, qty: 1 });
+        addLeg({ type: 'call', direction: 'long', strike: 115, premium: 0.80, qty: 1 });
+      },
+      'straddle': () => {
+        legs = [];
+        addLeg({ type: 'call', direction: 'long', strike: 100, premium: 4.00, qty: 1 });
+        addLeg({ type: 'put', direction: 'long', strike: 100, premium: 3.50, qty: 1 });
+      },
+      'strangle': () => {
+        legs = [];
+        addLeg({ type: 'call', direction: 'long', strike: 110, premium: 2.00, qty: 1 });
+        addLeg({ type: 'put', direction: 'long', strike: 90, premium: 1.50, qty: 1 });
+      },
+    };
+
+    // ==============================
+    // Leg Management
+    // ==============================
+    function addLeg(config = {}) {
+      const id = ++legIdCounter;
+      const leg = {
+        id,
+        type: config.type || 'call',
+        direction: config.direction || 'long',
+        strike: config.strike || 100,
+        premium: config.premium || 2.00,
+        qty: config.qty || 1,
+      };
+      legs.push(leg);
+      renderLegs();
+      recalculate();
+    }
+
+    function removeLeg(id) {
+      legs = legs.filter(l => l.id !== id);
+      renderLegs();
+      recalculate();
+    }
+
+    function updateLeg(id, field, value) {
+      const leg = legs.find(l => l.id === id);
+      if (leg) {
+        leg[field] = field === 'type' || field === 'direction' ? value : parseFloat(value) || 0;
+        recalculate();
+      }
+    }
+
+    function renderLegs() {
+      legsContainer.innerHTML = legs.map(leg => `
+        <div class="leg" data-id="${leg.id}">
+          <div class="leg__header">
+            <span class="leg__title">Leg ${legs.indexOf(leg) + 1}${leg.type === 'stock' ? ' (Stock)' : ''}</span>
+            ${legs.length > 1 ? `<button class="leg__remove" onclick="window._removeLeg(${leg.id})">Remove</button>` : ''}
+          </div>
+          <div class="leg__fields">
+            <div class="form-group">
+              <label>Type</label>
+              <select onchange="window._updateLeg(${leg.id},'type',this.value)">
+                <option value="call" ${leg.type === 'call' ? 'selected' : ''}>Call</option>
+                <option value="put" ${leg.type === 'put' ? 'selected' : ''}>Put</option>
+                <option value="stock" ${leg.type === 'stock' ? 'selected' : ''}>Stock</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Direction</label>
+              <select onchange="window._updateLeg(${leg.id},'direction',this.value)">
+                <option value="long" ${leg.direction === 'long' ? 'selected' : ''}>Long</option>
+                <option value="short" ${leg.direction === 'short' ? 'selected' : ''}>Short</option>
+              </select>
+            </div>
+            ${leg.type !== 'stock' ? `
+            <div class="form-group">
+              <label>Strike</label>
+              <input type="number" value="${leg.strike}" step="0.50" onchange="window._updateLeg(${leg.id},'strike',this.value)">
+            </div>
+            <div class="form-group">
+              <label>Premium</label>
+              <input type="number" value="${leg.premium}" step="0.05" onchange="window._updateLeg(${leg.id},'premium',this.value)">
+            </div>
+            ` : `
+            <div class="form-group">
+              <label>Shares</label>
+              <input type="number" value="${leg.qty}" step="1" onchange="window._updateLeg(${leg.id},'qty',this.value)">
+            </div>
+            <div class="form-group"></div>
+            `}
+            ${leg.type !== 'stock' ? `
+            <div class="form-group">
+              <label>Contracts</label>
+              <input type="number" value="${leg.qty}" step="1" min="1" onchange="window._updateLeg(${leg.id},'qty',this.value)">
+            </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Expose to inline handlers
+    window._removeLeg = removeLeg;
+    window._updateLeg = updateLeg;
+
+    // ==============================
+    // P&L Calculation
+    // ==============================
+    function calcPnL(price) {
+      let total = 0;
+      legs.forEach(leg => {
+        const dir = leg.direction === 'long' ? 1 : -1;
+        const multiplier = leg.type === 'stock' ? 1 : 100;
+        const qty = leg.qty;
+
+        if (leg.type === 'stock') {
+          const underlying = parseFloat(underlyingInput.value) || 100;
+          total += dir * qty * (price - underlying);
+        } else if (leg.type === 'call') {
+          const intrinsic = Math.max(0, price - leg.strike);
+          total += dir * qty * multiplier * (intrinsic - leg.premium);
+        } else if (leg.type === 'put') {
+          const intrinsic = Math.max(0, leg.strike - price);
+          total += dir * qty * multiplier * (intrinsic - leg.premium);
+        }
+      });
+      return total;
+    }
+
+    function recalculate() {
+      const underlying = parseFloat(underlyingInput.value) || 100;
+
+      // Determine price range
+      const strikes = legs.filter(l => l.type !== 'stock').map(l => l.strike);
+      const allPrices = [underlying, ...strikes];
+      const minRef = Math.min(...allPrices);
+      const maxRef = Math.max(...allPrices);
+      const range = Math.max(maxRef - minRef, 10);
+      const lo = Math.max(0, minRef - range * 0.8);
+      const hi = maxRef + range * 0.8;
+
+      // Generate data points
+      const step = (hi - lo) / 300;
+      const prices = [];
+      const pnls = [];
+      for (let p = lo; p <= hi; p += step) {
+        prices.push(Math.round(p * 100) / 100);
+        pnls.push(Math.round(calcPnL(p) * 100) / 100);
+      }
+
+      // Find key stats
+      const maxProfit = Math.max(...pnls);
+      const maxLoss = Math.min(...pnls);
+      const pnlAtUnderlying = calcPnL(underlying);
+
+      // Find breakevens (where P&L crosses zero)
+      const breakevens = [];
+      for (let i = 1; i < pnls.length; i++) {
+        if ((pnls[i - 1] <= 0 && pnls[i] >= 0) || (pnls[i - 1] >= 0 && pnls[i] <= 0)) {
+          // Linear interpolation
+          const ratio = Math.abs(pnls[i - 1]) / (Math.abs(pnls[i - 1]) + Math.abs(pnls[i]));
+          breakevens.push((prices[i - 1] + ratio * (prices[i] - prices[i - 1])).toFixed(2));
+        }
+      }
+
+      // Net premium
+      let netPremium = 0;
+      legs.forEach(l => {
+        if (l.type !== 'stock') {
+          const dir = l.direction === 'long' ? -1 : 1;
+          netPremium += dir * l.qty * 100 * l.premium;
+        }
+      });
+
+      renderStats(maxProfit, maxLoss, breakevens, netPremium);
+      renderChart(prices, pnls, underlying, breakevens);
+    }
+
+    // ==============================
+    // Render Stats
+    // ==============================
+    function renderStats(maxProfit, maxLoss, breakevens, netPremium) {
+      const statsRow = document.getElementById('statsRow');
+      const isMaxProfitUnlimited = maxProfit > 100000;
+      const isMaxLossUnlimited = maxLoss < -100000;
+
+      statsRow.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-card__label">Max Profit</div>
+          <div class="stat-card__value positive">${isMaxProfitUnlimited ? 'Unlimited' : '$' + maxProfit.toLocaleString()}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Max Loss</div>
+          <div class="stat-card__value negative">${isMaxLossUnlimited ? 'Unlimited' : '$' + maxLoss.toLocaleString()}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Breakeven${breakevens.length > 1 ? 's' : ''}</div>
+          <div class="stat-card__value neutral">${breakevens.length ? '$' + breakevens.join(', $') : 'N/A'}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Net Premium</div>
+          <div class="stat-card__value ${netPremium >= 0 ? 'positive' : 'negative'}">${netPremium >= 0 ? '+' : ''}$${netPremium.toLocaleString()}</div>
+        </div>
+      `;
+    }
+
+    // ==============================
+    // Render Chart
+    // ==============================
+    function renderChart(prices, pnls, underlying, breakevens) {
+      if (payoffChart) payoffChart.destroy();
+
+      // Create gradient
+      const ctx = document.getElementById('payoffChart').getContext('2d');
+
+      // Separate positive and negative for coloring
+      const positiveData = pnls.map(v => v >= 0 ? v : null);
+      const negativeData = pnls.map(v => v < 0 ? v : null);
+
+      payoffChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: prices,
+          datasets: [
+            {
+              label: 'P&L',
+              data: pnls,
+              borderColor: function(context) {
+                const val = context.raw;
+                return val >= 0 ? 'rgba(30, 132, 73, 0.9)' : 'rgba(192, 57, 43, 0.9)';
+              },
+              segment: {
+                borderColor: function(ctx) {
+                  const p0 = ctx.p0.parsed.y;
+                  const p1 = ctx.p1.parsed.y;
+                  if (p0 >= 0 && p1 >= 0) return 'rgba(30, 132, 73, 0.9)';
+                  if (p0 < 0 && p1 < 0) return 'rgba(192, 57, 43, 0.9)';
+                  return '#999';
+                }
+              },
+              backgroundColor: 'transparent',
+              borderWidth: 2.5,
+              pointRadius: 0,
+              pointHitRadius: 8,
+              tension: 0,
+              fill: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index',
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 12 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                title: items => 'Price: $' + parseFloat(items[0].label).toFixed(2),
+                label: item => {
+                  const val = item.parsed.y;
+                  return (val >= 0 ? 'Profit: +$' : 'Loss: -$') + Math.abs(val).toLocaleString();
+                }
+              }
+            },
+            annotation: undefined,
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#999',
+                maxTicksLimit: 10,
+                callback: function(val) {
+                  return '$' + parseFloat(this.getLabelForValue(val)).toFixed(0);
+                }
+              }
+            },
+            y: {
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#999',
+                callback: v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toLocaleString()
+              }
+            }
+          }
+        },
+        plugins: [{
+          // Draw zero line
+          afterDraw: (chart) => {
+            const yScale = chart.scales.y;
+            const xScale = chart.scales.x;
+            const zeroY = yScale.getPixelForValue(0);
+            const ctx = chart.ctx;
+
+            if (zeroY >= yScale.top && zeroY <= yScale.bottom) {
+              ctx.save();
+              ctx.strokeStyle = '#ccc';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([4, 4]);
+              ctx.beginPath();
+              ctx.moveTo(xScale.left, zeroY);
+              ctx.lineTo(xScale.right, zeroY);
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            // Draw underlying price marker
+            const underlyingIdx = chart.data.labels.findIndex(p => parseFloat(p) >= underlying);
+            if (underlyingIdx >= 0) {
+              const x = xScale.getPixelForValue(underlyingIdx);
+              ctx.save();
+              ctx.strokeStyle = '#999';
+              ctx.lineWidth = 1;
+              ctx.setLineDash([2, 2]);
+              ctx.beginPath();
+              ctx.moveTo(x, yScale.top);
+              ctx.lineTo(x, yScale.bottom);
+              ctx.stroke();
+
+              ctx.fillStyle = '#999';
+              ctx.font = '10px Inter';
+              ctx.textAlign = 'center';
+              ctx.fillText('Current', x, yScale.top - 4);
+              ctx.restore();
+            }
+          }
+        }]
+      });
+    }
+
+    // ==============================
+    // Event Listeners
+    // ==============================
+    strategyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        strategyBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const preset = presets[btn.dataset.strategy];
+        if (preset) preset();
+      });
+    });
+
+    addLegBtn.addEventListener('click', () => addLeg());
+    underlyingInput.addEventListener('input', recalculate);
+
+    // Initialize
+    presets['long-call']();
+
+  })();
+  </script>
+</body>
+</html>

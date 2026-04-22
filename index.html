@@ -1,161 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Neal Pathak's Portfolio - Legal Tools, Finance Tools, Data Visualizations, and Web Games">
-    <meta name="author" content="Neal Pathak">
-    <title>Neal Pathak - Portfolio</title>
-    <link rel="stylesheet" href="assets/css/styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neal Pathak</title>
+  <meta name="description" content="Legal operations, risk analytics, and financial modeling tools built by Neal Pathak.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/shared.css">
+  <style>
+    /* --- Landing Page --- */
+    .hero {
+      padding: var(--space-4xl) 0 var(--space-3xl);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.25rem, 5vw, 3.5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .hero__subtitle {
+      font-size: var(--text-lg);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-lg);
+      max-width: 560px;
+      line-height: 1.6;
+    }
+
+    .hero__cta {
+      margin-top: var(--space-xl);
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .hero__cta a {
+      color: var(--color-text);
+      font-weight: 500;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 1px;
+    }
+
+    .hero__cta a:hover {
+      border-color: var(--color-text);
+    }
+
+    /* --- Category Sections --- */
+    .categories {
+      padding: var(--space-2xl) 0 var(--space-4xl);
+    }
+
+    .category {
+      padding: var(--space-2xl) 0;
+    }
+
+    .category + .category {
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .category__header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .category__title {
+      font-size: var(--text-lg);
+      font-weight: 600;
+    }
+
+    .category__count {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .category__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--space-lg);
+    }
+
+    .project-card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .project-card .card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .project-card__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .project-card__desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .project-card__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+
+    .project-card__tags {
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .project-card__tag {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-family: var(--font-mono);
+    }
+
+    .project-card__arrow {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      transition: transform var(--transition-fast), color var(--transition-fast);
+    }
+
+    .project-card:hover .project-card__arrow {
+      transform: translateX(3px);
+      color: var(--color-text);
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .hero {
+        padding: var(--space-3xl) 0 var(--space-2xl);
+      }
+
+      .category__grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <h2>Neal Pathak</h2>
-            </div>
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="#home" class="nav-link">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#legal-tools" class="nav-link">Legal Tools</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#finance-tools" class="nav-link">Finance Tools</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#data-viz" class="nav-link">Data Visualizations</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#games" class="nav-link">Web Games</a>
-                </li>
-                <li class="nav-item">
-                    <a href="#about" class="nav-link">About</a>
-                </li>
-            </ul>
-            <div class="hamburger">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </div>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="#risk-analytics">Risk</a></li>
+        <li><a href="#financial-modeling">Finance</a></li>
+        <li><a href="#data-intelligence">Data</a></li>
+        <li><a href="#simulations">Simulations</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Neal Pathak</h1>
+        <p class="hero__subtitle">
+          I build tools for legal operations, risk analysis, and financial modeling. Currently leading legal ops and claims management at a captive insurance operation in Houston.
+        </p>
+        <p class="hero__cta">
+          Open to consulting &mdash; <a href="mailto:nealpathak@icloud.com">get in touch</a>
+        </p>
+      </div>
+    </section>
+
+    <section class="categories">
+      <div class="container">
+
+        <!-- Risk Analytics -->
+        <div class="category" id="risk-analytics">
+          <div class="category__header">
+            <h2 class="category__title">Risk Analytics</h2>
+            <span class="category__count">1 tool</span>
+          </div>
+          <div class="category__grid">
+            <a href="risk-analytics/loss-run-analyzer/" class="project-card">
+              <div class="card">
+                <span class="category-badge category-badge--risk">Risk</span>
+                <h3 class="project-card__title">Loss Run Analyzer</h3>
+                <p class="project-card__desc">
+                  Parse and visualize insurance loss run data. Analyze claim frequency, severity distributions, development patterns, and exposure trends across policy periods.
+                </p>
+                <div class="project-card__meta">
+                  <div class="project-card__tags">
+                    <span class="project-card__tag">claims</span>
+                    <span class="project-card__tag">insurance</span>
+                    <span class="project-card__tag">analytics</span>
+                  </div>
+                  <span class="project-card__arrow">&rarr;</span>
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
-    </nav>
 
-    <main>
-        <section id="home" class="hero">
-            <div class="hero-content">
-                <h1>Welcome to My Digital Toolkit</h1>
-                <p class="hero-description">
-                    Explore a collection of practical tools, interactive visualizations, and engaging web applications 
-                    designed to solve real-world problems and provide insights across legal, financial, and data domains.
+        <!-- Financial Modeling -->
+        <div class="category" id="financial-modeling">
+          <div class="category__header">
+            <h2 class="category__title">Financial Modeling</h2>
+            <span class="category__count">1 tool</span>
+          </div>
+          <div class="category__grid">
+            <a href="financial-modeling/options-calculator/" class="project-card">
+              <div class="card">
+                <span class="category-badge category-badge--finance">Finance</span>
+                <h3 class="project-card__title">Options P&L Calculator</h3>
+                <p class="project-card__desc">
+                  Model single-leg and multi-leg options strategies. Visualize payoff diagrams, calculate breakevens, max risk, and reward profiles across strike prices.
                 </p>
-                <a href="#legal-tools" class="cta-button">Explore Projects</a>
-            </div>
-        </section>
-
-        <section id="legal-tools" class="section">
-            <div class="container">
-                <h2 class="section-title">Legal Tools</h2>
-                <p class="section-description">
-                    Professional utilities and calculators designed to assist with legal research, document analysis, and case management.
-                </p>
-                <div class="project-grid">
-                    <div class="project-card">
-                        <h3>Statute of Limitations Calculator</h3>
-                        <p>Calculate critical legal deadlines across different jurisdictions and case types. Includes special circumstances and detailed explanations.</p>
-                        <a href="legal-tools/statute-calculator.html" class="project-link">Calculate Deadlines</a>
-                    </div>
+                <div class="project-card__meta">
+                  <div class="project-card__tags">
+                    <span class="project-card__tag">options</span>
+                    <span class="project-card__tag">derivatives</span>
+                    <span class="project-card__tag">P&L</span>
+                  </div>
+                  <span class="project-card__arrow">&rarr;</span>
                 </div>
-            </div>
-        </section>
-
-        <section id="finance-tools" class="section">
-            <div class="container">
-                <h2 class="section-title">Finance Tools</h2>
-                <p class="section-description">
-                    Comprehensive financial calculators and analysis tools for investment planning, risk assessment, and market analysis.
-                </p>
-                <div class="project-grid">
-                    <div class="project-card">
-                        <h3>Compound Interest Calculator</h3>
-                        <p>Visualize the power of compound interest with interactive charts, scenarios, and detailed growth projections for your investments.</p>
-                        <a href="finance-tools/compound-calculator.html" class="project-link">Calculate Growth</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="data-viz" class="section">
-            <div class="container">
-                <h2 class="section-title">Data Visualizations</h2>
-                <p class="section-description">
-                    Interactive charts, dashboards, and data stories that transform complex information into clear insights.
-                </p>
-                <div class="project-grid">
-                    <div class="project-card">
-                        <h3>VIX vs SPY Market Dashboard</h3>
-                        <p>Interactive visualization of market volatility (VIX) vs S&P 500 (SPY) with real-time data, correlation analysis, and volatility regime tracking.</p>
-                        <a href="data-viz/market-dashboard.html" class="project-link">View Dashboard</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="games" class="section">
-            <div class="container">
-                <h2 class="section-title">Web Games</h2>
-                <p class="section-description">
-                    Engaging interactive experiences that combine entertainment with educational value.
-                </p>
-                <div class="project-grid">
-                    <div class="project-card">
-                        <h3>Snake Game</h3>
-                        <p>Classic arcade game with smooth controls and high score tracking. Control the snake to eat food and grow longer!</p>
-                        <a href="games/snake.html" class="project-link">Play Now</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="about" class="section">
-            <div class="container">
-                <h2 class="section-title">About</h2>
-                <div class="about-content">
-                    <div class="about-text">
-                        <p>
-                            Welcome to my digital portfolio! This collection represents my passion for creating practical, 
-                            user-friendly tools that bridge the gap between complex domains and accessible technology.
-                        </p>
-                        <p>
-                            Whether you're looking for legal utilities, financial calculators, data insights, or just 
-                            want to explore some interactive web applications, you'll find something here to engage with.
-                        </p>
-                        <p>
-                            Each project is designed with user experience in mind, combining functionality with clean, 
-                            intuitive design. As new tools and features are developed, they'll be added to this growing collection.
-                        </p>
-                    </div>
-                    <div class="contact-info">
-                        <h3>Get In Touch</h3>
-                        <div class="contact-links">
-                            <a href="https://github.com/nealpathak" target="_blank" class="contact-link">GitHub</a>
-                            <a href="https://linkedin.com/in/nealpathak" target="_blank" class="contact-link">LinkedIn</a>
-                            <a href="mailto:contact@nealpathak.com" class="contact-link">Email</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 Neal Pathak. All rights reserved.</p>
-            <p>Built with HTML, CSS, and JavaScript | Hosted on GitHub Pages</p>
+              </div>
+            </a>
+          </div>
         </div>
-    </footer>
 
-    <script src="assets/js/script.js"></script>
+        <!-- Data Intelligence -->
+        <div class="category" id="data-intelligence">
+          <div class="category__header">
+            <h2 class="category__title">Data Intelligence</h2>
+            <span class="category__count">1 tool</span>
+          </div>
+          <div class="category__grid">
+            <a href="data-intelligence/volatility-surface/" class="project-card">
+              <div class="card">
+                <span class="category-badge category-badge--data">Data</span>
+                <h3 class="project-card__title">Volatility Surface Explorer</h3>
+                <p class="project-card__desc">
+                  Interactive visualization of implied volatility across strikes and expirations. Explore the vol smile, term structure, and surface dynamics that drive options pricing.
+                </p>
+                <div class="project-card__meta">
+                  <div class="project-card__tags">
+                    <span class="project-card__tag">volatility</span>
+                    <span class="project-card__tag">options</span>
+                    <span class="project-card__tag">3D</span>
+                  </div>
+                  <span class="project-card__arrow">&rarr;</span>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Simulations -->
+        <div class="category" id="simulations">
+          <div class="category__header">
+            <h2 class="category__title">Simulations</h2>
+            <span class="category__count">1 tool</span>
+          </div>
+          <div class="category__grid">
+            <a href="simulations/market-maker/" class="project-card">
+              <div class="card">
+                <span class="category-badge category-badge--sim">Simulation</span>
+                <h3 class="project-card__title">Market Maker</h3>
+                <p class="project-card__desc">
+                  Play as a market maker. Set bid-ask spreads, manage inventory risk, and try to profit from the spread while navigating informed traders and volatile markets.
+                </p>
+                <div class="project-card__meta">
+                  <div class="project-card__tags">
+                    <span class="project-card__tag">trading</span>
+                    <span class="project-card__tag">game</span>
+                    <span class="project-card__tag">strategy</span>
+                  </div>
+                  <span class="project-card__arrow">&rarr;</span>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="mailto:nealpathak@icloud.com">Email</a></li>
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://linkedin.com/in/nealpathak" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </footer>
 </body>
 </html>

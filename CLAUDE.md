@@ -1,89 +1,66 @@
-# Portfolio Website Development Progress
+# Neal Pathak — Personal Site
 
-## Project Overview
-GitHub Pages portfolio showcasing legal tools, finance tools, data visualizations, and web games.
+## Overview
+Personal site showcasing risk analytics, financial modeling, data intelligence, and simulation tools.
 **Repository**: nealpathak.github.io
 **Hosting**: GitHub Pages
-**Tech Stack**: Vanilla HTML/CSS/JS for compatibility
+**Tech Stack**: Vanilla HTML/CSS/JS, Chart.js v3.9.1
+**Design**: Minimal, clean, Apple/Stripe-inspired. Inter font, system design tokens in shared.css.
 
-## Current Status: Mobile Optimization Phase
+## Site Goals
+- Professional presence when someone Googles "Neal Pathak"
+- Position toward director/C-suite trajectory in legal ops, risk, insurance
+- Signal consulting availability for tools, automated workflows, systems
+- Each tool has a mini case study explaining the "why" before the tool itself
 
-### ✅ Completed Applications
-1. **Snake Game** (`games/`)
-   - Fully functional with keyboard/touch controls
-   - High score persistence
-   - Mobile-responsive canvas
+## Categories & Tools
 
-2. **VIX vs SPY Market Dashboard** (`data-viz/`)
-   - Interactive charts with Chart.js v3.9.1
-   - Multiple timeframe views
-   - Correlation analysis and volatility metrics
+### Risk Analytics (`/risk-analytics/`)
+- **Loss Run Analyzer** — Parse insurance loss run CSV data, visualize claim frequency, severity distributions, development triangles, exposure by period. Demo data included.
 
-3. **Statute of Limitations Calculator** (`legal-tools/`)
-   - Multi-jurisdiction support
-   - Special circumstances handling
-   - Form validation
+### Financial Modeling (`/financial-modeling/`)
+- **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, covered call, spreads, iron condor, straddle, strangle.
 
-4. **Compound Interest Calculator** (`finance-tools/`)
-   - Interactive investment scenarios
-   - Chart visualizations
-   - Real-time calculations
+### Data Intelligence (`/data-intelligence/`)
+- **Volatility Surface Explorer** — Interactive 3D implied volatility surface with adjustable parameters (base IV, skew, term slope, smile curvature). Regime presets (normal, fear, complacent, crash). 2D slice charts for smile and term structure.
 
-### 🔧 Recent Bug Fixes
-- Fixed invisible project buttons (missing CSS variable)
-- Resolved Market Dashboard infinite loading
-- Fixed Snake game immediate death on start
-- Corrected currency input field styling
-
-## 📱 Current Focus: Mobile Responsiveness
-**Status**: Planning phase complete, ready for implementation
-
-### Planned Mobile Improvements
-1. **Core Navigation & Layout**
-   - Audit main portfolio page mobile responsiveness
-   - Test mobile navigation and hamburger menu
-
-2. **Application-Specific Mobile Enhancements**
-   - Improve Snake game mobile touch controls
-   - Optimize Market Dashboard for mobile screens
-   - Enhance Legal Calculator mobile usability
-   - Improve Finance Calculator mobile experience
-
-3. **Polish & Testing**
-   - Optimize mobile typography and spacing
-   - Test touch interactions across all applications
-
-## Key Technical Decisions
-- **Chart.js v3.9.1**: Chosen for stability over v4+ due to time scale issues
-- **CSS Variables**: Used throughout for consistent theming
-- **LocalStorage**: For persistent high scores and settings
-- **Responsive Design**: Mobile-first approach with breakpoints at 480px, 768px, 1024px
-- **Touch Events**: Implemented for mobile game controls
+### Simulations (`/simulations/`)
+- **Market Maker** — Trading simulation. Set bid-ask spreads, manage inventory risk, profit from spread while navigating informed vs noise traders. Three difficulty levels, 50-round sessions.
 
 ## File Structure
 ```
 /
-├── index.html (main portfolio page)
-├── assets/css/styles.css (global styles)
-├── games/ (Snake game)
-├── data-viz/ (Market dashboard)
-├── legal-tools/ (Statute calculator)
-├── finance-tools/ (Compound calculator)
-└── CLAUDE.md (this file)
+├── index.html                              (landing page)
+├── assets/css/shared.css                   (design system)
+├── risk-analytics/loss-run-analyzer/       (Loss Run Analyzer)
+├── financial-modeling/options-calculator/   (Options P&L Calculator)
+├── data-intelligence/volatility-surface/   (Volatility Surface Explorer)
+├── simulations/market-maker/               (Market Maker game)
+├── Neal_Pathak_Resume.pdf
+├── CLAUDE.md
+└── README.md
 ```
 
-## Development Commands
-- **Testing**: Open index.html in browser (no build process required)
-- **Deployment**: Git push to main branch (auto-deploys to GitHub Pages)
+## Design System
+- **Font**: Inter (Google Fonts)
+- **Colors**: Neutral palette, category accent colors (Risk=red, Finance=blue, Data=green, Sim=purple)
+- **CSS Variables**: Comprehensive design tokens in shared.css
+- **Responsive**: Breakpoints at 480px, 768px, 1024px
+- **Charts**: Chart.js v3.9.1 with consistent styling across tools
 
-## Next Session Tasks
-1. Begin mobile responsiveness audit
-2. Implement touch interaction improvements
-3. Test across multiple device sizes
-4. Update this file with progress
+## Technical Decisions
+- Vanilla HTML/CSS/JS — no build process, deploys directly to GitHub Pages
+- Single-file tools (HTML with embedded CSS/JS) for simplicity
+- Shared design system via shared.css for consistency
+- Chart.js v3.9.1 for all data visualization
+- Each tool folder has its own index.html for clean URLs
 
-## Notes
-- All core functionality working perfectly
-- Site successfully deployed and accessible
-- Ready for mobile optimization phase
-- No build process - pure static site for GitHub Pages compatibility
+## Development
+- **Testing**: Open any index.html in browser
+- **Deployment**: Git push to main (auto-deploys to GitHub Pages)
+- **Adding a new tool**: Create folder under category, add index.html, link from landing page
+
+## Next Steps
+- Mobile responsiveness testing and polish
+- Consider adding more tools per category
+- Potential additions: litigation cost estimator, contract portfolio tracker, Monte Carlo simulator

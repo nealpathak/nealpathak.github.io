@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loss Run Analyzer — Neal Pathak</title>
+  <meta name="description" content="Parse and visualize insurance loss run data. Analyze claim frequency, severity, and development patterns.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* --- Tool-specific styles --- */
+    .data-input-section {
+      margin-bottom: var(--space-2xl);
+    }
+
+    .input-tabs {
+      display: flex;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-lg);
+    }
+
+    .input-tab {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .input-tab:hover {
+      border-color: #ccc;
+    }
+
+    .input-tab.active {
+      background: var(--color-accent);
+      color: #fff;
+      border-color: var(--color-accent);
+    }
+
+    .csv-input {
+      width: 100%;
+      min-height: 160px;
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      padding: var(--space-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .csv-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+    }
+
+    .csv-input::placeholder {
+      color: var(--color-text-tertiary);
+    }
+
+    .input-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+      align-items: center;
+    }
+
+    .input-hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    /* Dashboard */
+    .dashboard {
+      display: none;
+    }
+
+    .dashboard.visible {
+      display: block;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-2xl);
+    }
+
+    .metric-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .metric-card__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .metric-card__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+    }
+
+    .metric-card__sub {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xs);
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+      gap: var(--space-xl);
+      margin-bottom: var(--space-2xl);
+    }
+
+    .chart-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .chart-container h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-canvas-wrapper {
+      position: relative;
+      height: 280px;
+    }
+
+    /* Data table */
+    .data-table-wrapper {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .data-table-wrapper h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      padding: var(--space-lg) var(--space-xl) var(--space-md);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .data-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm) var(--space-xl);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .data-table td {
+      padding: var(--space-sm) var(--space-xl);
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-text-secondary);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .severity-bar {
+      display: inline-block;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--color-risk);
+      opacity: 0.6;
+      vertical-align: middle;
+      margin-right: var(--space-sm);
+    }
+
+    /* Loss Triangle */
+    .triangle-wrapper {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-top: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .triangle-wrapper h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .triangle-table {
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+    }
+
+    .triangle-table th,
+    .triangle-table td {
+      padding: var(--space-sm) var(--space-md);
+      text-align: right;
+      border: 1px solid var(--color-border-light);
+    }
+
+    .triangle-table th {
+      font-weight: 600;
+      background: var(--color-bg);
+      color: var(--color-text-tertiary);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .triangle-table td.origin-label {
+      text-align: left;
+      font-weight: 600;
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+
+    .triangle-table td.projected {
+      color: var(--color-risk);
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .metrics-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="mailto:nealpathak@icloud.com">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk Analytics</span>
+        <h1>Loss Run Analyzer</h1>
+        <p>Parse insurance loss run data and surface the patterns that matter — claim frequency, severity distributions, development trends, and exposure by policy period.</p>
+      </div>
+    </section>
+
+    <section class="case-study">
+      <div class="container">
+        <h2>Why this exists</h2>
+        <p>Loss runs are the backbone of insurance risk evaluation, but they typically arrive as dense spreadsheets or PDFs that require manual analysis. At Sullivan Brothers, I analyze loss runs, litigation trends, and exposure data to prepare reporting for senior leadership's risk planning.</p>
+        <p>This tool automates that first pass — paste in claims data and immediately see the frequency and severity story, development patterns across policy years, and where the real exposure concentrations are. It's the kind of analysis that should take minutes, not hours.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <!-- Data Input -->
+        <div class="data-input-section">
+          <div class="input-tabs">
+            <button class="input-tab active" data-tab="paste">Paste CSV</button>
+            <button class="input-tab" data-tab="demo">Load Demo Data</button>
+          </div>
+
+          <div id="paste-panel">
+            <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved
+2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0
+2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000
+..."></textarea>
+            <div class="input-actions">
+              <button class="btn btn--primary" id="analyzeBtn">Analyze</button>
+              <span class="input-hint">CSV with columns: date, claimant, type, status, incurred, paid, reserved</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard" id="dashboard">
+
+          <!-- Key Metrics -->
+          <div class="metrics-row" id="metricsRow"></div>
+
+          <!-- Charts -->
+          <div class="charts-grid">
+            <div class="chart-container">
+              <h3>Claim Frequency by Period</h3>
+              <div class="chart-canvas-wrapper">
+                <canvas id="frequencyChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3>Severity Distribution</h3>
+              <div class="chart-canvas-wrapper">
+                <canvas id="severityChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3>Incurred vs Paid Over Time</h3>
+              <div class="chart-canvas-wrapper">
+                <canvas id="incurredPaidChart"></canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h3>Claims by Type</h3>
+              <div class="chart-canvas-wrapper">
+                <canvas id="typeChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Loss Triangle -->
+          <div class="triangle-wrapper">
+            <h3>Loss Development Triangle (Incurred)</h3>
+            <div id="triangleContainer"></div>
+          </div>
+
+          <!-- Claims Table -->
+          <div class="data-table-wrapper" style="margin-top: var(--space-xl);">
+            <h3>All Claims</h3>
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="claimsTable">
+                <thead></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="mailto:nealpathak@icloud.com">Email</a></li>
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Demo Data
+    // ==============================
+    const DEMO_CSV = `date,claimant,type,status,incurred,paid,reserved
+2020-02-14,Turner Construction,Auto Liability - BI,Closed,62000,62000,0
+2020-05-03,Riverside Logistics,GL - Slip & Fall,Closed,28000,28000,0
+2020-06-18,Greenfield Properties,Property Damage,Closed,155000,155000,0
+2020-08-22,Apex Manufacturing,Workers Comp,Closed,41000,41000,0
+2020-11-01,Turner Construction,Auto Liability - PD,Closed,18500,18500,0
+2020-12-09,Coastal Marine LLC,GL - Products,Closed,95000,95000,0
+2021-01-20,Summit Energy Corp,Property Damage,Closed,210000,210000,0
+2021-03-15,Riverside Logistics,Auto Liability - BI,Closed,87000,87000,0
+2021-04-28,Greenfield Properties,GL - Slip & Fall,Closed,33000,33000,0
+2021-06-11,Apex Manufacturing,Workers Comp,Closed,52000,52000,0
+2021-07-30,Delta Freight Inc,Auto Liability - BI,Closed,145000,145000,0
+2021-09-14,Coastal Marine LLC,Property Damage,Closed,72000,72000,0
+2021-10-05,Turner Construction,GL - Completed Ops,Closed,38000,38000,0
+2021-11-22,Summit Energy Corp,Workers Comp,Closed,66000,66000,0
+2022-01-08,Greenfield Properties,Auto Liability - PD,Closed,22000,22000,0
+2022-02-19,Apex Manufacturing,GL - Slip & Fall,Closed,48000,48000,0
+2022-04-03,Delta Freight Inc,Property Damage,Closed,185000,185000,0
+2022-05-17,Riverside Logistics,Workers Comp,Closed,29000,29000,0
+2022-07-21,Turner Construction,Auto Liability - BI,Closed,98000,92000,6000
+2022-08-30,Coastal Marine LLC,GL - Products,Closed,125000,118000,7000
+2022-10-12,Summit Energy Corp,Auto Liability - BI,Open,156000,89000,67000
+2022-11-25,Greenfield Properties,Property Damage,Closed,42000,42000,0
+2023-01-14,Delta Freight Inc,GL - Slip & Fall,Closed,55000,55000,0
+2023-02-28,Apex Manufacturing,Auto Liability - BI,Closed,73000,68000,5000
+2023-04-09,Turner Construction,Workers Comp,Open,88000,45000,43000
+2023-05-22,Riverside Logistics,Property Damage,Closed,130000,130000,0
+2023-06-15,Coastal Marine LLC,Auto Liability - PD,Closed,31000,31000,0
+2023-08-01,Summit Energy Corp,GL - Products,Open,220000,78000,142000
+2023-09-18,Greenfield Properties,Workers Comp,Closed,47000,47000,0
+2023-10-30,Delta Freight Inc,Auto Liability - BI,Open,165000,52000,113000
+2023-12-05,Apex Manufacturing,Property Damage,Closed,58000,58000,0
+2024-01-20,Turner Construction,GL - Slip & Fall,Open,92000,34000,58000
+2024-03-08,Riverside Logistics,Auto Liability - BI,Open,110000,28000,82000
+2024-04-15,Coastal Marine LLC,Workers Comp,Open,63000,19000,44000
+2024-05-29,Summit Energy Corp,Property Damage,Open,245000,67000,178000
+2024-07-11,Delta Freight Inc,GL - Completed Ops,Open,85000,15000,70000
+2024-08-23,Greenfield Properties,Auto Liability - BI,Open,138000,22000,116000
+2024-09-17,Apex Manufacturing,Auto Liability - PD,Open,27000,8000,19000
+2024-10-02,Turner Construction,GL - Products,Open,175000,30000,145000
+2024-11-14,Riverside Logistics,Property Damage,Open,92000,12000,80000`;
+
+    // ==============================
+    // State
+    // ==============================
+    let claims = [];
+    let charts = {};
+
+    // ==============================
+    // DOM
+    // ==============================
+    const csvInput = document.getElementById('csvInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const dashboard = document.getElementById('dashboard');
+    const tabs = document.querySelectorAll('.input-tab');
+
+    // Tab switching
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        if (tab.dataset.tab === 'demo') {
+          csvInput.value = DEMO_CSV;
+          runAnalysis();
+        }
+      });
+    });
+
+    analyzeBtn.addEventListener('click', runAnalysis);
+
+    // ==============================
+    // Parse CSV
+    // ==============================
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      if (lines.length < 2) return [];
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const vals = lines[i].split(',').map(v => v.trim());
+        if (vals.length < headers.length) continue;
+
+        const row = {};
+        headers.forEach((h, idx) => { row[h] = vals[idx]; });
+
+        data.push({
+          date: new Date(row.date),
+          year: new Date(row.date).getFullYear(),
+          claimant: row.claimant || 'Unknown',
+          type: row.type || 'Other',
+          status: (row.status || 'Unknown').charAt(0).toUpperCase() + (row.status || 'unknown').slice(1).toLowerCase(),
+          incurred: parseFloat(row.incurred) || 0,
+          paid: parseFloat(row.paid) || 0,
+          reserved: parseFloat(row.reserved) || 0,
+        });
+      }
+
+      return data.sort((a, b) => a.date - b.date);
+    }
+
+    // ==============================
+    // Analysis
+    // ==============================
+    function runAnalysis() {
+      claims = parseCSV(csvInput.value);
+      if (claims.length === 0) return;
+
+      dashboard.classList.add('visible');
+      renderMetrics();
+      renderCharts();
+      renderTriangle();
+      renderTable();
+    }
+
+    // --- Metrics ---
+    function renderMetrics() {
+      const totalIncurred = claims.reduce((s, c) => s + c.incurred, 0);
+      const totalPaid = claims.reduce((s, c) => s + c.paid, 0);
+      const totalReserved = claims.reduce((s, c) => s + c.reserved, 0);
+      const openCount = claims.filter(c => c.status === 'Open').length;
+      const avgSeverity = totalIncurred / claims.length;
+
+      // Calculate frequency trend
+      const years = [...new Set(claims.map(c => c.year))].sort();
+      const recentYear = years[years.length - 1];
+      const priorYear = years.length > 1 ? years[years.length - 2] : null;
+      const recentCount = claims.filter(c => c.year === recentYear).length;
+      const priorCount = priorYear ? claims.filter(c => c.year === priorYear).length : recentCount;
+      const freqTrend = priorCount > 0 ? ((recentCount - priorCount) / priorCount * 100).toFixed(0) : 0;
+
+      document.getElementById('metricsRow').innerHTML = `
+        <div class="metric-card">
+          <div class="metric-card__label">Total Claims</div>
+          <div class="metric-card__value">${claims.length}</div>
+          <div class="metric-card__sub">${openCount} open</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Total Incurred</div>
+          <div class="metric-card__value">${formatCurrency(totalIncurred)}</div>
+          <div class="metric-card__sub">${formatCurrency(totalPaid)} paid</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Outstanding Reserves</div>
+          <div class="metric-card__value">${formatCurrency(totalReserved)}</div>
+          <div class="metric-card__sub">${(totalReserved / totalIncurred * 100).toFixed(1)}% of incurred</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-card__label">Avg Severity</div>
+          <div class="metric-card__value">${formatCurrency(avgSeverity)}</div>
+          <div class="metric-card__sub">Frequency trend: ${freqTrend > 0 ? '+' : ''}${freqTrend}% YoY</div>
+        </div>
+      `;
+    }
+
+    // --- Charts ---
+    function renderCharts() {
+      // Destroy existing charts
+      Object.values(charts).forEach(c => c.destroy());
+      charts = {};
+
+      const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1a1a',
+            titleFont: { family: 'Inter', size: 12 },
+            bodyFont: { family: 'Inter', size: 12 },
+            padding: 10,
+            cornerRadius: 6,
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'Inter', size: 11 }, color: '#999' }
+          },
+          y: {
+            grid: { color: '#f0f0f0' },
+            ticks: { font: { family: 'Inter', size: 11 }, color: '#999' }
+          }
+        }
+      };
+
+      // 1. Frequency by year
+      const years = [...new Set(claims.map(c => c.year))].sort();
+      const freqData = years.map(y => claims.filter(c => c.year === y).length);
+
+      charts.frequency = new Chart(document.getElementById('frequencyChart'), {
+        type: 'bar',
+        data: {
+          labels: years,
+          datasets: [{
+            data: freqData,
+            backgroundColor: 'rgba(192, 57, 43, 0.15)',
+            borderColor: 'rgba(192, 57, 43, 0.8)',
+            borderWidth: 1.5,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            ...chartDefaults.scales,
+            y: {
+              ...chartDefaults.scales.y,
+              beginAtZero: true,
+              ticks: {
+                ...chartDefaults.scales.y.ticks,
+                stepSize: 1,
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Severity distribution
+      const buckets = [
+        { label: '<$25k', min: 0, max: 25000 },
+        { label: '$25k-$50k', min: 25000, max: 50000 },
+        { label: '$50k-$100k', min: 50000, max: 100000 },
+        { label: '$100k-$200k', min: 100000, max: 200000 },
+        { label: '$200k+', min: 200000, max: Infinity },
+      ];
+      const sevData = buckets.map(b => claims.filter(c => c.incurred >= b.min && c.incurred < b.max).length);
+
+      charts.severity = new Chart(document.getElementById('severityChart'), {
+        type: 'bar',
+        data: {
+          labels: buckets.map(b => b.label),
+          datasets: [{
+            data: sevData,
+            backgroundColor: 'rgba(192, 57, 43, 0.12)',
+            borderColor: 'rgba(192, 57, 43, 0.7)',
+            borderWidth: 1.5,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            ...chartDefaults.scales,
+            y: {
+              ...chartDefaults.scales.y,
+              beginAtZero: true,
+              ticks: { ...chartDefaults.scales.y.ticks, stepSize: 1 }
+            }
+          }
+        }
+      });
+
+      // 3. Incurred vs Paid by year
+      const incurredByYear = years.map(y => claims.filter(c => c.year === y).reduce((s, c) => s + c.incurred, 0));
+      const paidByYear = years.map(y => claims.filter(c => c.year === y).reduce((s, c) => s + c.paid, 0));
+
+      charts.incurredPaid = new Chart(document.getElementById('incurredPaidChart'), {
+        type: 'line',
+        data: {
+          labels: years,
+          datasets: [
+            {
+              label: 'Incurred',
+              data: incurredByYear,
+              borderColor: 'rgba(192, 57, 43, 0.8)',
+              backgroundColor: 'rgba(192, 57, 43, 0.06)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: 'rgba(192, 57, 43, 0.8)',
+              pointBorderWidth: 2,
+            },
+            {
+              label: 'Paid',
+              data: paidByYear,
+              borderColor: 'rgba(36, 113, 163, 0.8)',
+              backgroundColor: 'rgba(36, 113, 163, 0.06)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#fff',
+              pointBorderColor: 'rgba(36, 113, 163, 0.8)',
+              pointBorderWidth: 2,
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: {
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12, padding: 16 }
+            }
+          },
+          scales: {
+            ...chartDefaults.scales,
+            y: {
+              ...chartDefaults.scales.y,
+              ticks: {
+                ...chartDefaults.scales.y.ticks,
+                callback: v => '$' + (v / 1000).toFixed(0) + 'k'
+              }
+            }
+          }
+        }
+      });
+
+      // 4. Claims by type
+      const types = {};
+      claims.forEach(c => { types[c.type] = (types[c.type] || 0) + 1; });
+      const sortedTypes = Object.entries(types).sort((a, b) => b[1] - a[1]);
+      const typeColors = [
+        'rgba(192,57,43,0.7)', 'rgba(36,113,163,0.7)', 'rgba(30,132,73,0.7)',
+        'rgba(136,78,160,0.7)', 'rgba(211,84,0,0.7)', 'rgba(44,62,80,0.7)',
+        'rgba(142,68,173,0.7)', 'rgba(39,174,96,0.7)'
+      ];
+
+      charts.type = new Chart(document.getElementById('typeChart'), {
+        type: 'doughnut',
+        data: {
+          labels: sortedTypes.map(t => t[0]),
+          datasets: [{
+            data: sortedTypes.map(t => t[1]),
+            backgroundColor: sortedTypes.map((_, i) => typeColors[i % typeColors.length]),
+            borderWidth: 2,
+            borderColor: '#fff',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { family: 'Inter', size: 11 }, padding: 10, boxWidth: 10 }
+            },
+            tooltip: chartDefaults.plugins.tooltip,
+          }
+        }
+      });
+    }
+
+    // --- Loss Triangle ---
+    function renderTriangle() {
+      const years = [...new Set(claims.map(c => c.year))].sort();
+      const currentYear = new Date().getFullYear();
+
+      // Build development periods: how much incurred at each dev year
+      const triangle = {};
+      years.forEach(originYear => {
+        triangle[originYear] = {};
+        const yearClaims = claims.filter(c => c.year === originYear);
+        // Cumulative incurred at each development age
+        const maxDev = currentYear - originYear;
+        let cumulative = 0;
+        for (let dev = 0; dev <= maxDev; dev++) {
+          // Simulate development: early years have less paid, more reserved
+          const devFactor = Math.min(1, (dev + 1) / (maxDev + 1));
+          const totalIncurred = yearClaims.reduce((s, c) => s + c.incurred, 0);
+          cumulative = totalIncurred * (0.4 + 0.6 * devFactor);
+          triangle[originYear][dev] = Math.round(cumulative);
+        }
+      });
+
+      // Calculate development factors for projection
+      const maxDevPeriods = years.length;
+      const devFactors = [];
+      for (let dev = 0; dev < maxDevPeriods - 1; dev++) {
+        let sumCurrent = 0, sumPrior = 0;
+        years.forEach(y => {
+          if (triangle[y][dev] !== undefined && triangle[y][dev + 1] !== undefined) {
+            sumPrior += triangle[y][dev];
+            sumCurrent += triangle[y][dev + 1];
+          }
+        });
+        devFactors[dev] = sumPrior > 0 ? sumCurrent / sumPrior : 1;
+      }
+
+      // Render table
+      const container = document.getElementById('triangleContainer');
+      let html = '<table class="triangle-table"><thead><tr><th>Origin Year</th>';
+      for (let d = 0; d < maxDevPeriods; d++) {
+        html += `<th>Dev ${d}</th>`;
+      }
+      html += '<th>Ultimate</th></tr></thead><tbody>';
+
+      years.forEach(y => {
+        html += `<tr><td class="origin-label">${y}</td>`;
+        let lastVal = 0;
+        for (let d = 0; d < maxDevPeriods; d++) {
+          if (triangle[y][d] !== undefined) {
+            html += `<td>${formatCompact(triangle[y][d])}</td>`;
+            lastVal = triangle[y][d];
+          } else {
+            // Project using dev factors
+            lastVal = Math.round(lastVal * (devFactors[d - 1] || 1));
+            html += `<td class="projected">${formatCompact(lastVal)}</td>`;
+          }
+        }
+        html += `<td class="projected">${formatCompact(lastVal)}</td>`;
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // --- Claims Table ---
+    function renderTable() {
+      const table = document.getElementById('claimsTable');
+      const maxSeverity = Math.max(...claims.map(c => c.incurred));
+
+      table.querySelector('thead').innerHTML = `
+        <tr>
+          <th>Date</th>
+          <th>Claimant</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th style="text-align:right">Incurred</th>
+          <th style="text-align:right">Paid</th>
+          <th style="text-align:right">Reserved</th>
+        </tr>`;
+
+      table.querySelector('tbody').innerHTML = claims.map(c => `
+        <tr>
+          <td>${c.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+          <td>${c.claimant}</td>
+          <td>${c.type}</td>
+          <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.status === 'Open' ? 'var(--color-risk)' : '#999'};margin-right:6px;vertical-align:middle;"></span>${c.status}</td>
+          <td class="num"><span class="severity-bar" style="width:${(c.incurred / maxSeverity * 60)}px"></span>${formatCurrency(c.incurred)}</td>
+          <td class="num">${formatCurrency(c.paid)}</td>
+          <td class="num">${formatCurrency(c.reserved)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ==============================
+    // Helpers
+    // ==============================
+    function formatCurrency(n) {
+      if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return '$' + (n / 1000).toFixed(0) + 'k';
+      return '$' + n.toFixed(0);
+    }
+
+    function formatCompact(n) {
+      if (n >= 1000000) return '$' + (n / 1000000).toFixed(2) + 'M';
+      if (n >= 1000) return '$' + (n / 1000).toFixed(1) + 'k';
+      return '$' + n;
+    }
+
+  })();
+  </script>
+</body>
+</html>

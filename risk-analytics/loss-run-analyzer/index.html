@@ -1141,11 +1141,22 @@
     }
 
     // --- Claims Table ---
+    const TABLE_LIMIT = 50;
+    let tableShowAll = false;
+
     function renderTable() {
       const table = document.getElementById('claimsTable');
       const maxSeverity = Math.max(...claims.map(c => c.incurred));
-
       const hasPolicies = claims.some(c => c.policy);
+      const visible = tableShowAll ? claims : claims.slice(0, TABLE_LIMIT);
+      const hasMore = claims.length > TABLE_LIMIT;
+
+      // Update heading
+      const tableHeader = table.closest('.data-table-wrapper').querySelector('h3');
+      tableHeader.textContent = hasMore && !tableShowAll
+        ? `Claims (showing ${TABLE_LIMIT} of ${claims.length})`
+        : `All Claims (${claims.length})`;
+
       table.querySelector('thead').innerHTML = `
         <tr>
           <th>Date</th>
@@ -1158,7 +1169,7 @@
           <th style="text-align:right">Reserved</th>
         </tr>`;
 
-      table.querySelector('tbody').innerHTML = claims.map(c => `
+      table.querySelector('tbody').innerHTML = visible.map(c => `
         <tr>
           <td>${c.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
           ${hasPolicies ? `<td style="font-family:var(--font-mono);font-size:var(--text-xs)">${c.policy || '—'}</td>` : ''}
@@ -1170,6 +1181,26 @@
           <td class="num">${formatCurrency(c.reserved)}</td>
         </tr>
       `).join('');
+
+      // Show/hide toggle
+      const wrapper = table.closest('.data-table-wrapper');
+      let toggle = wrapper.querySelector('.table-toggle');
+      if (hasMore) {
+        if (!toggle) {
+          toggle = document.createElement('button');
+          toggle.className = 'btn table-toggle';
+          toggle.style.margin = 'var(--space-md) var(--space-xl) var(--space-lg)';
+          wrapper.appendChild(toggle);
+          toggle.addEventListener('click', () => {
+            tableShowAll = !tableShowAll;
+            renderTable();
+          });
+        }
+        toggle.textContent = tableShowAll ? 'Show less' : `Show all ${claims.length} claims`;
+        toggle.style.display = '';
+      } else if (toggle) {
+        toggle.style.display = 'none';
+      }
     }
 
     // --- Policy Erosion ---

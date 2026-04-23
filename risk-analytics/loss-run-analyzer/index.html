@@ -12,6 +12,17 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
     /* --- Tool-specific styles --- */
+    .privacy-note {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+    }
+
+    .privacy-note::before {
+      content: '\1F512 ';
+      font-size: var(--text-xs);
+    }
+
     .data-input-section {
       margin-bottom: var(--space-2xl);
     }
@@ -342,6 +353,7 @@
         <span class="category-badge category-badge--risk">Risk Analytics</span>
         <h1>Loss Run Analyzer</h1>
         <p>Parse insurance loss run data and surface the patterns that matter — claim frequency, severity distributions, development trends, and exposure by policy period.</p>
+        <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
       </div>
     </section>
 
@@ -572,9 +584,11 @@
         fileCSVData = e.target.result;
         fileNameEl.textContent = file.name;
         fileNameEl.style.display = 'block';
-        fileHint.textContent = file.name + ' loaded. Click Analyze to proceed.';
-        fileHint.style.color = 'var(--color-data)';
         analyzeFileBtn.disabled = false;
+
+        // Auto-analyze on file load
+        csvInput.value = fileCSVData;
+        runAnalysis();
       };
       reader.readAsText(file);
     }

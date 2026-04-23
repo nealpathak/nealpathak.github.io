@@ -706,7 +706,7 @@
 
       renderStats(maxProfit, maxLoss, breakevens, netPremium, pnlAtUnderlying, riskReward, isMaxProfitUnlimited, isMaxLossUnlimited);
       renderChart(prices, pnls, underlying, strikes);
-      renderSummary(netPremium);
+      renderSummary();
     }
 
     // ==============================
@@ -748,16 +748,18 @@
     // ==============================
     // Render Summary Table
     // ==============================
-    function renderSummary(netPremium) {
+    function renderSummary() {
       const tbody = document.getElementById('summaryBody');
       const underlying = parseFloat(underlyingInput.value) || 100;
 
-      tbody.innerHTML = legs.map((leg, i) => {
+      let totalCost = 0;
+      const rows = legs.map((leg, i) => {
         const isStock = leg.type === 'stock';
         const dir = leg.direction;
         const cost = isStock
           ? (dir === 'long' ? -1 : 1) * leg.qty * underlying
           : (dir === 'long' ? -1 : 1) * leg.qty * 100 * leg.premium;
+        totalCost += cost;
         return `
           <tr>
             <td>${i + 1}</td>
@@ -769,11 +771,13 @@
             <td class="num">${cost >= 0 ? '+' : ''}$${cost.toLocaleString()}</td>
           </tr>
         `;
-      }).join('') + `
+      });
+
+      tbody.innerHTML = rows.join('') + `
         <tr style="font-weight:600; border-top: 2px solid var(--color-border);">
           <td colspan="6">Net Position Cost</td>
-          <td class="num" style="color: ${netPremium >= 0 ? 'var(--color-data)' : 'var(--color-risk)'}">
-            ${netPremium >= 0 ? '+' : ''}$${netPremium.toLocaleString()}
+          <td class="num" style="color: ${totalCost >= 0 ? 'var(--color-data)' : 'var(--color-risk)'}">
+            ${totalCost >= 0 ? '+' : ''}$${totalCost.toLocaleString()}
           </td>
         </tr>
       `;

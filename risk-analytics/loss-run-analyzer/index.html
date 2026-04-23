@@ -268,8 +268,8 @@
       margin-right: var(--space-sm);
     }
 
-    /* Loss Triangle */
-    .triangle-wrapper {
+    /* Claims Heatmap */
+    .heatmap-wrapper {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
@@ -278,27 +278,32 @@
       overflow-x: auto;
     }
 
-    .triangle-wrapper h3 {
+    .heatmap-wrapper h3 {
       font-size: var(--text-base);
       font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .heatmap-desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
       margin-bottom: var(--space-lg);
     }
 
-    .triangle-table {
+    .heatmap-table {
       border-collapse: collapse;
       font-size: var(--text-sm);
-      font-family: var(--font-mono);
-      white-space: nowrap;
+      width: 100%;
     }
 
-    .triangle-table th,
-    .triangle-table td {
+    .heatmap-table th,
+    .heatmap-table td {
       padding: var(--space-sm) var(--space-md);
       text-align: right;
       border: 1px solid var(--color-border-light);
     }
 
-    .triangle-table th {
+    .heatmap-table th {
       font-weight: 600;
       background: var(--color-bg);
       color: var(--color-text-tertiary);
@@ -307,16 +312,25 @@
       letter-spacing: 0.04em;
     }
 
-    .triangle-table td.origin-label {
+    .heatmap-table td.row-label {
       text-align: left;
-      font-weight: 600;
+      font-weight: 500;
       color: var(--color-text);
       background: var(--color-bg);
+      white-space: nowrap;
     }
 
-    .triangle-table td.projected {
-      color: var(--color-risk);
-      font-style: italic;
+    .heatmap-table td.heatmap-cell {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      transition: background var(--transition-fast);
+    }
+
+    .heatmap-table td.row-total {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      background: var(--color-bg);
     }
 
     /* Policy Erosion */
@@ -553,10 +567,11 @@
             </div>
           </div>
 
-          <!-- Loss Triangle -->
-          <div class="triangle-wrapper">
-            <h3>Loss Development Triangle (Incurred)</h3>
-            <div id="triangleContainer"></div>
+          <!-- Claims Heatmap -->
+          <div class="heatmap-wrapper">
+            <h3>Incurred by Type &amp; Year</h3>
+            <p class="heatmap-desc">Darker cells indicate higher incurred amounts. Helps identify which claim types drive the most cost in each period.</p>
+            <div id="heatmapContainer"></div>
           </div>
 
           <!-- Policy Erosion -->
@@ -830,7 +845,7 @@
       dashboard.classList.add('visible');
       renderMetrics();
       renderCharts();
-      renderTriangle();
+      renderHeatmap();
       renderErosionInputs();
       renderTable();
 
@@ -1079,66 +1094,67 @@
       });
     }
 
-    // --- Loss Triangle ---
-    function renderTriangle() {
+    // --- Claims Heatmap ---
+    function renderHeatmap() {
       const years = [...new Set(claims.map(c => c.year))].sort();
-      const currentYear = new Date().getFullYear();
+      const types = [...new Set(claims.map(c => c.type))];
 
-      // Build development periods: how much incurred at each dev year
-      const triangle = {};
-      years.forEach(originYear => {
-        triangle[originYear] = {};
-        const yearClaims = claims.filter(c => c.year === originYear);
-        // Cumulative incurred at each development age
-        const maxDev = currentYear - originYear;
-        let cumulative = 0;
-        for (let dev = 0; dev <= maxDev; dev++) {
-          // Simulate development: early years have less paid, more reserved
-          const devFactor = Math.min(1, (dev + 1) / (maxDev + 1));
-          const totalIncurred = yearClaims.reduce((s, c) => s + c.incurred, 0);
-          cumulative = totalIncurred * (0.4 + 0.6 * devFactor);
-          triangle[originYear][dev] = Math.round(cumulative);
-        }
+      // Sort types by total incurred (highest first)
+      const typeTotals = {};
+      types.forEach(t => {
+        typeTotals[t] = claims.filter(c => c.type === t).reduce((s, c) => s + c.incurred, 0);
+      });
+      types.sort((a, b) => typeTotals[b] - typeTotals[a]);
+
+      // Build the data grid
+      const grid = {};
+      let maxVal = 0;
+      types.forEach(t => {
+        grid[t] = {};
+        years.forEach(y => {
+          const val = claims.filter(c => c.type === t && c.year === y).reduce((s, c) => s + c.incurred, 0);
+          grid[t][y] = val;
+          if (val > maxVal) maxVal = val;
+        });
       });
 
-      // Calculate development factors for projection
-      const maxDevPeriods = years.length;
-      const devFactors = [];
-      for (let dev = 0; dev < maxDevPeriods - 1; dev++) {
-        let sumCurrent = 0, sumPrior = 0;
-        years.forEach(y => {
-          if (triangle[y][dev] !== undefined && triangle[y][dev + 1] !== undefined) {
-            sumPrior += triangle[y][dev];
-            sumCurrent += triangle[y][dev + 1];
-          }
-        });
-        devFactors[dev] = sumPrior > 0 ? sumCurrent / sumPrior : 1;
-      }
-
-      // Render table
-      const container = document.getElementById('triangleContainer');
-      let html = '<table class="triangle-table"><thead><tr><th>Origin Year</th>';
-      for (let d = 0; d < maxDevPeriods; d++) {
-        html += `<th>Dev ${d}</th>`;
-      }
-      html += '<th>Ultimate</th></tr></thead><tbody>';
-
+      // Year totals
+      const yearTotals = {};
       years.forEach(y => {
-        html += `<tr><td class="origin-label">${y}</td>`;
-        let lastVal = 0;
-        for (let d = 0; d < maxDevPeriods; d++) {
-          if (triangle[y][d] !== undefined) {
-            html += `<td>${formatCompact(triangle[y][d])}</td>`;
-            lastVal = triangle[y][d];
-          } else {
-            // Project using dev factors
-            lastVal = Math.round(lastVal * (devFactors[d - 1] || 1));
-            html += `<td class="projected">${formatCompact(lastVal)}</td>`;
-          }
-        }
-        html += `<td class="projected">${formatCompact(lastVal)}</td>`;
+        yearTotals[y] = claims.filter(c => c.year === y).reduce((s, c) => s + c.incurred, 0);
+      });
+
+      function heatColor(val) {
+        if (val === 0) return 'transparent';
+        const intensity = Math.min(val / maxVal, 1);
+        // Red heatmap: lighter for low, darker for high
+        const alpha = 0.08 + intensity * 0.45;
+        return 'rgba(192, 57, 43, ' + alpha.toFixed(2) + ')';
+      }
+
+      const container = document.getElementById('heatmapContainer');
+      let html = '<table class="heatmap-table"><thead><tr><th style="text-align:left">Claim Type</th>';
+      years.forEach(y => { html += `<th>${y}</th>`; });
+      html += '<th>Total</th></tr></thead><tbody>';
+
+      types.forEach(t => {
+        html += `<tr><td class="row-label">${t}</td>`;
+        years.forEach(y => {
+          const val = grid[t][y];
+          html += `<td class="heatmap-cell" style="background:${heatColor(val)}">${val > 0 ? formatCompact(val) : '—'}</td>`;
+        });
+        html += `<td class="row-total">${formatCompact(typeTotals[t])}</td>`;
         html += '</tr>';
       });
+
+      // Footer row with year totals
+      html += '<tr style="font-weight:600; border-top: 2px solid var(--color-border);"><td class="row-label">Total</td>';
+      years.forEach(y => {
+        html += `<td class="row-total">${formatCompact(yearTotals[y])}</td>`;
+      });
+      const grandTotal = Object.values(typeTotals).reduce((s, v) => s + v, 0);
+      html += `<td class="row-total">${formatCompact(grandTotal)}</td>`;
+      html += '</tr>';
 
       html += '</tbody></table>';
       container.innerHTML = html;

@@ -1,7 +1,7 @@
 # Neal Pathak — Personal Site
 
 ## Overview
-Personal site showcasing risk analytics, financial modeling, data intelligence, and simulation tools.
+Personal site showcasing risk analytics, financial modeling, and data intelligence tools.
 **Repository**: nealpathak.github.io
 **Hosting**: GitHub Pages
 **Tech Stack**: Vanilla HTML/CSS/JS, Chart.js v3.9.1
@@ -10,22 +10,18 @@ Personal site showcasing risk analytics, financial modeling, data intelligence, 
 ## Site Goals
 - Professional presence when someone Googles "Neal Pathak"
 - Position toward director/C-suite trajectory in legal ops, risk, insurance
-- Signal consulting availability for tools, automated workflows, systems
-- Each tool has a mini case study explaining the "why" before the tool itself
+- Completely anonymous besides full name — no personal details, no email, no case studies
 
 ## Categories & Tools
 
 ### Risk Analytics (`/risk-analytics/`)
-- **Loss Run Analyzer** — Parse insurance loss run CSV data, visualize claim frequency, severity distributions, development triangles, exposure by period. Demo data included.
+- **Loss Run Analyzer** — Parse insurance loss run CSV data, visualize claim frequency, severity distributions, development triangles, exposure by period. Drag-and-drop CSV upload. Policy erosion analysis with user-entered aggregate limits. Demo data included.
 
 ### Financial Modeling (`/financial-modeling/`)
-- **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, covered call, spreads, iron condor, straddle, strangle.
+- **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
 
 ### Data Intelligence (`/data-intelligence/`)
-- **Volatility Surface Explorer** — Interactive 3D implied volatility surface with adjustable parameters (base IV, skew, term slope, smile curvature). Regime presets (normal, fear, complacent, crash). 2D slice charts for smile and term structure.
-
-### Simulations (`/simulations/`)
-- **Market Maker** — Trading simulation. Set bid-ask spreads, manage inventory risk, profit from spread while navigating informed vs noise traders. Three difficulty levels, 50-round sessions.
+- **Monte Carlo Simulator** — Simulate thousands of price paths using geometric Brownian motion. Visualize distribution of outcomes, percentile paths, probability of profit. Presets for S&P 500, growth stocks, crypto, bond funds.
 
 ## File Structure
 ```
@@ -34,8 +30,7 @@ Personal site showcasing risk analytics, financial modeling, data intelligence, 
 ├── assets/css/shared.css                   (design system)
 ├── risk-analytics/loss-run-analyzer/       (Loss Run Analyzer)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
-├── data-intelligence/volatility-surface/   (Volatility Surface Explorer)
-├── simulations/market-maker/               (Market Maker game)
+├── data-intelligence/monte-carlo/          (Monte Carlo Simulator)
 ├── Neal_Pathak_Resume.pdf
 ├── CLAUDE.md
 └── README.md
@@ -43,7 +38,7 @@ Personal site showcasing risk analytics, financial modeling, data intelligence, 
 
 ## Design System
 - **Font**: Inter (Google Fonts)
-- **Colors**: Neutral palette, category accent colors (Risk=red, Finance=blue, Data=green, Sim=purple)
+- **Colors**: Neutral palette, category accent colors (Risk=red, Finance=blue, Data=green)
 - **CSS Variables**: Comprehensive design tokens in shared.css
 - **Responsive**: Breakpoints at 480px, 768px, 1024px
 - **Charts**: Chart.js v3.9.1 with consistent styling across tools
@@ -54,13 +49,9 @@ Personal site showcasing risk analytics, financial modeling, data intelligence, 
 - Shared design system via shared.css for consistency
 - Chart.js v3.9.1 for all data visualization
 - Each tool folder has its own index.html for clean URLs
+- All tools run client-side only — no data leaves the browser
 
 ## Development
 - **Testing**: Open any index.html in browser
 - **Deployment**: Git push to main (auto-deploys to GitHub Pages)
 - **Adding a new tool**: Create folder under category, add index.html, link from landing page
-
-## Next Steps
-- Mobile responsiveness testing and polish
-- Consider adding more tools per category
-- Potential additions: litigation cost estimator, contract portfolio tracker, Monte Carlo simulator

@@ -45,6 +45,57 @@
       border-color: var(--color-accent);
     }
 
+    .drop-zone {
+      position: relative;
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      margin-bottom: var(--space-lg);
+      background: var(--color-surface);
+    }
+
+    .drop-zone:hover {
+      border-color: #ccc;
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--color-accent);
+      background: rgba(10, 10, 10, 0.02);
+    }
+
+    .drop-zone__text {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      pointer-events: none;
+    }
+
+    .drop-zone__text strong {
+      color: var(--color-text);
+    }
+
+    .drop-zone__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xs);
+      pointer-events: none;
+    }
+
+    .drop-zone__file-input {
+      display: none;
+    }
+
+    .drop-zone__filename {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-data);
+      margin-top: var(--space-sm);
+      display: none;
+      pointer-events: none;
+    }
+
     .csv-input {
       width: 100%;
       min-height: 160px;
@@ -300,11 +351,25 @@
         <!-- Data Input -->
         <div class="data-input-section">
           <div class="input-tabs">
-            <button class="input-tab active" data-tab="paste">Paste CSV</button>
+            <button class="input-tab active" data-tab="upload">Upload / Drop CSV</button>
+            <button class="input-tab" data-tab="paste">Paste CSV</button>
             <button class="input-tab" data-tab="demo">Load Demo Data</button>
           </div>
 
-          <div id="paste-panel">
+          <div id="upload-panel">
+            <div class="drop-zone" id="dropZone">
+              <input type="file" accept=".csv,.txt" class="drop-zone__file-input" id="fileInput">
+              <div class="drop-zone__text"><strong>Drop a CSV file here</strong> or click to browse</div>
+              <div class="drop-zone__sub">Expects columns: date, claimant, type, status, incurred, paid, reserved</div>
+              <div class="drop-zone__filename" id="fileName"></div>
+            </div>
+            <div class="input-actions">
+              <button class="btn btn--primary" id="analyzeFileBtn" disabled>Analyze</button>
+              <span class="input-hint" id="fileHint">No file selected.</span>
+            </div>
+          </div>
+
+          <div id="paste-panel" style="display:none;">
             <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved
 2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0
 2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000" aria-label="CSV claims data input"></textarea>
@@ -434,25 +499,91 @@
     // ==============================
     let claims = [];
     let charts = {};
+    let fileCSVData = '';
 
     // ==============================
     // DOM
     // ==============================
     const csvInput = document.getElementById('csvInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
+    const analyzeFileBtn = document.getElementById('analyzeFileBtn');
     const dashboard = document.getElementById('dashboard');
     const tabs = document.querySelectorAll('.input-tab');
+    const uploadPanel = document.getElementById('upload-panel');
+    const pastePanel = document.getElementById('paste-panel');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const fileHint = document.getElementById('fileHint');
 
     // Tab switching
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
+
+        uploadPanel.style.display = tab.dataset.tab === 'upload' ? 'block' : 'none';
+        pastePanel.style.display = tab.dataset.tab === 'paste' ? 'block' : 'none';
+
         if (tab.dataset.tab === 'demo') {
+          uploadPanel.style.display = 'none';
+          pastePanel.style.display = 'block';
           csvInput.value = DEMO_CSV;
           runAnalysis();
         }
       });
+    });
+
+    // ==============================
+    // Drag & Drop + File Upload
+    // ==============================
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (file) handleFile(file);
+    });
+
+    function handleFile(file) {
+      if (!file.name.match(/\.(csv|txt)$/i)) {
+        fileHint.textContent = 'Please upload a .csv or .txt file.';
+        fileHint.style.color = 'var(--color-risk)';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        fileCSVData = e.target.result;
+        fileNameEl.textContent = file.name;
+        fileNameEl.style.display = 'block';
+        fileHint.textContent = file.name + ' loaded. Click Analyze to proceed.';
+        fileHint.style.color = 'var(--color-data)';
+        analyzeFileBtn.disabled = false;
+      };
+      reader.readAsText(file);
+    }
+
+    analyzeFileBtn.addEventListener('click', () => {
+      if (fileCSVData) {
+        csvInput.value = fileCSVData;
+        runAnalysis();
+      }
     });
 
     analyzeBtn.addEventListener('click', runAnalysis);
@@ -511,16 +642,21 @@
     // ==============================
     const inputHint = document.getElementById('inputHint');
 
+    function getActiveHint() {
+      return uploadPanel.style.display !== 'none' ? fileHint : inputHint;
+    }
+
     function runAnalysis() {
       claims = parseCSV(csvInput.value);
+      const hint = getActiveHint();
       if (claims.length === 0) {
-        inputHint.textContent = 'No valid claims found. Check your CSV format and try again.';
-        inputHint.style.color = 'var(--color-risk)';
+        hint.textContent = 'No valid claims found. Check your CSV format and try again.';
+        hint.style.color = 'var(--color-risk)';
         return;
       }
 
-      inputHint.textContent = claims.length + ' claims parsed successfully.';
-      inputHint.style.color = 'var(--color-data)';
+      hint.textContent = claims.length + ' claims parsed successfully.';
+      hint.style.color = 'var(--color-data)';
 
       dashboard.classList.add('visible');
       renderMetrics();

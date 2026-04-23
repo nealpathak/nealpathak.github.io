@@ -16,9 +16,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <style>
     /* Strategy presets */
-    .strategy-section {
-      margin-bottom: var(--space-xl);
-    }
+    .strategy-section { margin-bottom: var(--space-xl); }
 
     .strategy-bar {
       display: flex;
@@ -56,158 +54,142 @@
       font-size: var(--text-sm);
       color: var(--color-text-tertiary);
       min-height: 1.4em;
-      transition: opacity var(--transition-fast);
     }
 
-    /* Builder layout */
-    .builder {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: var(--space-2xl);
-      align-items: start;
+    /* Position builder — full-width stacked */
+    .builder-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
     }
 
-    .legs-panel {
+    /* Underlying price row */
+    .underlying-row {
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: var(--space-lg);
-      position: sticky;
-      top: 80px;
-      max-height: calc(100vh - 100px);
-      overflow-y: auto;
-      z-index: 1;
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
     }
 
-    .legs-panel__header {
+    .underlying-row label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .underlying-row input {
+      width: 140px;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    /* Legs section */
+    .legs-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .legs-section__header {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
+      align-items: center;
       margin-bottom: var(--space-lg);
     }
 
-    .legs-panel__header h3 {
+    .legs-section__header h3 {
       font-size: var(--text-base);
       font-weight: 600;
     }
 
-    .legs-panel__count {
+    .legs-section__count {
       font-size: var(--text-xs);
       color: var(--color-text-tertiary);
     }
 
-    /* Underlying price */
-    .underlying-input {
-      margin-bottom: var(--space-lg);
-      padding-bottom: var(--space-lg);
+    /* Each leg = one horizontal row */
+    .leg-row {
+      display: flex;
+      align-items: end;
+      gap: var(--space-md);
+      padding: var(--space-md) 0;
       border-bottom: 1px solid var(--color-border-light);
+      flex-wrap: wrap;
     }
 
-    .underlying-input .form-group label {
-      font-size: var(--text-sm);
+    .leg-row:last-of-type { border-bottom: none; }
+
+    .leg-row .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 0 0 auto;
+    }
+
+    .leg-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
       font-weight: 500;
     }
 
-    .underlying-input input {
-      width: 100%;
-    }
-
-    /* Legs */
-    .leg {
-      padding: var(--space-md);
-      margin-bottom: var(--space-sm);
-      border: 1px solid var(--color-border-light);
-      border-radius: var(--radius-md);
-      background: var(--color-bg);
-      transition: border-color var(--transition-fast);
-    }
-
-    .leg:hover {
-      border-color: var(--color-border);
-    }
-
-    .leg__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-sm);
-    }
-
-    .leg__title {
+    .leg-row select,
+    .leg-row input[type="number"] {
       font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--color-text);
+      font-family: var(--font-sans);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
     }
 
-    .leg__title-detail {
-      font-weight: 400;
-      color: var(--color-text-tertiary);
-    }
+    .leg-row .fg-type select { width: 90px; }
+    .leg-row .fg-dir select { width: 90px; }
+    .leg-row .fg-strike input { width: 100px; }
+    .leg-row .fg-premium input { width: 100px; }
+    .leg-row .fg-qty input { width: 80px; }
+    .leg-row .fg-shares input { width: 90px; }
 
-    .leg__remove {
+    .leg-row__remove {
       font-size: var(--text-xs);
       color: var(--color-text-tertiary);
       background: none;
-      border: none;
+      border: 1px solid transparent;
       cursor: pointer;
       font-family: var(--font-sans);
-      padding: 2px 6px;
+      padding: var(--space-xs) var(--space-sm);
       border-radius: var(--radius-sm);
       transition: all var(--transition-fast);
+      min-height: 36px;
+      display: flex;
+      align-items: center;
     }
 
-    .leg__remove:hover {
+    .leg-row__remove:hover {
       color: var(--color-risk);
       background: rgba(192, 57, 43, 0.06);
-    }
-
-    .leg__fields {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-sm);
-    }
-
-    .leg__fields .form-group {
-      gap: 2px;
-    }
-
-    .leg__fields label {
-      font-size: var(--text-xs);
-      color: var(--color-text-tertiary);
-    }
-
-    .leg__fields input,
-    .leg__fields select {
-      font-size: var(--text-sm);
-      padding: var(--space-xs) var(--space-sm);
-      min-height: 34px;
+      border-color: rgba(192, 57, 43, 0.15);
     }
 
     .add-leg-btn {
-      width: 100%;
-      margin-top: var(--space-sm);
-      justify-content: center;
+      margin-top: var(--space-md);
       font-size: var(--text-sm);
-      padding: var(--space-sm);
+      padding: var(--space-sm) var(--space-lg);
       color: var(--color-text-tertiary);
       border-style: dashed;
     }
 
-    .add-leg-btn:hover {
-      color: var(--color-text);
-    }
+    .add-leg-btn:hover { color: var(--color-text); }
 
-    /* Results panel */
-    .results-panel {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xl);
-      min-width: 0;
-    }
-
+    /* Stats */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: var(--space-md);
     }
 
@@ -249,7 +231,6 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
-      overflow: hidden;
     }
 
     .payoff-chart-container h3 {
@@ -266,7 +247,7 @@
 
     .payoff-canvas-wrapper {
       position: relative;
-      height: 380px;
+      height: 400px;
       width: 100%;
     }
 
@@ -276,7 +257,6 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
-      overflow-x: auto;
     }
 
     .position-summary h3 {
@@ -289,7 +269,6 @@
       width: 100%;
       border-collapse: collapse;
       font-size: var(--text-sm);
-      table-layout: auto;
     }
 
     .position-summary-table th {
@@ -299,64 +278,51 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--color-text-tertiary);
-      padding: var(--space-sm) 0;
+      padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
       border-bottom: 1px solid var(--color-border);
     }
 
     .position-summary-table td {
-      padding: var(--space-sm) 0;
+      padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
       border-bottom: 1px solid var(--color-border-light);
       color: var(--color-text-secondary);
     }
 
-    .position-summary-table tr:last-child td {
-      border-bottom: none;
-    }
+    .position-summary-table tr:last-child td { border-bottom: none; }
 
     .position-summary-table .num {
       font-family: var(--font-mono);
       text-align: right;
+      padding-right: 0;
     }
 
-    .position-summary-table .long-tag {
-      color: var(--color-data);
-      font-weight: 500;
-    }
+    .position-summary-table .long-tag { color: var(--color-data); font-weight: 500; }
+    .position-summary-table .short-tag { color: var(--color-risk); font-weight: 500; }
 
-    .position-summary-table .short-tag {
-      color: var(--color-risk);
-      font-weight: 500;
-    }
-
-    /* Subtle scrollbar for legs panel */
-    .legs-panel::-webkit-scrollbar { width: 4px; }
-    .legs-panel::-webkit-scrollbar-track { background: transparent; }
-    .legs-panel::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
-
+    /* Responsive */
     @media (max-width: 900px) {
-      .builder {
-        grid-template-columns: 1fr;
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+
+      .leg-row {
+        gap: var(--space-sm);
       }
 
-      .legs-panel {
-        position: static;
-        max-height: none;
-        overflow-y: visible;
+      .underlying-row {
+        flex-direction: column;
+        align-items: stretch;
       }
 
-      .stats-row {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .underlying-row input { width: 100%; }
     }
 
     @media (max-width: 480px) {
-      .stats-row {
-        grid-template-columns: 1fr;
-      }
+      .stats-row { grid-template-columns: 1fr; }
 
-      .payoff-canvas-wrapper {
-        height: 280px;
-      }
+      .payoff-canvas-wrapper { height: 280px; }
     }
   </style>
 </head>
@@ -397,49 +363,54 @@
           <p class="strategy-desc" id="strategyDesc">Select a preset or build a custom strategy below.</p>
         </div>
 
-        <!-- Builder -->
-        <div class="builder">
-          <div class="legs-panel">
-            <div class="underlying-input">
-              <div class="form-group">
-                <label>Underlying Price</label>
-                <input type="number" id="underlyingPrice" value="100" step="0.01" min="0.01">
-              </div>
-            </div>
-            <div class="legs-panel__header">
+        <!-- Full-width stacked builder -->
+        <div class="builder-section">
+
+          <!-- Underlying price -->
+          <div class="underlying-row">
+            <label for="underlyingPrice">Underlying Price</label>
+            <input type="number" id="underlyingPrice" value="100" step="0.01" min="0.01">
+          </div>
+
+          <!-- Legs -->
+          <div class="legs-section">
+            <div class="legs-section__header">
               <h3>Position Legs</h3>
-              <span class="legs-panel__count" id="legCount"></span>
+              <span class="legs-section__count" id="legCount"></span>
             </div>
             <div id="legsContainer"></div>
             <button class="btn add-leg-btn" id="addLegBtn">+ Add Leg</button>
           </div>
 
-          <div class="results-panel">
-            <div class="stats-row" id="statsRow"></div>
-            <div class="payoff-chart-container">
-              <h3>Payoff at Expiration</h3>
-              <p class="chart-subtitle" id="chartSubtitle">Green = profit zone, red = loss zone. Dashed line marks the current underlying price.</p>
-              <div class="payoff-canvas-wrapper">
-                <canvas id="payoffChart"></canvas>
-              </div>
+          <!-- Stats -->
+          <div class="stats-row" id="statsRow"></div>
+
+          <!-- Chart -->
+          <div class="payoff-chart-container">
+            <h3>Payoff at Expiration</h3>
+            <p class="chart-subtitle">Green = profit zone, red = loss zone. Dashed line marks the current underlying price.</p>
+            <div class="payoff-canvas-wrapper">
+              <canvas id="payoffChart"></canvas>
             </div>
-            <div class="position-summary">
-              <h3>Position Summary</h3>
-              <table class="position-summary-table">
-                <thead>
-                  <tr>
-                    <th>Leg</th>
-                    <th>Type</th>
-                    <th>Direction</th>
-                    <th style="text-align:right">Strike</th>
-                    <th style="text-align:right">Premium</th>
-                    <th style="text-align:right">Qty</th>
-                    <th style="text-align:right">Cost</th>
-                  </tr>
-                </thead>
-                <tbody id="summaryBody"></tbody>
-              </table>
-            </div>
+          </div>
+
+          <!-- Position summary -->
+          <div class="position-summary">
+            <h3>Position Summary</h3>
+            <table class="position-summary-table">
+              <thead>
+                <tr>
+                  <th>Leg</th>
+                  <th>Type</th>
+                  <th>Direction</th>
+                  <th class="num">Strike</th>
+                  <th class="num">Premium</th>
+                  <th class="num">Qty</th>
+                  <th class="num">Cost</th>
+                </tr>
+              </thead>
+              <tbody id="summaryBody"></tbody>
+            </table>
           </div>
         </div>
 
@@ -551,7 +522,6 @@
 
     function removeLeg(id) {
       legs = legs.filter(l => l.id !== id);
-      // Clear active strategy since user is customizing
       strategyBtns.forEach(b => b.classList.remove('active'));
       strategyDesc.textContent = 'Custom strategy.';
       renderLegs();
@@ -562,47 +532,21 @@
       const leg = legs.find(l => l.id === id);
       if (leg) {
         leg[field] = field === 'type' || field === 'direction' ? value : parseFloat(value) || 0;
-        // If type changed, re-render to update fields
-        if (field === 'type') {
-          renderLegs();
-        } else {
-          // Update the leg title without full re-render
-          updateLegTitle(id);
-        }
-        // Clear active strategy
+        if (field === 'type') renderLegs();
         strategyBtns.forEach(b => b.classList.remove('active'));
         strategyDesc.textContent = 'Custom strategy.';
         recalculate();
       }
     }
 
-    function getLegLabel(leg) {
-      if (leg.type === 'stock') {
-        return leg.direction === 'long' ? 'Long Stock' : 'Short Stock';
-      }
-      const dir = leg.direction === 'long' ? 'Long' : 'Short';
-      const type = leg.type === 'call' ? 'Call' : 'Put';
-      return dir + ' ' + type + ' @ $' + leg.strike;
-    }
-
-    function updateLegTitle(id) {
-      const leg = legs.find(l => l.id === id);
-      if (!leg) return;
-      const el = legsContainer.querySelector(`.leg[data-id="${id}"] .leg__title`);
-      if (el) el.innerHTML = getLegLabel(leg);
-    }
-
     function renderLegs() {
       legCountEl.textContent = legs.length + (legs.length === 1 ? ' leg' : ' legs');
 
-      legsContainer.innerHTML = legs.map(leg => `
-        <div class="leg" data-id="${leg.id}">
-          <div class="leg__header">
-            <span class="leg__title">${getLegLabel(leg)}</span>
-            ${legs.length > 1 ? `<button class="leg__remove" onclick="window._removeLeg(${leg.id})" aria-label="Remove ${getLegLabel(leg)}">Remove</button>` : ''}
-          </div>
-          <div class="leg__fields">
-            <div class="form-group">
+      legsContainer.innerHTML = legs.map(leg => {
+        const isStock = leg.type === 'stock';
+        return `
+          <div class="leg-row" data-id="${leg.id}">
+            <div class="form-group fg-type">
               <label>Type</label>
               <select onchange="window._updateLeg(${leg.id},'type',this.value)">
                 <option value="call" ${leg.type === 'call' ? 'selected' : ''}>Call</option>
@@ -610,40 +554,38 @@
                 <option value="stock" ${leg.type === 'stock' ? 'selected' : ''}>Stock</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-group fg-dir">
               <label>Direction</label>
               <select onchange="window._updateLeg(${leg.id},'direction',this.value)">
                 <option value="long" ${leg.direction === 'long' ? 'selected' : ''}>Long</option>
                 <option value="short" ${leg.direction === 'short' ? 'selected' : ''}>Short</option>
               </select>
             </div>
-            ${leg.type !== 'stock' ? `
-            <div class="form-group">
+            ${!isStock ? `
+            <div class="form-group fg-strike">
               <label>Strike</label>
               <input type="number" value="${leg.strike}" step="0.50" min="0.01" oninput="window._updateLeg(${leg.id},'strike',this.value)">
             </div>
-            <div class="form-group">
+            <div class="form-group fg-premium">
               <label>Premium</label>
               <input type="number" value="${leg.premium}" step="0.05" min="0" oninput="window._updateLeg(${leg.id},'premium',this.value)">
             </div>
-            <div class="form-group">
+            <div class="form-group fg-qty">
               <label>Contracts</label>
               <input type="number" value="${leg.qty}" step="1" min="1" oninput="window._updateLeg(${leg.id},'qty',this.value)">
             </div>
-            <div class="form-group"></div>
             ` : `
-            <div class="form-group">
+            <div class="form-group fg-shares">
               <label>Shares</label>
               <input type="number" value="${leg.qty}" step="1" min="1" oninput="window._updateLeg(${leg.id},'qty',this.value)">
             </div>
-            <div class="form-group"></div>
             `}
+            ${legs.length > 1 ? `<button class="leg-row__remove" onclick="window._removeLeg(${leg.id})" aria-label="Remove leg">Remove</button>` : ''}
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
-    // Expose to inline handlers
     window._removeLeg = removeLeg;
     window._updateLeg = updateLeg;
 
@@ -692,9 +634,7 @@
         pnls.push(Math.round(calcPnL(p) * 100) / 100);
       }
 
-      // Detect unlimited profit/loss analytically by checking slope at edges
-      // If P&L is still rising at the right edge, profit is unlimited (e.g. long call, long stock)
-      // If P&L is still falling at the left edge (toward $0), compute actual loss at $0
+      // Detect unlimited profit/loss analytically
       const pnlFarRight = calcPnL(hi * 10);
       const pnlAtHi = calcPnL(hi);
       const isMaxProfitUnlimited = pnlFarRight > pnlAtHi + 1;
@@ -703,7 +643,6 @@
       const pnlAtLo = calcPnL(lo);
       const isMaxLossUnlimited = pnlFarLeft < pnlAtLo - 1;
 
-      // For bounded stats, also check P&L at $0 and at a very high price
       const pnlAtZero = calcPnL(0);
       const pnlAtVeryHigh = calcPnL(hi * 5);
       const allPnlPoints = [...pnls, pnlAtZero, pnlAtVeryHigh];
@@ -712,7 +651,7 @@
       const maxLoss = isMaxLossUnlimited ? -Infinity : Math.min(...allPnlPoints);
       const pnlAtUnderlying = Math.round(calcPnL(underlying) * 100) / 100;
 
-      // Find breakevens (where P&L crosses zero)
+      // Find breakevens
       const breakevens = [];
       for (let i = 1; i < pnls.length; i++) {
         if ((pnls[i - 1] <= 0 && pnls[i] >= 0) || (pnls[i - 1] >= 0 && pnls[i] <= 0)) {
@@ -721,7 +660,7 @@
         }
       }
 
-      // Net premium (debit/credit)
+      // Net premium
       let netPremium = 0;
       legs.forEach(l => {
         if (l.type !== 'stock') {
@@ -730,7 +669,7 @@
         }
       });
 
-      // Risk/reward ratio — only meaningful when both sides are bounded
+      // Risk/reward
       let riskReward = 'N/A';
       if (!isMaxProfitUnlimited && !isMaxLossUnlimited && maxLoss < 0 && maxProfit > 0) {
         riskReward = '1:' + (maxProfit / Math.abs(maxLoss)).toFixed(1);
@@ -832,41 +771,36 @@
         type: 'line',
         data: {
           labels: prices,
-          datasets: [
-            {
-              label: 'P&L',
-              data: pnls,
-              segment: {
-                borderColor: function(ctx) {
-                  const p0 = ctx.p0.parsed.y;
-                  const p1 = ctx.p1.parsed.y;
-                  if (p0 >= 0 && p1 >= 0) return 'rgba(30, 132, 73, 0.9)';
-                  if (p0 < 0 && p1 < 0) return 'rgba(192, 57, 43, 0.9)';
-                  return '#999';
-                },
-                backgroundColor: function(ctx) {
-                  const p0 = ctx.p0.parsed.y;
-                  const p1 = ctx.p1.parsed.y;
-                  if (p0 >= 0 && p1 >= 0) return 'rgba(30, 132, 73, 0.06)';
-                  if (p0 < 0 && p1 < 0) return 'rgba(192, 57, 43, 0.06)';
-                  return 'rgba(150, 150, 150, 0.03)';
-                }
+          datasets: [{
+            label: 'P&L',
+            data: pnls,
+            segment: {
+              borderColor: function(ctx) {
+                const p0 = ctx.p0.parsed.y;
+                const p1 = ctx.p1.parsed.y;
+                if (p0 >= 0 && p1 >= 0) return 'rgba(30, 132, 73, 0.9)';
+                if (p0 < 0 && p1 < 0) return 'rgba(192, 57, 43, 0.9)';
+                return '#999';
               },
-              borderWidth: 2.5,
-              pointRadius: 0,
-              pointHitRadius: 8,
-              tension: 0,
-              fill: 'origin',
-            }
-          ]
+              backgroundColor: function(ctx) {
+                const p0 = ctx.p0.parsed.y;
+                const p1 = ctx.p1.parsed.y;
+                if (p0 >= 0 && p1 >= 0) return 'rgba(30, 132, 73, 0.06)';
+                if (p0 < 0 && p1 < 0) return 'rgba(192, 57, 43, 0.06)';
+                return 'rgba(150, 150, 150, 0.03)';
+              }
+            },
+            borderWidth: 2.5,
+            pointRadius: 0,
+            pointHitRadius: 8,
+            tension: 0,
+            fill: 'origin',
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index',
-          },
+          interaction: { intersect: false, mode: 'index' },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -890,7 +824,7 @@
               ticks: {
                 font: { family: 'Inter', size: 11 },
                 color: '#999',
-                maxTicksLimit: 10,
+                maxTicksLimit: 12,
                 callback: function(val) {
                   return '$' + parseFloat(this.getLabelForValue(val)).toFixed(0);
                 }

@@ -18,11 +18,6 @@
       margin-top: var(--space-sm);
     }
 
-    .privacy-note::before {
-      content: '\1F512 ';
-      font-size: var(--text-xs);
-    }
-
     .data-input-section {
       margin-bottom: var(--space-2xl);
     }
@@ -320,6 +315,134 @@
       font-style: italic;
     }
 
+    /* Policy Erosion */
+    .erosion-desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .erosion-limits {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .erosion-limit-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      background: var(--color-bg);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border-light);
+    }
+
+    .erosion-limit-row label {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-text);
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    .erosion-limit-row input {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text);
+      width: 100%;
+      min-width: 0;
+    }
+
+    .erosion-limit-row input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+    }
+
+    .erosion-limit-row .erosion-claim-count {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      white-space: nowrap;
+    }
+
+    .erosion-bars {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .erosion-bar-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .erosion-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .erosion-bar-policy {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .erosion-bar-stats {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    .erosion-bar-track {
+      height: 28px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border-light);
+      overflow: hidden;
+      display: flex;
+      position: relative;
+    }
+
+    .erosion-bar-paid {
+      height: 100%;
+      background: rgba(192, 57, 43, 0.7);
+      transition: width 0.4s ease;
+    }
+
+    .erosion-bar-reserved {
+      height: 100%;
+      background: rgba(192, 57, 43, 0.25);
+      transition: width 0.4s ease;
+    }
+
+    .erosion-bar-pct {
+      position: absolute;
+      right: var(--space-sm);
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .erosion-bar-row.breach .erosion-bar-policy {
+      color: var(--color-risk);
+    }
+
+    .erosion-bar-row.breach .erosion-bar-track {
+      border-color: var(--color-risk);
+    }
+
     @media (max-width: 768px) {
       .charts-grid {
         grid-template-columns: 1fr;
@@ -372,7 +495,7 @@
             <div class="drop-zone" id="dropZone">
               <input type="file" accept=".csv,.txt" class="drop-zone__file-input" id="fileInput">
               <div class="drop-zone__text"><strong>Drop a CSV file here</strong> or click to browse</div>
-              <div class="drop-zone__sub">Expects columns: date, claimant, type, status, incurred, paid, reserved</div>
+              <div class="drop-zone__sub">Expects columns: date, claimant, type, status, incurred, paid, reserved — optional: policy_number</div>
               <div class="drop-zone__filename" id="fileName"></div>
             </div>
             <div class="input-actions">
@@ -382,12 +505,12 @@
           </div>
 
           <div id="paste-panel" style="display:none;">
-            <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved
-2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0
-2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000" aria-label="CSV claims data input"></textarea>
+            <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved,policy_number
+2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0,POL-2022-001
+2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000,POL-2023-001" aria-label="CSV claims data input"></textarea>
             <div class="input-actions">
               <button class="btn btn--primary" id="analyzeBtn">Analyze</button>
-              <span class="input-hint" id="inputHint">CSV with columns: date, claimant, type, status, incurred, paid, reserved</span>
+              <span class="input-hint" id="inputHint">CSV with columns: date, claimant, type, status, incurred, paid, reserved — optional: policy_number</span>
             </div>
           </div>
         </div>
@@ -432,6 +555,24 @@
             <div id="triangleContainer"></div>
           </div>
 
+          <!-- Policy Erosion -->
+          <div class="erosion-section" id="erosionSection" style="display:none; margin-top: var(--space-xl);">
+            <div class="chart-container">
+              <h3>Policy Erosion</h3>
+              <p class="erosion-desc">Enter aggregate limits for each policy to see how claims erode coverage.</p>
+              <div class="erosion-limits" id="erosionLimits"></div>
+              <div class="input-actions" style="margin-bottom: var(--space-xl);">
+                <button class="btn btn--primary" id="calcErosionBtn">Calculate Erosion</button>
+              </div>
+              <div id="erosionResults" style="display:none;">
+                <div class="erosion-bars" id="erosionBars"></div>
+                <div class="chart-canvas-wrapper" style="margin-top: var(--space-xl); height: 320px;">
+                  <canvas id="erosionChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Claims Table -->
           <div class="data-table-wrapper" style="margin-top: var(--space-xl);">
             <h3>All Claims</h3>
@@ -464,47 +605,56 @@
     // ==============================
     // Demo Data
     // ==============================
-    const DEMO_CSV = `date,claimant,type,status,incurred,paid,reserved
-2020-02-14,Turner Construction,Auto Liability - BI,Closed,62000,62000,0
-2020-05-03,Riverside Logistics,GL - Slip & Fall,Closed,28000,28000,0
-2020-06-18,Greenfield Properties,Property Damage,Closed,155000,155000,0
-2020-08-22,Apex Manufacturing,Workers Comp,Closed,41000,41000,0
-2020-11-01,Turner Construction,Auto Liability - PD,Closed,18500,18500,0
-2020-12-09,Coastal Marine LLC,GL - Products,Closed,95000,95000,0
-2021-01-20,Summit Energy Corp,Property Damage,Closed,210000,210000,0
-2021-03-15,Riverside Logistics,Auto Liability - BI,Closed,87000,87000,0
-2021-04-28,Greenfield Properties,GL - Slip & Fall,Closed,33000,33000,0
-2021-06-11,Apex Manufacturing,Workers Comp,Closed,52000,52000,0
-2021-07-30,Delta Freight Inc,Auto Liability - BI,Closed,145000,145000,0
-2021-09-14,Coastal Marine LLC,Property Damage,Closed,72000,72000,0
-2021-10-05,Turner Construction,GL - Completed Ops,Closed,38000,38000,0
-2021-11-22,Summit Energy Corp,Workers Comp,Closed,66000,66000,0
-2022-01-08,Greenfield Properties,Auto Liability - PD,Closed,22000,22000,0
-2022-02-19,Apex Manufacturing,GL - Slip & Fall,Closed,48000,48000,0
-2022-04-03,Delta Freight Inc,Property Damage,Closed,185000,185000,0
-2022-05-17,Riverside Logistics,Workers Comp,Closed,29000,29000,0
-2022-07-21,Turner Construction,Auto Liability - BI,Closed,98000,92000,6000
-2022-08-30,Coastal Marine LLC,GL - Products,Closed,125000,118000,7000
-2022-10-12,Summit Energy Corp,Auto Liability - BI,Open,156000,89000,67000
-2022-11-25,Greenfield Properties,Property Damage,Closed,42000,42000,0
-2023-01-14,Delta Freight Inc,GL - Slip & Fall,Closed,55000,55000,0
-2023-02-28,Apex Manufacturing,Auto Liability - BI,Closed,73000,68000,5000
-2023-04-09,Turner Construction,Workers Comp,Open,88000,45000,43000
-2023-05-22,Riverside Logistics,Property Damage,Closed,130000,130000,0
-2023-06-15,Coastal Marine LLC,Auto Liability - PD,Closed,31000,31000,0
-2023-08-01,Summit Energy Corp,GL - Products,Open,220000,78000,142000
-2023-09-18,Greenfield Properties,Workers Comp,Closed,47000,47000,0
-2023-10-30,Delta Freight Inc,Auto Liability - BI,Open,165000,52000,113000
-2023-12-05,Apex Manufacturing,Property Damage,Closed,58000,58000,0
-2024-01-20,Turner Construction,GL - Slip & Fall,Open,92000,34000,58000
-2024-03-08,Riverside Logistics,Auto Liability - BI,Open,110000,28000,82000
-2024-04-15,Coastal Marine LLC,Workers Comp,Open,63000,19000,44000
-2024-05-29,Summit Energy Corp,Property Damage,Open,245000,67000,178000
-2024-07-11,Delta Freight Inc,GL - Completed Ops,Open,85000,15000,70000
-2024-08-23,Greenfield Properties,Auto Liability - BI,Open,138000,22000,116000
-2024-09-17,Apex Manufacturing,Auto Liability - PD,Open,27000,8000,19000
-2024-10-02,Turner Construction,GL - Products,Open,175000,30000,145000
-2024-11-14,Riverside Logistics,Property Damage,Open,92000,12000,80000`;
+    const DEMO_CSV = `date,claimant,type,status,incurred,paid,reserved,policy_number
+2020-02-14,Turner Construction,Auto Liability - BI,Closed,62000,62000,0,POL-2020-001
+2020-05-03,Riverside Logistics,GL - Slip & Fall,Closed,28000,28000,0,POL-2020-002
+2020-06-18,Greenfield Properties,Property Damage,Closed,155000,155000,0,POL-2020-003
+2020-08-22,Apex Manufacturing,Workers Comp,Closed,41000,41000,0,POL-2020-001
+2020-11-01,Turner Construction,Auto Liability - PD,Closed,18500,18500,0,POL-2020-001
+2020-12-09,Coastal Marine LLC,GL - Products,Closed,95000,95000,0,POL-2020-002
+2021-01-20,Summit Energy Corp,Property Damage,Closed,210000,210000,0,POL-2021-001
+2021-03-15,Riverside Logistics,Auto Liability - BI,Closed,87000,87000,0,POL-2021-001
+2021-04-28,Greenfield Properties,GL - Slip & Fall,Closed,33000,33000,0,POL-2021-002
+2021-06-11,Apex Manufacturing,Workers Comp,Closed,52000,52000,0,POL-2021-001
+2021-07-30,Delta Freight Inc,Auto Liability - BI,Closed,145000,145000,0,POL-2021-002
+2021-09-14,Coastal Marine LLC,Property Damage,Closed,72000,72000,0,POL-2021-001
+2021-10-05,Turner Construction,GL - Completed Ops,Closed,38000,38000,0,POL-2021-002
+2021-11-22,Summit Energy Corp,Workers Comp,Closed,66000,66000,0,POL-2021-001
+2022-01-08,Greenfield Properties,Auto Liability - PD,Closed,22000,22000,0,POL-2022-001
+2022-02-19,Apex Manufacturing,GL - Slip & Fall,Closed,48000,48000,0,POL-2022-001
+2022-04-03,Delta Freight Inc,Property Damage,Closed,185000,185000,0,POL-2022-002
+2022-05-17,Riverside Logistics,Workers Comp,Closed,29000,29000,0,POL-2022-001
+2022-07-21,Turner Construction,Auto Liability - BI,Closed,98000,92000,6000,POL-2022-002
+2022-08-30,Coastal Marine LLC,GL - Products,Closed,125000,118000,7000,POL-2022-001
+2022-10-12,Summit Energy Corp,Auto Liability - BI,Open,156000,89000,67000,POL-2022-002
+2022-11-25,Greenfield Properties,Property Damage,Closed,42000,42000,0,POL-2022-001
+2023-01-14,Delta Freight Inc,GL - Slip & Fall,Closed,55000,55000,0,POL-2023-001
+2023-02-28,Apex Manufacturing,Auto Liability - BI,Closed,73000,68000,5000,POL-2023-001
+2023-04-09,Turner Construction,Workers Comp,Open,88000,45000,43000,POL-2023-002
+2023-05-22,Riverside Logistics,Property Damage,Closed,130000,130000,0,POL-2023-001
+2023-06-15,Coastal Marine LLC,Auto Liability - PD,Closed,31000,31000,0,POL-2023-002
+2023-08-01,Summit Energy Corp,GL - Products,Open,220000,78000,142000,POL-2023-001
+2023-09-18,Greenfield Properties,Workers Comp,Closed,47000,47000,0,POL-2023-002
+2023-10-30,Delta Freight Inc,Auto Liability - BI,Open,165000,52000,113000,POL-2023-001
+2023-12-05,Apex Manufacturing,Property Damage,Closed,58000,58000,0,POL-2023-002
+2024-01-20,Turner Construction,GL - Slip & Fall,Open,92000,34000,58000,POL-2024-001
+2024-03-08,Riverside Logistics,Auto Liability - BI,Open,110000,28000,82000,POL-2024-001
+2024-04-15,Coastal Marine LLC,Workers Comp,Open,63000,19000,44000,POL-2024-001
+2024-05-29,Summit Energy Corp,Property Damage,Open,245000,67000,178000,POL-2024-002
+2024-07-11,Delta Freight Inc,GL - Completed Ops,Open,85000,15000,70000,POL-2024-001
+2024-08-23,Greenfield Properties,Auto Liability - BI,Open,138000,22000,116000,POL-2024-002
+2024-09-17,Apex Manufacturing,Auto Liability - PD,Open,27000,8000,19000,POL-2024-001
+2024-10-02,Turner Construction,GL - Products,Open,175000,30000,145000,POL-2024-002
+2024-11-14,Riverside Logistics,Property Damage,Open,92000,12000,80000,POL-2024-001`;
+
+    // Default aggregate limits for demo policies
+    const DEMO_LIMITS = {
+      'POL-2020-001': 500000, 'POL-2020-002': 500000, 'POL-2020-003': 750000,
+      'POL-2021-001': 1000000, 'POL-2021-002': 750000,
+      'POL-2022-001': 1000000, 'POL-2022-002': 1500000,
+      'POL-2023-001': 1500000, 'POL-2023-002': 750000,
+      'POL-2024-001': 2000000, 'POL-2024-002': 1500000,
+    };
 
     // ==============================
     // State
@@ -645,6 +795,7 @@
           incurred: parseFloat(row.incurred) || 0,
           paid: parseFloat(row.paid) || 0,
           reserved: parseFloat(row.reserved) || 0,
+          policy: row.policy_number || row.policy || '',
         });
       }
 
@@ -676,6 +827,7 @@
       renderMetrics();
       renderCharts();
       renderTriangle();
+      renderErosionInputs();
       renderTable();
 
       dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -993,9 +1145,11 @@
       const table = document.getElementById('claimsTable');
       const maxSeverity = Math.max(...claims.map(c => c.incurred));
 
+      const hasPolicies = claims.some(c => c.policy);
       table.querySelector('thead').innerHTML = `
         <tr>
           <th>Date</th>
+          ${hasPolicies ? '<th>Policy</th>' : ''}
           <th>Claimant</th>
           <th>Type</th>
           <th>Status</th>
@@ -1007,6 +1161,7 @@
       table.querySelector('tbody').innerHTML = claims.map(c => `
         <tr>
           <td>${c.date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+          ${hasPolicies ? `<td style="font-family:var(--font-mono);font-size:var(--text-xs)">${c.policy || '—'}</td>` : ''}
           <td>${c.claimant}</td>
           <td>${c.type}</td>
           <td><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${c.status === 'Open' ? 'var(--color-risk)' : '#999'};margin-right:6px;vertical-align:middle;"></span>${c.status}</td>
@@ -1016,6 +1171,186 @@
         </tr>
       `).join('');
     }
+
+    // --- Policy Erosion ---
+    let policyLimits = {};
+
+    function renderErosionInputs() {
+      const policies = [...new Set(claims.map(c => c.policy).filter(p => p))];
+      const erosionSection = document.getElementById('erosionSection');
+      const limitsContainer = document.getElementById('erosionLimits');
+
+      if (policies.length === 0) {
+        erosionSection.style.display = 'none';
+        return;
+      }
+
+      erosionSection.style.display = 'block';
+      policies.sort();
+
+      limitsContainer.innerHTML = policies.map(pol => {
+        const polClaims = claims.filter(c => c.policy === pol);
+        const totalIncurred = polClaims.reduce((s, c) => s + c.incurred, 0);
+        const existingLimit = policyLimits[pol] || DEMO_LIMITS[pol] || '';
+        return `
+          <div class="erosion-limit-row">
+            <label>${pol}</label>
+            <input type="number" min="0" step="1000" placeholder="Aggregate limit"
+              data-policy="${pol}" class="erosion-limit-input"
+              value="${existingLimit}">
+            <span class="erosion-claim-count">${polClaims.length} claims</span>
+          </div>
+        `;
+      }).join('');
+
+      // If demo data, auto-calculate
+      const isDemo = Object.keys(DEMO_LIMITS).some(k => policies.includes(k));
+      if (isDemo) {
+        policies.forEach(pol => {
+          if (DEMO_LIMITS[pol]) policyLimits[pol] = DEMO_LIMITS[pol];
+        });
+        calculateErosion();
+      }
+    }
+
+    function calculateErosion() {
+      // Read current limit values from inputs
+      document.querySelectorAll('.erosion-limit-input').forEach(input => {
+        const val = parseFloat(input.value);
+        if (val > 0) policyLimits[input.dataset.policy] = val;
+      });
+
+      const policies = [...new Set(claims.map(c => c.policy).filter(p => p))].sort();
+      const policiesWithLimits = policies.filter(p => policyLimits[p] > 0);
+
+      if (policiesWithLimits.length === 0) return;
+
+      const resultsEl = document.getElementById('erosionResults');
+      resultsEl.style.display = 'block';
+
+      // Render erosion bars
+      const barsContainer = document.getElementById('erosionBars');
+      barsContainer.innerHTML = policiesWithLimits.map(pol => {
+        const limit = policyLimits[pol];
+        const polClaims = claims.filter(c => c.policy === pol);
+        const totalPaid = polClaims.reduce((s, c) => s + c.paid, 0);
+        const totalReserved = polClaims.reduce((s, c) => s + c.reserved, 0);
+        const totalIncurred = totalPaid + totalReserved;
+        const paidPct = Math.min((totalPaid / limit) * 100, 100);
+        const reservedPct = Math.min((totalReserved / limit) * 100, 100 - paidPct);
+        const erosionPct = ((totalIncurred / limit) * 100).toFixed(1);
+        const remaining = Math.max(limit - totalIncurred, 0);
+        const breach = totalIncurred >= limit;
+
+        return `
+          <div class="erosion-bar-row ${breach ? 'breach' : ''}">
+            <div class="erosion-bar-header">
+              <span class="erosion-bar-policy">${pol}${breach ? ' — LIMIT BREACHED' : ''}</span>
+              <span class="erosion-bar-stats">${formatCurrency(totalIncurred)} of ${formatCurrency(limit)} — ${formatCurrency(remaining)} remaining</span>
+            </div>
+            <div class="erosion-bar-track">
+              <div class="erosion-bar-paid" style="width:${paidPct}%"></div>
+              <div class="erosion-bar-reserved" style="width:${reservedPct}%"></div>
+              <span class="erosion-bar-pct">${erosionPct}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Render stacked bar chart
+      renderErosionChart(policiesWithLimits);
+    }
+
+    function renderErosionChart(policies) {
+      if (charts.erosion) charts.erosion.destroy();
+
+      const paidData = policies.map(pol => {
+        return claims.filter(c => c.policy === pol).reduce((s, c) => s + c.paid, 0);
+      });
+      const reservedData = policies.map(pol => {
+        return claims.filter(c => c.policy === pol).reduce((s, c) => s + c.reserved, 0);
+      });
+      const remainingData = policies.map((pol, i) => {
+        const limit = policyLimits[pol];
+        return Math.max(limit - paidData[i] - reservedData[i], 0);
+      });
+
+      charts.erosion = new Chart(document.getElementById('erosionChart'), {
+        type: 'bar',
+        data: {
+          labels: policies,
+          datasets: [
+            {
+              label: 'Paid',
+              data: paidData,
+              backgroundColor: 'rgba(192, 57, 43, 0.7)',
+              borderRadius: 0,
+            },
+            {
+              label: 'Reserved',
+              data: reservedData,
+              backgroundColor: 'rgba(192, 57, 43, 0.25)',
+              borderRadius: 0,
+            },
+            {
+              label: 'Remaining',
+              data: remainingData,
+              backgroundColor: 'rgba(30, 132, 73, 0.12)',
+              borderColor: 'rgba(30, 132, 73, 0.3)',
+              borderWidth: 1,
+              borderRadius: { topLeft: 4, topRight: 4 },
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12, padding: 16 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 12 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: function(ctx) {
+                  return ctx.dataset.label + ': ' + formatCurrency(ctx.parsed.y);
+                },
+                afterBody: function(items) {
+                  const pol = items[0].label;
+                  const limit = policyLimits[pol];
+                  return limit ? 'Aggregate Limit: ' + formatCurrency(limit) : '';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 10 }, color: '#999', maxRotation: 45 }
+            },
+            y: {
+              stacked: true,
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#999',
+                callback: v => '$' + (v / 1000).toFixed(0) + 'k'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    document.getElementById('calcErosionBtn').addEventListener('click', calculateErosion);
 
     // ==============================
     // Helpers

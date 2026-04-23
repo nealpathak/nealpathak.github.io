@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Risk Summary — Neal Pathak</title>
+  <meta name="description" content="Generate a printable executive risk summary with total cost of risk, loss ratios, and year-over-year comparisons.">
+  <meta property="og:title" content="Executive Risk Summary — Neal Pathak">
+  <meta property="og:description" content="Generate a printable executive risk summary with total cost of risk, loss ratios, and year-over-year comparisons.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* Input section */
+    .input-section {
+      margin-bottom: var(--space-2xl);
+    }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover { border-color: #ccc; color: var(--color-text); }
+
+    .mode-btn.active {
+      background: var(--color-risk);
+      color: #fff;
+      border-color: var(--color-risk);
+    }
+
+    /* Company info */
+    .company-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .company-row .form-group { flex: 1 1 200px; }
+
+    .company-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .company-row input {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    /* Lines table */
+    .lines-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .lines-editor h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .lines-editor .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-lg);
+      max-width: none;
+    }
+
+    .lines-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .lines-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm) var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .lines-table th.num { text-align: right; }
+
+    .lines-table th.group-header {
+      text-align: center;
+      color: var(--color-text);
+      border-bottom: 2px solid var(--color-border);
+      padding-bottom: var(--space-xs);
+    }
+
+    .lines-table td {
+      padding: var(--space-xs) var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .lines-table input[type="text"],
+    .lines-table input[type="number"] {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      min-height: 32px;
+      width: 100%;
+    }
+
+    .lines-table .col-line input { width: 160px; }
+    .lines-table .col-num input { width: 110px; text-align: right; font-family: var(--font-mono); }
+
+    .lines-table .remove-row {
+      background: none;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: var(--text-xs);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+    }
+
+    .lines-table .remove-row:hover {
+      color: var(--color-risk);
+      background: rgba(192, 57, 43, 0.06);
+    }
+
+    .editor-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .add-line-btn {
+      font-size: var(--text-sm);
+      padding: var(--space-sm) var(--space-lg);
+      color: var(--color-text-tertiary);
+      border-style: dashed;
+    }
+
+    .add-line-btn:hover { color: var(--color-text); }
+
+    /* CSV upload */
+    .csv-section {
+      display: none;
+    }
+
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-risk);
+      background: rgba(192, 57, 43, 0.02);
+    }
+
+    .csv-upload-zone p { max-width: none; }
+
+    .csv-upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .csv-upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .csv-upload-zone__status.success { color: var(--color-data); }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .template-link {
+      display: inline-block;
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+    }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+      max-width: none;
+    }
+
+    /* Generate button */
+    .generate-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    /* Report output */
+    .report-output { display: none; }
+    .report-output.visible { display: block; margin-top: var(--space-2xl); }
+
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+    }
+
+    .report-header {
+      border-bottom: 2px solid var(--color-text);
+      padding-bottom: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-header__company {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .report-header__subtitle {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-header__period {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    /* Report stats */
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: var(--space-lg) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+
+    .report-stat__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-stat__value {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      margin-top: var(--space-xs);
+    }
+
+    .report-stat__change {
+      font-size: var(--text-xs);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .report-stat__change.up { color: var(--color-risk); }
+    .report-stat__change.down { color: var(--color-data); }
+    .report-stat__change.flat { color: var(--color-text-tertiary); }
+
+    /* Report charts */
+    .report-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-chart-box {
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .report-chart-box h4 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-wrapper {
+      position: relative;
+      height: 240px;
+    }
+
+    /* Report detail table */
+    .report-detail {
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-detail h4 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .report-table th.num { text-align: right; }
+
+    .report-table td {
+      padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .report-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+    }
+
+    .trend-up { color: var(--color-risk); }
+    .trend-down { color: var(--color-data); }
+    .trend-flat { color: var(--color-text-tertiary); }
+
+    /* Report footer */
+    .report-footer {
+      border-top: 1px solid var(--color-border-light);
+      padding-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    /* Print button */
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    /* Print styles */
+    @media print {
+      .site-nav, .site-footer, .tool-header, .input-section, .print-row { display: none !important; }
+      .report-output { display: block !important; margin-top: 0 !important; }
+      .report {
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        box-shadow: none;
+      }
+      body { background: #fff; }
+      .report-stats { break-inside: avoid; }
+      .report-charts { break-inside: avoid; }
+      .report-detail { break-inside: avoid; }
+    }
+
+    @media (max-width: 768px) {
+      .report-stats { grid-template-columns: repeat(2, 1fr); }
+      .report-charts { grid-template-columns: 1fr; }
+      .company-row { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .report-stats { grid-template-columns: 1fr; }
+      .report-chart-wrapper { height: 200px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk Analytics</span>
+        <h1>Executive Risk Summary</h1>
+        <p>Generate a printable executive risk summary with total cost of risk, loss ratios by line, and year-over-year comparisons across your insurance program.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="input-section" id="inputSection">
+
+          <!-- Input mode -->
+          <div class="input-modes">
+            <span class="mode-label">Input:</span>
+            <button class="mode-btn active" data-mode="form">Form</button>
+            <button class="mode-btn" data-mode="csv">CSV Upload</button>
+            <button class="mode-btn" data-mode="demo">Demo Data</button>
+          </div>
+
+          <!-- Company info -->
+          <div class="company-row">
+            <div class="form-group">
+              <label>Company Name</label>
+              <input type="text" id="companyName" value="" placeholder="e.g. Acme Industries">
+            </div>
+            <div class="form-group">
+              <label>Current Period</label>
+              <input type="text" id="currentPeriod" value="2025" placeholder="e.g. 2025">
+            </div>
+            <div class="form-group">
+              <label>Prior Period</label>
+              <input type="text" id="priorPeriod" value="2024" placeholder="e.g. 2024">
+            </div>
+            <div class="form-group">
+              <label>Prepared By</label>
+              <input type="text" id="preparedBy" value="" placeholder="Optional">
+            </div>
+          </div>
+
+          <!-- Form editor -->
+          <div class="lines-editor" id="formEditor">
+            <h3>Lines of Coverage</h3>
+            <p class="subtitle">Enter current and prior year data for each line. All dollar values in thousands ($000s) or full dollars — your choice, just be consistent.</p>
+            <div style="overflow-x:auto;">
+              <table class="lines-table">
+                <thead>
+                  <tr>
+                    <th rowspan="2" style="min-width:160px">Line</th>
+                    <th colspan="5" class="group-header">Current Year</th>
+                    <th colspan="5" class="group-header">Prior Year</th>
+                    <th rowspan="2"></th>
+                  </tr>
+                  <tr>
+                    <th class="num">Premium</th>
+                    <th class="num">Limit</th>
+                    <th class="num">Retention</th>
+                    <th class="num">Incurred</th>
+                    <th class="num">Claims</th>
+                    <th class="num">Premium</th>
+                    <th class="num">Limit</th>
+                    <th class="num">Retention</th>
+                    <th class="num">Incurred</th>
+                    <th class="num">Claims</th>
+                  </tr>
+                </thead>
+                <tbody id="linesBody"></tbody>
+              </table>
+            </div>
+            <div class="editor-actions">
+              <button class="btn add-line-btn" id="addLineBtn">+ Add Line</button>
+            </div>
+          </div>
+
+          <!-- CSV upload -->
+          <div class="csv-section" id="csvSection">
+            <div class="csv-upload-zone" id="csvUploadZone">
+              <p class="csv-upload-zone__title">Drop a CSV file here or click to upload</p>
+              <p class="csv-upload-zone__hint">Columns: line, curr_premium, curr_limit, curr_retention, curr_incurred, curr_claims, prior_premium, prior_limit, prior_retention, prior_incurred, prior_claims</p>
+              <p class="csv-upload-zone__status" id="csvStatus"></p>
+              <input type="file" id="csvFileInput" accept=".csv" hidden>
+            </div>
+            <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+            <a class="template-link" id="downloadTemplate">Download CSV template</a>
+          </div>
+
+          <!-- Generate -->
+          <div class="generate-row">
+            <button class="btn btn--primary" id="generateBtn">Generate Report</button>
+          </div>
+        </div>
+
+        <!-- Report output -->
+        <div class="report-output" id="reportOutput">
+          <div class="print-row">
+            <button class="btn btn--primary" id="printBtn">Print / Save as PDF</button>
+            <button class="btn" id="editBtn">Edit Data</button>
+          </div>
+          <div class="report" id="report"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // State
+    // ==============================
+    let lines = [];
+    let lineIdCounter = 0;
+    let premiumChart = null;
+    let lossRatioChart = null;
+
+    const companyNameEl = document.getElementById('companyName');
+    const currentPeriodEl = document.getElementById('currentPeriod');
+    const priorPeriodEl = document.getElementById('priorPeriod');
+    const preparedByEl = document.getElementById('preparedBy');
+    const linesBody = document.getElementById('linesBody');
+    const addLineBtn = document.getElementById('addLineBtn');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+
+    // ==============================
+    // Demo Data
+    // ==============================
+    const DEMO_LINES = [
+      { name: 'General Liability', curr: { premium: 285000, limit: 2000000, retention: 25000, incurred: 142000, claims: 8 }, prior: { premium: 260000, limit: 2000000, retention: 25000, incurred: 178000, claims: 12 } },
+      { name: 'Property', curr: { premium: 410000, limit: 50000000, retention: 100000, incurred: 85000, claims: 3 }, prior: { premium: 375000, limit: 50000000, retention: 100000, incurred: 220000, claims: 5 } },
+      { name: 'Auto Liability', curr: { premium: 195000, limit: 1000000, retention: 10000, incurred: 210000, claims: 15 }, prior: { premium: 180000, limit: 1000000, retention: 10000, incurred: 165000, claims: 11 } },
+      { name: 'Workers Comp', curr: { premium: 320000, limit: 1000000, retention: 0, incurred: 275000, claims: 22 }, prior: { premium: 305000, limit: 1000000, retention: 0, incurred: 310000, claims: 28 } },
+      { name: 'Umbrella / Excess', curr: { premium: 175000, limit: 10000000, retention: 0, incurred: 0, claims: 0 }, prior: { premium: 150000, limit: 10000000, retention: 0, incurred: 0, claims: 0 } },
+      { name: 'D&O', curr: { premium: 125000, limit: 5000000, retention: 50000, incurred: 0, claims: 0 }, prior: { premium: 115000, limit: 5000000, retention: 50000, incurred: 35000, claims: 1 } },
+      { name: 'Cyber', curr: { premium: 95000, limit: 5000000, retention: 25000, incurred: 45000, claims: 2 }, prior: { premium: 80000, limit: 3000000, retention: 25000, incurred: 0, claims: 0 } },
+    ];
+
+    // ==============================
+    // Line Management
+    // ==============================
+    function addLine(config = {}) {
+      const id = ++lineIdCounter;
+      lines.push({
+        id,
+        name: config.name || '',
+        curr: {
+          premium: config.curr?.premium || 0,
+          limit: config.curr?.limit || 0,
+          retention: config.curr?.retention || 0,
+          incurred: config.curr?.incurred || 0,
+          claims: config.curr?.claims || 0,
+        },
+        prior: {
+          premium: config.prior?.premium || 0,
+          limit: config.prior?.limit || 0,
+          retention: config.prior?.retention || 0,
+          incurred: config.prior?.incurred || 0,
+          claims: config.prior?.claims || 0,
+        },
+      });
+      renderLines();
+    }
+
+    function removeLine(id) {
+      lines = lines.filter(l => l.id !== id);
+      renderLines();
+    }
+
+    function updateLine(id, path, value) {
+      const line = lines.find(l => l.id === id);
+      if (!line) return;
+      const parts = path.split('.');
+      if (parts.length === 2) {
+        line[parts[0]][parts[1]] = parseFloat(value) || 0;
+      } else {
+        line[path] = value;
+      }
+    }
+
+    function renderLines() {
+      linesBody.innerHTML = lines.map(line => {
+        const c = line.curr;
+        const p = line.prior;
+        return `<tr>
+          <td class="col-line"><input type="text" value="${line.name}" onchange="window._updateLine(${line.id},'name',this.value)" placeholder="e.g. General Liability"></td>
+          <td class="col-num"><input type="number" value="${c.premium||''}" oninput="window._updateLine(${line.id},'curr.premium',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${c.limit||''}" oninput="window._updateLine(${line.id},'curr.limit',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${c.retention||''}" oninput="window._updateLine(${line.id},'curr.retention',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${c.incurred||''}" oninput="window._updateLine(${line.id},'curr.incurred',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${c.claims||''}" oninput="window._updateLine(${line.id},'curr.claims',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${p.premium||''}" oninput="window._updateLine(${line.id},'prior.premium',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${p.limit||''}" oninput="window._updateLine(${line.id},'prior.limit',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${p.retention||''}" oninput="window._updateLine(${line.id},'prior.retention',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${p.incurred||''}" oninput="window._updateLine(${line.id},'prior.incurred',this.value)" placeholder="0"></td>
+          <td class="col-num"><input type="number" value="${p.claims||''}" oninput="window._updateLine(${line.id},'prior.claims',this.value)" placeholder="0"></td>
+          <td>${lines.length > 1 ? `<button class="remove-row" onclick="window._removeLine(${line.id})">Remove</button>` : ''}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    window._updateLine = updateLine;
+    window._removeLine = removeLine;
+
+    // ==============================
+    // CSV Handling
+    // ==============================
+    function parseCSV(text) {
+      const rows = text.trim().split('\n').map(r => r.trim()).filter(r => r);
+      if (rows.length < 2) throw new Error('CSV must have a header and at least one data row.');
+
+      const parsed = [];
+      for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+        if (cells.length < 11) continue;
+        parsed.push({
+          name: cells[0],
+          curr: {
+            premium: parseFloat(cells[1]) || 0,
+            limit: parseFloat(cells[2]) || 0,
+            retention: parseFloat(cells[3]) || 0,
+            incurred: parseFloat(cells[4]) || 0,
+            claims: parseInt(cells[5]) || 0,
+          },
+          prior: {
+            premium: parseFloat(cells[6]) || 0,
+            limit: parseFloat(cells[7]) || 0,
+            retention: parseFloat(cells[8]) || 0,
+            incurred: parseFloat(cells[9]) || 0,
+            claims: parseInt(cells[10]) || 0,
+          },
+        });
+      }
+
+      if (parsed.length === 0) throw new Error('No valid data rows found.');
+      return parsed;
+    }
+
+    function generateTemplate() {
+      const header = 'line,curr_premium,curr_limit,curr_retention,curr_incurred,curr_claims,prior_premium,prior_limit,prior_retention,prior_incurred,prior_claims';
+      const sample = 'General Liability,285000,2000000,25000,142000,8,260000,2000000,25000,178000,12';
+      const blob = new Blob([header + '\n' + sample + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'risk_summary_template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ==============================
+    // Report Generation
+    // ==============================
+    function generateReport() {
+      const data = lines.filter(l => l.name.trim());
+      if (data.length === 0) return;
+
+      const company = companyNameEl.value || 'Company';
+      const currPeriod = currentPeriodEl.value || 'Current';
+      const priorPeriod = priorPeriodEl.value || 'Prior';
+      const preparedBy = preparedByEl.value;
+
+      // Aggregates
+      const totalCurrPremium = data.reduce((a, l) => a + l.curr.premium, 0);
+      const totalPriorPremium = data.reduce((a, l) => a + l.prior.premium, 0);
+      const totalCurrIncurred = data.reduce((a, l) => a + l.curr.incurred, 0);
+      const totalPriorIncurred = data.reduce((a, l) => a + l.prior.incurred, 0);
+      const totalCurrClaims = data.reduce((a, l) => a + l.curr.claims, 0);
+      const totalPriorClaims = data.reduce((a, l) => a + l.prior.claims, 0);
+      const currLR = totalCurrPremium > 0 ? (totalCurrIncurred / totalCurrPremium * 100) : 0;
+      const priorLR = totalPriorPremium > 0 ? (totalPriorIncurred / totalPriorPremium * 100) : 0;
+
+      function fmtDollar(v) {
+        if (Math.abs(v) >= 1000000) return '$' + (v / 1000000).toFixed(2) + 'M';
+        if (Math.abs(v) >= 1000) return '$' + (v / 1000).toFixed(0) + 'K';
+        return '$' + v.toLocaleString();
+      }
+
+      function fmtFull(v) { return '$' + v.toLocaleString(); }
+
+      function yoyChange(curr, prior) {
+        if (prior === 0) return { pct: curr > 0 ? '+100%' : '—', cls: curr > 0 ? 'up' : 'flat' };
+        const pct = ((curr - prior) / prior * 100).toFixed(1);
+        const sign = pct > 0 ? '+' : '';
+        let cls = 'flat';
+        if (pct > 1) cls = 'up';
+        else if (pct < -1) cls = 'down';
+        return { pct: sign + pct + '%', cls };
+      }
+
+      function lrTrend(curr, prior) {
+        // For loss ratio, DOWN is good
+        if (prior === 0) return { pct: '—', cls: 'flat' };
+        const diff = curr - prior;
+        const sign = diff > 0 ? '+' : '';
+        let cls = 'flat';
+        if (diff > 1) cls = 'trend-up';      // worse
+        else if (diff < -1) cls = 'trend-down'; // better
+        return { pct: sign + diff.toFixed(1) + 'pp', cls };
+      }
+
+      const premChange = yoyChange(totalCurrPremium, totalPriorPremium);
+      const incChange = yoyChange(totalCurrIncurred, totalPriorIncurred);
+      const claimChange = yoyChange(totalCurrClaims, totalPriorClaims);
+      const lrChange = lrTrend(currLR, priorLR);
+
+      // Build report HTML
+      let html = `
+        <div class="report-header">
+          <div class="report-header__company">${company}</div>
+          <p class="report-header__subtitle">Executive Risk Summary — Year-over-Year Comparison</p>
+          <p class="report-header__period">${priorPeriod} vs. ${currPeriod}${preparedBy ? ' &middot; Prepared by ' + preparedBy : ''}</p>
+        </div>
+
+        <div class="report-stats">
+          <div class="report-stat">
+            <div class="report-stat__label">Total Premium</div>
+            <div class="report-stat__value">${fmtDollar(totalCurrPremium)}</div>
+            <div class="report-stat__change ${premChange.cls}">${premChange.pct} vs ${priorPeriod}</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat__label">Total Incurred</div>
+            <div class="report-stat__value">${fmtDollar(totalCurrIncurred)}</div>
+            <div class="report-stat__change ${incChange.cls}">${incChange.pct} vs ${priorPeriod}</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat__label">Loss Ratio</div>
+            <div class="report-stat__value">${currLR.toFixed(1)}%</div>
+            <div class="report-stat__change ${lrChange.cls}">${lrChange.pct} vs ${priorPeriod}</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat__label">Total Claims</div>
+            <div class="report-stat__value">${totalCurrClaims}</div>
+            <div class="report-stat__change ${claimChange.cls}">${claimChange.pct} vs ${priorPeriod}</div>
+          </div>
+        </div>
+
+        <div class="report-charts">
+          <div class="report-chart-box">
+            <h4>Premium by Line (${currPeriod} vs ${priorPeriod})</h4>
+            <div class="report-chart-wrapper"><canvas id="premiumChart"></canvas></div>
+          </div>
+          <div class="report-chart-box">
+            <h4>Loss Ratio by Line</h4>
+            <div class="report-chart-wrapper"><canvas id="lossRatioChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="report-detail">
+          <h4>Coverage Detail</h4>
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Line of Coverage</th>
+                <th class="num">${currPeriod} Premium</th>
+                <th class="num">${priorPeriod} Premium</th>
+                <th class="num">Change</th>
+                <th class="num">${currPeriod} Incurred</th>
+                <th class="num">${currPeriod} Loss Ratio</th>
+                <th class="num">${priorPeriod} Loss Ratio</th>
+                <th class="num">Claims</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+      data.forEach(l => {
+        const lr1 = l.curr.premium > 0 ? (l.curr.incurred / l.curr.premium * 100) : 0;
+        const lr2 = l.prior.premium > 0 ? (l.prior.incurred / l.prior.premium * 100) : 0;
+        const pc = yoyChange(l.curr.premium, l.prior.premium);
+        html += `<tr>
+          <td>${l.name}</td>
+          <td class="num">${fmtFull(l.curr.premium)}</td>
+          <td class="num">${fmtFull(l.prior.premium)}</td>
+          <td class="num ${pc.cls}">${pc.pct}</td>
+          <td class="num">${fmtFull(l.curr.incurred)}</td>
+          <td class="num">${lr1.toFixed(1)}%</td>
+          <td class="num">${lr2.toFixed(1)}%</td>
+          <td class="num">${l.curr.claims} / ${l.prior.claims}</td>
+        </tr>`;
+      });
+
+      const pcTotal = yoyChange(totalCurrPremium, totalPriorPremium);
+      html += `<tr class="total-row">
+          <td>Total</td>
+          <td class="num">${fmtFull(totalCurrPremium)}</td>
+          <td class="num">${fmtFull(totalPriorPremium)}</td>
+          <td class="num ${pcTotal.cls}">${pcTotal.pct}</td>
+          <td class="num">${fmtFull(totalCurrIncurred)}</td>
+          <td class="num">${currLR.toFixed(1)}%</td>
+          <td class="num">${priorLR.toFixed(1)}%</td>
+          <td class="num">${totalCurrClaims} / ${totalPriorClaims}</td>
+        </tr>`;
+
+      html += `</tbody></table></div>`;
+
+      // Limits & retentions table
+      html += `<div class="report-detail">
+        <h4>Limits &amp; Retentions</h4>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Line of Coverage</th>
+              <th class="num">${currPeriod} Limit</th>
+              <th class="num">${priorPeriod} Limit</th>
+              <th class="num">${currPeriod} Retention</th>
+              <th class="num">${priorPeriod} Retention</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      data.forEach(l => {
+        html += `<tr>
+          <td>${l.name}</td>
+          <td class="num">${fmtFull(l.curr.limit)}</td>
+          <td class="num">${fmtFull(l.prior.limit)}</td>
+          <td class="num">${l.curr.retention > 0 ? fmtFull(l.curr.retention) : '—'}</td>
+          <td class="num">${l.prior.retention > 0 ? fmtFull(l.prior.retention) : '—'}</td>
+        </tr>`;
+      });
+
+      html += `</tbody></table></div>`;
+
+      // Footer
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += `<p class="report-footer">Generated ${today}. All data provided by user — not independently verified. This report is for informational purposes only.</p>`;
+
+      // Render
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      // Render charts after DOM update
+      setTimeout(() => {
+        renderPremiumChart(data, currPeriod, priorPeriod);
+        renderLossRatioChart(data, currPeriod, priorPeriod);
+      }, 50);
+    }
+
+    function renderPremiumChart(data, currLabel, priorLabel) {
+      if (premiumChart) premiumChart.destroy();
+
+      const ctx = document.getElementById('premiumChart').getContext('2d');
+      premiumChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(l => l.name),
+          datasets: [
+            {
+              label: priorLabel,
+              data: data.map(l => l.prior.premium),
+              backgroundColor: 'rgba(150, 150, 150, 0.4)',
+              borderRadius: 4,
+            },
+            {
+              label: currLabel,
+              data: data.map(l => l.curr.premium),
+              backgroundColor: 'rgba(36, 113, 163, 0.7)',
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { family: 'Inter', size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 11 },
+              bodyFont: { family: 'Inter', size: 11 },
+              padding: 8,
+              cornerRadius: 6,
+              callbacks: { label: item => item.dataset.label + ': $' + item.parsed.y.toLocaleString() },
+            },
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#999', maxRotation: 45 } },
+            y: { grid: { color: '#f0f0f0' }, ticks: { font: { family: 'Inter', size: 10 }, color: '#999', callback: v => '$' + (v / 1000).toFixed(0) + 'K' } },
+          },
+        },
+      });
+    }
+
+    function renderLossRatioChart(data, currLabel, priorLabel) {
+      if (lossRatioChart) lossRatioChart.destroy();
+
+      const ctx = document.getElementById('lossRatioChart').getContext('2d');
+      lossRatioChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.map(l => l.name),
+          datasets: [
+            {
+              label: priorLabel,
+              data: data.map(l => l.prior.premium > 0 ? (l.prior.incurred / l.prior.premium * 100) : 0),
+              backgroundColor: 'rgba(150, 150, 150, 0.4)',
+              borderRadius: 4,
+            },
+            {
+              label: currLabel,
+              data: data.map(l => l.curr.premium > 0 ? (l.curr.incurred / l.curr.premium * 100) : 0),
+              backgroundColor: data.map(l => {
+                const lr = l.curr.premium > 0 ? (l.curr.incurred / l.curr.premium * 100) : 0;
+                return lr > 80 ? 'rgba(192, 57, 43, 0.7)' : lr > 50 ? 'rgba(211, 168, 0, 0.7)' : 'rgba(30, 132, 73, 0.7)';
+              }),
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { family: 'Inter', size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 10 },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 11 },
+              bodyFont: { family: 'Inter', size: 11 },
+              padding: 8,
+              cornerRadius: 6,
+              callbacks: { label: item => item.dataset.label + ': ' + item.parsed.y.toFixed(1) + '%' },
+            },
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 }, color: '#999', maxRotation: 45 } },
+            y: { grid: { color: '#f0f0f0' }, ticks: { font: { family: 'Inter', size: 10 }, color: '#999', callback: v => v + '%' } },
+          },
+        },
+      });
+    }
+
+    // ==============================
+    // Event Listeners
+    // ==============================
+
+    // Mode switching
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.mode;
+
+        formEditor.style.display = mode === 'form' ? 'block' : 'none';
+        csvSection.classList.toggle('visible', mode === 'csv');
+
+        if (mode === 'demo') {
+          lines = [];
+          lineIdCounter = 0;
+          DEMO_LINES.forEach(d => addLine(d));
+          companyNameEl.value = 'Acme Industries';
+          currentPeriodEl.value = '2025';
+          priorPeriodEl.value = '2024';
+          preparedByEl.value = '';
+          formEditor.style.display = 'block';
+        }
+      });
+    });
+
+    // Add line
+    addLineBtn.addEventListener('click', () => addLine());
+
+    // Generate
+    generateBtn.addEventListener('click', generateReport);
+
+    // Print
+    printBtn.addEventListener('click', () => window.print());
+
+    // Edit
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = 'block';
+    });
+
+    // CSV upload
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvFileInput.addEventListener('change', e => { if (e.target.files[0]) handleCSVFile(e.target.files[0]); });
+
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleCSVFile(e.dataTransfer.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = parseCSV(e.target.result);
+          lines = [];
+          lineIdCounter = 0;
+          parsed.forEach(d => addLine(d));
+          csvStatus.textContent = 'Loaded ' + parsed.length + ' lines of coverage.';
+          csvStatus.className = 'csv-upload-zone__status success';
+          // Switch to form view to show loaded data
+          modeBtns.forEach(b => b.classList.remove('active'));
+          modeBtns[0].classList.add('active');
+          formEditor.style.display = 'block';
+          csvSection.classList.remove('visible');
+        } catch (err) {
+          csvStatus.textContent = 'Error: ' + err.message;
+          csvStatus.className = 'csv-upload-zone__status error';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Download template
+    document.getElementById('downloadTemplate').addEventListener('click', generateTemplate);
+
+    // Initialize with empty lines
+    addLine({ name: 'General Liability' });
+    addLine({ name: 'Property' });
+    addLine({ name: 'Auto Liability' });
+    addLine({ name: 'Workers Comp' });
+
+  })();
+  </script>
+</body>
+</html>

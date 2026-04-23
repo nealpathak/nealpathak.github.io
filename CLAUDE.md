@@ -17,6 +17,7 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 ### Risk Analytics (`/risk-analytics/`)
 - **Loss Run Analyzer** — Parse insurance loss run CSV data, visualize claim frequency, severity distributions, development triangles, exposure by period. Drag-and-drop CSV upload. Policy erosion analysis with user-entered aggregate limits. Demo data included.
 - **IBNR Reserve Estimator** — Estimate Incurred But Not Reported reserves from loss development triangles. Chain-Ladder and Bornhuetter-Ferguson methods. CSV upload of cumulative incurred by policy year and development period. Demo data included.
+- **Executive Risk Summary** — Generate a printable executive risk summary with total cost of risk, loss ratios by line, and year-over-year comparisons. Form input, CSV upload with downloadable template, or demo data. Print/Save as PDF.
 
 ### Financial Modeling (`/financial-modeling/`)
 - **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
@@ -31,6 +32,7 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 ├── assets/css/shared.css                   (design system)
 ├── risk-analytics/loss-run-analyzer/       (Loss Run Analyzer)
 ├── risk-analytics/ibnr-estimator/          (IBNR Reserve Estimator)
+├── risk-analytics/executive-summary/       (Executive Risk Summary)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
 ├── data-intelligence/monte-carlo/          (Monte Carlo Simulator)
 ├── Neal_Pathak_Resume.pdf

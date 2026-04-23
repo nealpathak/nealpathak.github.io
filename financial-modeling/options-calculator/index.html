@@ -62,8 +62,8 @@
     /* Builder layout */
     .builder {
       display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: var(--space-xl);
+      grid-template-columns: 340px 1fr;
+      gap: var(--space-2xl);
       align-items: start;
     }
 
@@ -71,9 +71,12 @@
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
-      padding: var(--space-xl);
+      padding: var(--space-lg);
       position: sticky;
       top: 80px;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      z-index: 1;
     }
 
     .legs-panel__header {
@@ -199,6 +202,7 @@
       display: flex;
       flex-direction: column;
       gap: var(--space-xl);
+      min-width: 0;
     }
 
     .stats-row {
@@ -245,6 +249,7 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
+      overflow: hidden;
     }
 
     .payoff-chart-container h3 {
@@ -262,6 +267,7 @@
     .payoff-canvas-wrapper {
       position: relative;
       height: 380px;
+      width: 100%;
     }
 
     /* Position summary */
@@ -270,6 +276,7 @@
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-xl);
+      overflow-x: auto;
     }
 
     .position-summary h3 {
@@ -282,6 +289,7 @@
       width: 100%;
       border-collapse: collapse;
       font-size: var(--text-sm);
+      table-layout: auto;
     }
 
     .position-summary-table th {
@@ -320,13 +328,20 @@
       font-weight: 500;
     }
 
-    @media (max-width: 768px) {
+    /* Subtle scrollbar for legs panel */
+    .legs-panel::-webkit-scrollbar { width: 4px; }
+    .legs-panel::-webkit-scrollbar-track { background: transparent; }
+    .legs-panel::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
+    @media (max-width: 900px) {
       .builder {
         grid-template-columns: 1fr;
       }
 
       .legs-panel {
         position: static;
+        max-height: none;
+        overflow-y: visible;
       }
 
       .stats-row {
@@ -337,6 +352,10 @@
     @media (max-width: 480px) {
       .stats-row {
         grid-template-columns: 1fr;
+      }
+
+      .payoff-canvas-wrapper {
+        height: 280px;
       }
     }
   </style>
@@ -655,7 +674,7 @@
     function recalculate() {
       const underlying = parseFloat(underlyingInput.value) || 100;
 
-      // Determine price range
+      // Determine price range for chart
       const strikes = legs.filter(l => l.type !== 'stock').map(l => l.strike);
       const allPrices = [underlying, ...strikes];
       const minRef = Math.min(...allPrices);
@@ -673,9 +692,24 @@
         pnls.push(Math.round(calcPnL(p) * 100) / 100);
       }
 
-      // Find key stats
-      const maxProfit = Math.max(...pnls);
-      const maxLoss = Math.min(...pnls);
+      // Detect unlimited profit/loss analytically by checking slope at edges
+      // If P&L is still rising at the right edge, profit is unlimited (e.g. long call, long stock)
+      // If P&L is still falling at the left edge (toward $0), compute actual loss at $0
+      const pnlFarRight = calcPnL(hi * 10);
+      const pnlAtHi = calcPnL(hi);
+      const isMaxProfitUnlimited = pnlFarRight > pnlAtHi + 1;
+
+      const pnlFarLeft = calcPnL(Math.max(0, lo * 0.01));
+      const pnlAtLo = calcPnL(lo);
+      const isMaxLossUnlimited = pnlFarLeft < pnlAtLo - 1;
+
+      // For bounded stats, also check P&L at $0 and at a very high price
+      const pnlAtZero = calcPnL(0);
+      const pnlAtVeryHigh = calcPnL(hi * 5);
+      const allPnlPoints = [...pnls, pnlAtZero, pnlAtVeryHigh];
+
+      const maxProfit = isMaxProfitUnlimited ? Infinity : Math.max(...allPnlPoints);
+      const maxLoss = isMaxLossUnlimited ? -Infinity : Math.min(...allPnlPoints);
       const pnlAtUnderlying = Math.round(calcPnL(underlying) * 100) / 100;
 
       // Find breakevens (where P&L crosses zero)
@@ -696,9 +730,7 @@
         }
       });
 
-      // Risk/reward ratio
-      const isMaxProfitUnlimited = maxProfit > 100000;
-      const isMaxLossUnlimited = maxLoss < -100000;
+      // Risk/reward ratio — only meaningful when both sides are bounded
       let riskReward = 'N/A';
       if (!isMaxProfitUnlimited && !isMaxLossUnlimited && maxLoss < 0 && maxProfit > 0) {
         riskReward = '1:' + (maxProfit / Math.abs(maxLoss)).toFixed(1);
@@ -716,6 +748,11 @@
       const statsRow = document.getElementById('statsRow');
       const premiumLabel = netPremium >= 0 ? 'Net Credit' : 'Net Debit';
 
+      function fmtDollar(val) {
+        if (val >= 0) return '+$' + val.toLocaleString();
+        return '-$' + Math.abs(val).toLocaleString();
+      }
+
       statsRow.innerHTML = `
         <div class="stat-card">
           <div class="stat-card__label">Max Profit</div>
@@ -723,7 +760,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-card__label">Max Loss</div>
-          <div class="stat-card__value negative">${unlimitedLoss ? 'Unlimited' : '$' + maxLoss.toLocaleString()}</div>
+          <div class="stat-card__value negative">${unlimitedLoss ? 'Unlimited' : '-$' + Math.abs(maxLoss).toLocaleString()}</div>
         </div>
         <div class="stat-card">
           <div class="stat-card__label">Breakeven${breakevens.length > 1 ? 's' : ''}</div>
@@ -735,7 +772,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-card__label">P&L at Current</div>
-          <div class="stat-card__value ${pnlAtCurrent >= 0 ? 'positive' : 'negative'}">${pnlAtCurrent >= 0 ? '+' : ''}$${pnlAtCurrent.toLocaleString()}</div>
+          <div class="stat-card__value ${pnlAtCurrent >= 0 ? 'positive' : 'negative'}">${fmtDollar(pnlAtCurrent)}</div>
           <div class="stat-card__sub">If price stays at $${(parseFloat(underlyingInput.value) || 100).toFixed(0)}</div>
         </div>
         <div class="stat-card">

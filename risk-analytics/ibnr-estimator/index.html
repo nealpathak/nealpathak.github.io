@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IBNR Reserve Estimator — Neal Pathak</title>
+  <meta name="description" content="Estimate IBNR reserves using Chain-Ladder and Bornhuetter-Ferguson methods on loss development triangles.">
+  <meta property="og:title" content="IBNR Reserve Estimator — Neal Pathak">
+  <meta property="og:description" content="Estimate IBNR reserves using Chain-Ladder and Bornhuetter-Ferguson methods on loss development triangles.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* Upload */
+    .upload-section {
+      margin-bottom: var(--space-xl);
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--color-risk);
+      background: rgba(192, 57, 43, 0.02);
+    }
+
+    .upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .upload-zone__status.success { color: var(--color-data); }
+    .upload-zone__status.error { color: var(--color-risk); }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+    }
+
+    .demo-btn {
+      margin-top: var(--space-md);
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Method toggle */
+    .method-bar {
+      display: flex;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-xl);
+      align-items: center;
+    }
+
+    .method-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .method-btn:hover {
+      border-color: #ccc;
+      color: var(--color-text);
+    }
+
+    .method-btn.active {
+      background: var(--color-risk);
+      color: #fff;
+      border-color: var(--color-risk);
+    }
+
+    .method-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    /* BF inputs */
+    .bf-inputs {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-xl);
+      display: none;
+    }
+
+    .bf-inputs.visible { display: block; }
+
+    .bf-inputs__header {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    .bf-inputs__desc {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .bf-row {
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+    }
+
+    .bf-row .form-group {
+      flex: 0 0 auto;
+    }
+
+    .bf-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .bf-row input {
+      width: 140px;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    /* Results */
+    .results { display: none; }
+    .results.visible { display: block; }
+
+    .results-stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xl);
+    }
+
+    /* Triangle table */
+    .triangle-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .triangle-container h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .triangle-container .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .triangle-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .triangle-table th {
+      text-align: right;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .triangle-table th:first-child { text-align: left; }
+
+    .triangle-table td {
+      padding: var(--space-sm) var(--space-md);
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-text-secondary);
+    }
+
+    .triangle-table td:first-child {
+      text-align: left;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .triangle-table td.projected {
+      color: var(--color-risk);
+      font-weight: 600;
+      background: rgba(192, 57, 43, 0.04);
+    }
+
+    /* Development factors row */
+    .triangle-table tr.factors-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--space-md);
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-md) var(--space-lg);
+    }
+
+    .stat-card__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .stat-card__value {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      margin-top: var(--space-xs);
+      letter-spacing: -0.02em;
+    }
+
+    .stat-card__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* Chart */
+    .chart-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .chart-container h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .chart-container .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 380px;
+      width: 100%;
+    }
+
+    /* IBNR by year table */
+    .ibnr-table-container {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .ibnr-table-container h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .ibnr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .ibnr-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .ibnr-table td {
+      padding: var(--space-sm) var(--space-md) var(--space-sm) 0;
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-text-secondary);
+    }
+
+    .ibnr-table tr:last-child td { border-bottom: none; }
+
+    .ibnr-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .ibnr-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+    }
+
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .chart-wrapper { height: 300px; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 260px; }
+      .bf-row { flex-direction: column; }
+      .bf-row input { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk Analytics</span>
+        <h1>IBNR Reserve Estimator</h1>
+        <p>Estimate Incurred But Not Reported reserves from loss development triangles using Chain-Ladder and Bornhuetter-Ferguson methods.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <!-- Upload -->
+        <div class="upload-section">
+          <div class="upload-zone" id="uploadZone">
+            <p class="upload-zone__title">Drop a CSV file here or click to upload</p>
+            <p class="upload-zone__hint">Expects a loss development triangle: first column = policy year, remaining columns = cumulative incurred at each development period (e.g. 12, 24, 36 months).</p>
+            <p class="upload-zone__status" id="uploadStatus"></p>
+            <input type="file" id="fileInput" accept=".csv" hidden>
+          </div>
+          <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+          <button class="btn demo-btn" id="demoBtn">Load Demo Data</button>
+        </div>
+
+        <!-- Method selector -->
+        <div class="method-bar" id="methodBar" style="display:none;">
+          <span class="method-label">Method:</span>
+          <button class="method-btn active" data-method="chain-ladder">Chain-Ladder</button>
+          <button class="method-btn" data-method="bf">Bornhuetter-Ferguson</button>
+        </div>
+
+        <!-- BF parameters -->
+        <div class="bf-inputs" id="bfInputs">
+          <p class="bf-inputs__header">Bornhuetter-Ferguson Parameters</p>
+          <p class="bf-inputs__desc">Enter the expected loss ratio and earned premium for each policy year. The BF method blends chain-ladder development with a priori expected losses to produce more stable estimates for immature years.</p>
+          <div id="bfFields"></div>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+          <div class="results-stack">
+            <div class="stats-row" id="statsRow"></div>
+
+            <div class="triangle-container">
+              <h3 id="triangleTitle">Completed Development Triangle</h3>
+              <p class="subtitle" id="triangleSubtitle">Red values are projected using age-to-age development factors.</p>
+              <div id="triangleTable"></div>
+            </div>
+
+            <div class="chart-container">
+              <h3>IBNR Reserves by Policy Year</h3>
+              <p class="subtitle">Reported losses vs. estimated IBNR for each policy year.</p>
+              <div class="chart-wrapper">
+                <canvas id="ibnrChart"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <h3>Development Pattern</h3>
+              <p class="subtitle">Cumulative loss development curves by policy year. Dashed = projected.</p>
+              <div class="chart-wrapper">
+                <canvas id="devChart"></canvas>
+              </div>
+            </div>
+
+            <div class="ibnr-table-container">
+              <h3 id="ibnrTableTitle">IBNR Reserve Summary</h3>
+              <div id="ibnrSummaryTable"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // State
+    // ==============================
+    let triangleData = null;   // { years: [...], periods: [...], values: [[...], ...] }
+    let method = 'chain-ladder';
+    let ibnrChart = null;
+    let devChart = null;
+
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const demoBtn = document.getElementById('demoBtn');
+    const methodBar = document.getElementById('methodBar');
+    const methodBtns = document.querySelectorAll('.method-btn');
+    const bfInputsEl = document.getElementById('bfInputs');
+    const bfFields = document.getElementById('bfFields');
+    const resultsEl = document.getElementById('results');
+
+    // ==============================
+    // Demo Data
+    // ==============================
+    const DEMO_DATA = {
+      years: [2018, 2019, 2020, 2021, 2022, 2023, 2024],
+      periods: [12, 24, 36, 48, 60, 72, 84],
+      values: [
+        [450000, 720000, 860000, 935000, 970000, 988000, 995000],
+        [510000, 800000, 960000, 1045000, 1085000, 1100000, null],
+        [480000, 770000, 920000, 1000000, 1035000, null, null],
+        [530000, 830000, 995000, 1080000, null, null, null],
+        [490000, 785000, 940000, null, null, null, null],
+        [560000, 880000, null, null, null, null, null],
+        [520000, null, null, null, null, null, null],
+      ],
+      // BF defaults
+      earnedPremiums: [1800000, 2000000, 1900000, 2100000, 1950000, 2200000, 2050000],
+      expectedLossRatio: 0.55,
+    };
+
+    // ==============================
+    // CSV Parsing
+    // ==============================
+    function parseCSV(text) {
+      const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+
+      // Parse header
+      const header = lines[0].split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+      const periods = header.slice(1).map(s => {
+        const n = parseInt(s, 10);
+        if (isNaN(n)) throw new Error('Development period columns must be numeric (e.g. 12, 24, 36). Got: "' + s + '"');
+        return n;
+      });
+
+      const years = [];
+      const values = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const cells = lines[i].split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+        const year = parseInt(cells[0], 10);
+        if (isNaN(year)) continue;
+        years.push(year);
+
+        const row = [];
+        for (let j = 1; j < cells.length; j++) {
+          const val = cells[j] === '' || cells[j] === undefined ? null : parseFloat(cells[j]);
+          row.push(isNaN(val) ? null : val);
+        }
+        // Pad with nulls if row is shorter than periods
+        while (row.length < periods.length) row.push(null);
+        values.push(row);
+      }
+
+      if (years.length === 0) throw new Error('No valid data rows found.');
+
+      return { years, periods, values };
+    }
+
+    // ==============================
+    // Chain-Ladder
+    // ==============================
+    function computeChainLadder(data) {
+      const n = data.years.length;
+      const m = data.periods.length;
+
+      // Deep copy values
+      const completed = data.values.map(row => [...row]);
+
+      // Compute age-to-age factors
+      const factors = [];
+      for (let j = 0; j < m - 1; j++) {
+        let sumNext = 0;
+        let sumCurr = 0;
+        for (let i = 0; i < n; i++) {
+          if (completed[i][j] !== null && completed[i][j + 1] !== null) {
+            sumCurr += completed[i][j];
+            sumNext += completed[i][j + 1];
+          }
+        }
+        factors.push(sumCurr > 0 ? sumNext / sumCurr : 1);
+      }
+
+      // Cumulative-to-ultimate factors
+      const ctuFactors = new Array(m).fill(1);
+      for (let j = m - 2; j >= 0; j--) {
+        ctuFactors[j] = factors[j] * ctuFactors[j + 1];
+      }
+
+      // Project missing values
+      const isProjected = data.values.map(row => row.map(() => false));
+      for (let i = 0; i < n; i++) {
+        for (let j = 1; j < m; j++) {
+          if (completed[i][j] === null && completed[i][j - 1] !== null) {
+            completed[i][j] = Math.round(completed[i][j - 1] * factors[j - 1]);
+            isProjected[i][j] = true;
+          }
+        }
+      }
+
+      // IBNR = ultimate - latest reported
+      const ibnr = [];
+      const ultimates = [];
+      const reported = [];
+      for (let i = 0; i < n; i++) {
+        const lastKnownIdx = data.values[i].reduce((acc, v, idx) => v !== null ? idx : acc, 0);
+        const rep = data.values[i][lastKnownIdx];
+        const ult = completed[i][m - 1];
+        reported.push(rep);
+        ultimates.push(ult);
+        ibnr.push(ult - rep);
+      }
+
+      return { completed, isProjected, factors, ctuFactors, ibnr, ultimates, reported };
+    }
+
+    // ==============================
+    // Bornhuetter-Ferguson
+    // ==============================
+    function computeBF(data, earnedPremiums, expectedLR) {
+      const n = data.years.length;
+      const m = data.periods.length;
+
+      // First get chain-ladder factors
+      const cl = computeChainLadder(data);
+
+      // BF IBNR = Expected Losses * (1 - 1/CDF)
+      // where Expected Losses = Earned Premium * Expected LR
+      // CDF = cumulative-to-ultimate factor for the current development age
+      const ibnr = [];
+      const ultimates = [];
+      const reported = cl.reported.slice();
+
+      for (let i = 0; i < n; i++) {
+        const lastKnownIdx = data.values[i].reduce((acc, v, idx) => v !== null ? idx : acc, 0);
+        const expectedLosses = earnedPremiums[i] * expectedLR;
+        const cdf = cl.ctuFactors[lastKnownIdx];
+        const percentUnreported = 1 - (1 / cdf);
+        const bfIbnr = Math.round(expectedLosses * percentUnreported);
+        ibnr.push(bfIbnr);
+        ultimates.push(reported[i] + bfIbnr);
+      }
+
+      // Build completed triangle for display (use BF ultimates to scale projections)
+      const completed = data.values.map(row => [...row]);
+      const isProjected = data.values.map(row => row.map(() => false));
+
+      for (let i = 0; i < n; i++) {
+        const lastKnownIdx = data.values[i].reduce((acc, v, idx) => v !== null ? idx : acc, 0);
+        if (lastKnownIdx < m - 1) {
+          // Fill forward using CL factors but scale to BF ultimate
+          const clUlt = cl.ultimates[i];
+          const bfUlt = ultimates[i];
+          const scale = clUlt > 0 ? bfUlt / clUlt : 1;
+
+          for (let j = lastKnownIdx + 1; j < m; j++) {
+            completed[i][j] = Math.round(cl.completed[i][j] * scale);
+            isProjected[i][j] = true;
+          }
+        }
+      }
+
+      return {
+        completed, isProjected,
+        factors: cl.factors, ctuFactors: cl.ctuFactors,
+        ibnr, ultimates, reported,
+      };
+    }
+
+    // ==============================
+    // Rendering
+    // ==============================
+    function runAnalysis() {
+      if (!triangleData) return;
+
+      let result;
+      if (method === 'bf') {
+        const { premiums, lr } = getBFInputs();
+        result = computeBF(triangleData, premiums, lr);
+      } else {
+        result = computeChainLadder(triangleData);
+      }
+
+      methodBar.style.display = 'flex';
+      resultsEl.classList.add('visible');
+
+      const methodLabel = method === 'bf' ? 'Bornhuetter-Ferguson' : 'Chain-Ladder';
+      document.getElementById('triangleTitle').textContent = 'Completed Development Triangle (' + methodLabel + ')';
+      document.getElementById('ibnrTableTitle').textContent = 'IBNR Reserve Summary (' + methodLabel + ')';
+
+      renderStats(result);
+      renderTriangle(result);
+      renderIBNRChart(result);
+      renderDevChart(result);
+      renderSummaryTable(result);
+    }
+
+    function fmtK(val) {
+      if (Math.abs(val) >= 1000000) return '$' + (val / 1000000).toFixed(2) + 'M';
+      if (Math.abs(val) >= 1000) return '$' + (val / 1000).toFixed(0) + 'K';
+      return '$' + val.toLocaleString();
+    }
+
+    function fmtFull(val) {
+      return '$' + val.toLocaleString();
+    }
+
+    function renderStats(result) {
+      const totalIBNR = result.ibnr.reduce((a, b) => a + b, 0);
+      const totalReported = result.reported.reduce((a, b) => a + b, 0);
+      const totalUltimate = result.ultimates.reduce((a, b) => a + b, 0);
+      const ibnrPct = totalReported > 0 ? ((totalIBNR / totalReported) * 100).toFixed(1) : '0';
+      const mostImmatureIBNR = result.ibnr[result.ibnr.length - 1];
+      const avgFactor = result.factors.length > 0
+        ? (result.factors.reduce((a, b) => a + b, 0) / result.factors.length).toFixed(3)
+        : 'N/A';
+
+      document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-card__label">Total IBNR</div>
+          <div class="stat-card__value" style="color:var(--color-risk)">${fmtK(totalIBNR)}</div>
+          <div class="stat-card__sub">${fmtFull(totalIBNR)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Total Reported</div>
+          <div class="stat-card__value">${fmtK(totalReported)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Est. Ultimate</div>
+          <div class="stat-card__value">${fmtK(totalUltimate)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">IBNR % of Reported</div>
+          <div class="stat-card__value">${ibnrPct}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Most Immature Year</div>
+          <div class="stat-card__value" style="color:var(--color-risk)">${fmtK(mostImmatureIBNR)}</div>
+          <div class="stat-card__sub">${triangleData.years[triangleData.years.length - 1]} IBNR</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Avg Dev Factor</div>
+          <div class="stat-card__value">${avgFactor}</div>
+          <div class="stat-card__sub">Age-to-age average</div>
+        </div>
+      `;
+    }
+
+    function renderTriangle(result) {
+      const d = triangleData;
+      let html = '<table class="triangle-table"><thead><tr><th>Policy Year</th>';
+      d.periods.forEach(p => { html += '<th>' + p + ' mo</th>'; });
+      html += '<th>Ultimate</th></tr></thead><tbody>';
+
+      for (let i = 0; i < d.years.length; i++) {
+        html += '<tr><td>' + d.years[i] + '</td>';
+        for (let j = 0; j < d.periods.length; j++) {
+          const val = result.completed[i][j];
+          const cls = result.isProjected[i][j] ? ' class="projected"' : '';
+          html += '<td' + cls + '>' + (val !== null ? val.toLocaleString() : '') + '</td>';
+        }
+        html += '<td class="projected">' + result.ultimates[i].toLocaleString() + '</td>';
+        html += '</tr>';
+      }
+
+      // Factors row
+      html += '<tr class="factors-row"><td>ATA Factor</td>';
+      for (let j = 0; j < d.periods.length; j++) {
+        if (j < result.factors.length) {
+          html += '<td>' + result.factors[j].toFixed(4) + '</td>';
+        } else {
+          html += '<td>1.0000</td>';
+        }
+      }
+      html += '<td></td></tr>';
+
+      html += '</tbody></table>';
+      document.getElementById('triangleTable').innerHTML = html;
+    }
+
+    function renderIBNRChart(result) {
+      if (ibnrChart) ibnrChart.destroy();
+
+      const ctx = document.getElementById('ibnrChart').getContext('2d');
+      ibnrChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: triangleData.years.map(String),
+          datasets: [
+            {
+              label: 'Reported',
+              data: result.reported,
+              backgroundColor: 'rgba(36, 113, 163, 0.7)',
+              borderRadius: 4,
+            },
+            {
+              label: 'IBNR',
+              data: result.ibnr,
+              backgroundColor: 'rgba(192, 57, 43, 0.7)',
+              borderRadius: 4,
+            },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { font: { family: 'Inter', size: 12 }, padding: 16, usePointStyle: true, pointStyleWidth: 12 },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 12 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.dataset.label + ': $' + item.parsed.y.toLocaleString()
+              }
+            },
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 11 }, color: '#999' },
+            },
+            y: {
+              stacked: true,
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#999',
+                callback: v => fmtK(v),
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderDevChart(result) {
+      if (devChart) devChart.destroy();
+
+      const d = triangleData;
+      const colors = [
+        '#2471a3', '#1e8449', '#c0392b', '#884ea0',
+        '#d4ac0d', '#e67e22', '#1abc9c',
+      ];
+
+      const datasets = [];
+      for (let i = 0; i < d.years.length; i++) {
+        const lastKnownIdx = d.values[i].reduce((acc, v, idx) => v !== null ? idx : acc, 0);
+
+        // Reported segment (solid)
+        const reportedData = result.completed[i].map((v, j) => j <= lastKnownIdx ? v : null);
+        // Projected segment (dashed) — overlap last known point for continuity
+        const projectedData = result.completed[i].map((v, j) => j >= lastKnownIdx ? v : null);
+
+        const color = colors[i % colors.length];
+
+        datasets.push({
+          label: String(d.years[i]),
+          data: reportedData,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: color,
+          tension: 0.3,
+        });
+
+        if (lastKnownIdx < d.periods.length - 1) {
+          datasets.push({
+            label: d.years[i] + ' (proj)',
+            data: projectedData,
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 2,
+            pointBackgroundColor: color,
+            pointStyle: 'circle',
+            tension: 0.3,
+          });
+        }
+      }
+
+      const ctx = document.getElementById('devChart').getContext('2d');
+      devChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: d.periods.map(p => p + ' mo'),
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { family: 'Inter', size: 11 },
+                padding: 12,
+                usePointStyle: true,
+                pointStyleWidth: 12,
+                filter: item => !item.text.includes('(proj)'),
+              },
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: 'Inter', size: 12 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 10,
+              cornerRadius: 6,
+              filter: item => item.parsed.y !== null,
+              callbacks: {
+                label: item => {
+                  const label = item.dataset.label.replace(' (proj)', '');
+                  return label + ': $' + item.parsed.y.toLocaleString();
+                }
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 11 }, color: '#999' },
+            },
+            y: {
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#999',
+                callback: v => fmtK(v),
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderSummaryTable(result) {
+      const d = triangleData;
+      let html = '<table class="ibnr-table"><thead><tr>' +
+        '<th>Policy Year</th><th class="num">Dev Period</th><th class="num">Reported</th>' +
+        '<th class="num">IBNR</th><th class="num">Ultimate</th><th class="num">% Developed</th>' +
+        '</tr></thead><tbody>';
+
+      let totalReported = 0, totalIBNR = 0, totalUlt = 0;
+
+      for (let i = 0; i < d.years.length; i++) {
+        const lastKnownIdx = d.values[i].reduce((acc, v, idx) => v !== null ? idx : acc, 0);
+        const devPeriod = d.periods[lastKnownIdx];
+        const pctDev = result.ultimates[i] > 0 ? ((result.reported[i] / result.ultimates[i]) * 100).toFixed(1) : '100.0';
+
+        totalReported += result.reported[i];
+        totalIBNR += result.ibnr[i];
+        totalUlt += result.ultimates[i];
+
+        html += '<tr>' +
+          '<td>' + d.years[i] + '</td>' +
+          '<td class="num">' + devPeriod + ' mo</td>' +
+          '<td class="num">' + fmtFull(result.reported[i]) + '</td>' +
+          '<td class="num" style="color:var(--color-risk)">' + fmtFull(result.ibnr[i]) + '</td>' +
+          '<td class="num">' + fmtFull(result.ultimates[i]) + '</td>' +
+          '<td class="num">' + pctDev + '%</td>' +
+          '</tr>';
+      }
+
+      const totalPctDev = totalUlt > 0 ? ((totalReported / totalUlt) * 100).toFixed(1) : '100.0';
+      html += '<tr class="total-row">' +
+        '<td>Total</td><td></td>' +
+        '<td class="num">' + fmtFull(totalReported) + '</td>' +
+        '<td class="num" style="color:var(--color-risk)">' + fmtFull(totalIBNR) + '</td>' +
+        '<td class="num">' + fmtFull(totalUlt) + '</td>' +
+        '<td class="num">' + totalPctDev + '%</td>' +
+        '</tr>';
+
+      html += '</tbody></table>';
+      document.getElementById('ibnrSummaryTable').innerHTML = html;
+    }
+
+    // ==============================
+    // BF Inputs
+    // ==============================
+    function renderBFInputs() {
+      if (!triangleData) return;
+
+      const d = triangleData;
+      let html = '<div class="bf-row"><div class="form-group"><label>Expected Loss Ratio</label>' +
+        '<input type="number" id="bfLR" value="' + (DEMO_DATA.expectedLossRatio * 100) + '" step="1" min="1" max="200" style="width:120px"> ' +
+        '</div></div>';
+
+      html += '<div style="margin-top:var(--space-md)">';
+      html += '<table class="ibnr-table" style="max-width:500px"><thead><tr><th>Policy Year</th><th class="num">Earned Premium</th></tr></thead><tbody>';
+
+      for (let i = 0; i < d.years.length; i++) {
+        const defaultPremium = DEMO_DATA.earnedPremiums[i] || 2000000;
+        html += '<tr><td>' + d.years[i] + '</td>' +
+          '<td class="num"><input type="number" class="bf-premium" data-idx="' + i + '" value="' + defaultPremium + '" step="10000" min="0" style="width:140px;font-size:var(--text-sm);padding:var(--space-xs) var(--space-sm);border:1px solid var(--color-border);border-radius:var(--radius-sm);font-family:var(--font-mono);text-align:right;min-height:32px"></td></tr>';
+      }
+
+      html += '</tbody></table></div>';
+      bfFields.innerHTML = html;
+
+      // Re-run on change
+      bfFields.addEventListener('input', () => { if (method === 'bf') runAnalysis(); });
+    }
+
+    function getBFInputs() {
+      const lrInput = document.getElementById('bfLR');
+      const lr = lrInput ? (parseFloat(lrInput.value) || 55) / 100 : 0.55;
+      const premInputs = document.querySelectorAll('.bf-premium');
+      const premiums = [];
+      premInputs.forEach(el => { premiums.push(parseFloat(el.value) || 0); });
+      // Pad if needed
+      while (premiums.length < triangleData.years.length) premiums.push(2000000);
+      return { premiums, lr };
+    }
+
+    // ==============================
+    // File Handling
+    // ==============================
+    function handleFile(file) {
+      if (!file || !file.name.endsWith('.csv')) {
+        uploadStatus.textContent = 'Please upload a .csv file.';
+        uploadStatus.className = 'upload-zone__status error';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          triangleData = parseCSV(e.target.result);
+          uploadStatus.textContent = 'Loaded ' + triangleData.years.length + ' policy years x ' + triangleData.periods.length + ' development periods.';
+          uploadStatus.className = 'upload-zone__status success';
+          renderBFInputs();
+          runAnalysis();
+        } catch (err) {
+          uploadStatus.textContent = 'Error: ' + err.message;
+          uploadStatus.className = 'upload-zone__status error';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Upload zone events
+    uploadZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    // Demo button
+    demoBtn.addEventListener('click', () => {
+      triangleData = {
+        years: [...DEMO_DATA.years],
+        periods: [...DEMO_DATA.periods],
+        values: DEMO_DATA.values.map(row => [...row]),
+      };
+      uploadStatus.textContent = 'Loaded demo data: 7 policy years x 7 development periods.';
+      uploadStatus.className = 'upload-zone__status success';
+      renderBFInputs();
+      runAnalysis();
+    });
+
+    // Method toggle
+    methodBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        methodBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        method = btn.dataset.method;
+        bfInputsEl.classList.toggle('visible', method === 'bf');
+        runAnalysis();
+      });
+    });
+
+  })();
+  </script>
+</body>
+</html>

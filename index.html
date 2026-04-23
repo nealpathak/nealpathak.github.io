@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Neal Pathak</title>
   <meta name="description" content="Risk analytics, financial modeling, and market simulation tools by Neal Pathak.">
+  <meta property="og:title" content="Neal Pathak">
+  <meta property="og:description" content="Risk analytics, financial modeling, and market simulation tools.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,6 +24,8 @@
       font-weight: 700;
       letter-spacing: -0.03em;
       line-height: 1.1;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards;
     }
 
     .hero__subtitle {
@@ -28,6 +34,19 @@
       margin-top: var(--space-lg);
       max-width: 560px;
       line-height: 1.6;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.15s forwards;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* --- Category Sections --- */
@@ -88,7 +107,7 @@
     .project-card__desc {
       font-size: var(--text-sm);
       color: var(--color-text-secondary);
-      line-height: 1.5;
+      line-height: 1.6;
       flex: 1;
     }
 
@@ -97,6 +116,8 @@
       align-items: center;
       justify-content: space-between;
       margin-top: auto;
+      padding-top: var(--space-sm);
+      border-top: 1px solid var(--color-border-light);
     }
 
     .project-card__tags {
@@ -117,7 +138,7 @@
     }
 
     .project-card:hover .project-card__arrow {
-      transform: translateX(3px);
+      transform: translateX(4px);
       color: var(--color-text);
     }
 
@@ -141,7 +162,6 @@
         <li><a href="#risk-analytics">Risk</a></li>
         <li><a href="#financial-modeling">Finance</a></li>
         <li><a href="#data-intelligence">Data</a></li>
-        <li><a href="#simulations">Simulations</a></li>
       </ul>
     </div>
   </nav>
@@ -220,45 +240,18 @@
             <span class="category__count">1 tool</span>
           </div>
           <div class="category__grid">
-            <a href="data-intelligence/volatility-surface/" class="project-card">
+            <a href="data-intelligence/monte-carlo/" class="project-card">
               <div class="card">
                 <span class="category-badge category-badge--data">Data</span>
-                <h3 class="project-card__title">Volatility Surface Explorer</h3>
+                <h3 class="project-card__title">Monte Carlo Simulator</h3>
                 <p class="project-card__desc">
-                  Interactive visualization of implied volatility across strikes and expirations. Explore the vol smile, term structure, and surface dynamics that drive options pricing.
+                  Simulate thousands of price paths to visualize the range of possible outcomes. Adjust expected return, volatility, and time horizon to see how risk shapes results.
                 </p>
                 <div class="project-card__meta">
                   <div class="project-card__tags">
-                    <span class="project-card__tag">volatility</span>
-                    <span class="project-card__tag">options</span>
-                    <span class="project-card__tag">3D</span>
-                  </div>
-                  <span class="project-card__arrow">&rarr;</span>
-                </div>
-              </div>
-            </a>
-          </div>
-        </div>
-
-        <!-- Simulations -->
-        <div class="category" id="simulations">
-          <div class="category__header">
-            <h2 class="category__title">Simulations</h2>
-            <span class="category__count">1 tool</span>
-          </div>
-          <div class="category__grid">
-            <a href="simulations/market-maker/" class="project-card">
-              <div class="card">
-                <span class="category-badge category-badge--sim">Simulation</span>
-                <h3 class="project-card__title">Market Maker</h3>
-                <p class="project-card__desc">
-                  Play as a market maker. Set bid-ask spreads, manage inventory risk, and try to profit from the spread while navigating informed traders and volatile markets.
-                </p>
-                <div class="project-card__meta">
-                  <div class="project-card__tags">
-                    <span class="project-card__tag">trading</span>
-                    <span class="project-card__tag">game</span>
-                    <span class="project-card__tag">strategy</span>
+                    <span class="project-card__tag">simulation</span>
+                    <span class="project-card__tag">probability</span>
+                    <span class="project-card__tag">risk</span>
                   </div>
                   <span class="project-card__arrow">&rarr;</span>
                 </div>

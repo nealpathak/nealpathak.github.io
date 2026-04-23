@@ -307,11 +307,10 @@
           <div id="paste-panel">
             <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved
 2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0
-2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000
-..."></textarea>
+2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000" aria-label="CSV claims data input"></textarea>
             <div class="input-actions">
               <button class="btn btn--primary" id="analyzeBtn">Analyze</button>
-              <span class="input-hint">CSV with columns: date, claimant, type, status, incurred, paid, reserved</span>
+              <span class="input-hint" id="inputHint">CSV with columns: date, claimant, type, status, incurred, paid, reserved</span>
             </div>
           </div>
         </div>
@@ -461,23 +460,40 @@
     // ==============================
     // Parse CSV
     // ==============================
+    function parseCSVLine(line) {
+      const vals = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { vals.push(current.trim()); current = ''; }
+        else { current += ch; }
+      }
+      vals.push(current.trim());
+      return vals;
+    }
+
     function parseCSV(text) {
-      const lines = text.trim().split('\n');
+      const lines = text.trim().split('\n').filter(l => l.trim());
       if (lines.length < 2) return [];
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/^"|"$/g, ''));
       const data = [];
 
       for (let i = 1; i < lines.length; i++) {
-        const vals = lines[i].split(',').map(v => v.trim());
+        const vals = parseCSVLine(lines[i]).map(v => v.replace(/^"|"$/g, ''));
         if (vals.length < headers.length) continue;
 
         const row = {};
         headers.forEach((h, idx) => { row[h] = vals[idx]; });
 
+        const d = new Date(row.date);
+        if (isNaN(d.getTime())) continue;
+
         data.push({
-          date: new Date(row.date),
-          year: new Date(row.date).getFullYear(),
+          date: d,
+          year: d.getFullYear(),
           claimant: row.claimant || 'Unknown',
           type: row.type || 'Other',
           status: (row.status || 'Unknown').charAt(0).toUpperCase() + (row.status || 'unknown').slice(1).toLowerCase(),
@@ -493,15 +509,26 @@
     // ==============================
     // Analysis
     // ==============================
+    const inputHint = document.getElementById('inputHint');
+
     function runAnalysis() {
       claims = parseCSV(csvInput.value);
-      if (claims.length === 0) return;
+      if (claims.length === 0) {
+        inputHint.textContent = 'No valid claims found. Check your CSV format and try again.';
+        inputHint.style.color = 'var(--color-risk)';
+        return;
+      }
+
+      inputHint.textContent = claims.length + ' claims parsed successfully.';
+      inputHint.style.color = 'var(--color-data)';
 
       dashboard.classList.add('visible');
       renderMetrics();
       renderCharts();
       renderTriangle();
       renderTable();
+
+      dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // --- Metrics ---
@@ -706,9 +733,9 @@
       claims.forEach(c => { types[c.type] = (types[c.type] || 0) + 1; });
       const sortedTypes = Object.entries(types).sort((a, b) => b[1] - a[1]);
       const typeColors = [
-        'rgba(192,57,43,0.7)', 'rgba(36,113,163,0.7)', 'rgba(30,132,73,0.7)',
-        'rgba(136,78,160,0.7)', 'rgba(211,84,0,0.7)', 'rgba(44,62,80,0.7)',
-        'rgba(142,68,173,0.7)', 'rgba(39,174,96,0.7)'
+        'rgba(192,57,43,0.8)', 'rgba(36,113,163,0.8)', 'rgba(30,132,73,0.8)',
+        'rgba(255,153,0,0.8)', 'rgba(153,102,204,0.8)', 'rgba(75,192,192,0.8)',
+        'rgba(255,99,132,0.8)', 'rgba(160,160,160,0.8)'
       ];
 
       charts.type = new Chart(document.getElementById('typeChart'), {
@@ -725,12 +752,22 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          cutout: '55%',
           plugins: {
             legend: {
               position: 'right',
               labels: { font: { family: 'Inter', size: 11 }, padding: 10, boxWidth: 10 }
             },
-            tooltip: chartDefaults.plugins.tooltip,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                  return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+                }
+              }
+            },
           }
         }
       });

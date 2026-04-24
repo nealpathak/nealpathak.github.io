@@ -29,6 +29,7 @@
   --color-finance: #2471a3;
   --color-data: #1e8449;
   --color-sim: #884ea0;
+  --color-legal: #b7791f;
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -197,6 +198,11 @@ a:hover {
 .category-badge--sim {
   color: var(--color-sim);
   background: rgba(136, 78, 160, 0.08);
+}
+
+.category-badge--legal {
+  color: var(--color-legal);
+  background: rgba(183, 121, 31, 0.08);
 }
 
 /* --- Card --- */

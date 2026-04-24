@@ -24,8 +24,8 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 ### Financial Modeling (`/financial-modeling/`)
 - **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
 
-### Data Intelligence (`/data-intelligence/`)
-- **Monte Carlo Simulator** — Simulate thousands of price paths using geometric Brownian motion. Visualize distribution of outcomes, percentile paths, probability of profit. Presets for S&P 500, growth stocks, crypto, bond funds.
+### Legal Ops (`/legal-ops/`)
+- **Litigation Decision Tree** — Model settle-vs-fight decisions as a probability-weighted tree. Interactive editor for branches (probability, cost, label) plus CSV upload with pre-order `depth,label,probability,cost` encoding. Computes expected value, best/worst case, standard deviation, probability of an outcome worse than settlement, and tornado sensitivity analysis (±10pp probability shift per branch with sibling renormalization). SVG tree rendering, outcome distribution chart, paths detail table, and a settle/fight recommendation against a user-entered offer. Print/Save as PDF.
 
 ## File Structure
 ```
@@ -38,7 +38,7 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 ├── risk-analytics/tcor-dashboard/          (TCOR Dashboard)
 ├── risk-analytics/insurance-tower/         (Insurance Tower Visualizer)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
-├── data-intelligence/monte-carlo/          (Monte Carlo Simulator)
+├── legal-ops/litigation-decision-tree/      (Litigation Decision Tree)
 ├── Neal_Pathak_Resume.pdf
 ├── CLAUDE.md
 └── README.md

@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Litigation Decision Tree &mdash; Neal Pathak</title>
+  <meta name="description" content="Decision-tree analysis of a case: probability-weighted settle vs trial outcomes, expected value, settlement breakeven, and tail-risk sensitivity.">
+  <meta property="og:title" content="Litigation Decision Tree &mdash; Neal Pathak">
+  <meta property="og:description" content="Interactive litigation decision-tree: expected value, worst-case exposure, settle-or-fight recommendation, tornado sensitivity.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* Input section */
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-text-tertiary);
+      color: var(--color-text);
+    }
+
+    .mode-btn.active {
+      background: var(--color-legal);
+      color: #fff;
+      border-color: var(--color-legal);
+    }
+
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 200px; }
+
+    .settings-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    /* Tree editor */
+    .tree-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .tree-editor__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .tree-editor__title { font-size: var(--text-base); font-weight: 600; }
+
+    .tree-editor__help {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      line-height: 1.5;
+    }
+
+    .tree-column-header {
+      display: grid;
+      grid-template-columns: 1fr 90px 130px 90px;
+      gap: var(--space-sm);
+      padding: 0 var(--space-sm) var(--space-sm);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+      border-bottom: 1px solid var(--color-border-light);
+      margin-bottom: var(--space-xs);
+    }
+
+    .tree-column-header .num { text-align: right; }
+
+    .tree-rows { display: flex; flex-direction: column; gap: 4px; }
+
+    .tree-row {
+      display: grid;
+      grid-template-columns: 1fr 90px 130px 90px;
+      gap: var(--space-sm);
+      align-items: center;
+      padding: 4px var(--space-sm);
+      border-radius: var(--radius-sm);
+      position: relative;
+    }
+
+    .tree-row:hover { background: rgba(183, 121, 31, 0.03); }
+
+    .tree-row .tree-label-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .tree-row .depth-guides {
+      display: inline-flex;
+      flex-shrink: 0;
+    }
+
+    .tree-row .depth-guide {
+      width: 18px;
+      height: 34px;
+      border-left: 1px solid var(--color-border-light);
+      margin-left: 8px;
+    }
+
+    .tree-row .node-markers {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tree-node-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-family: var(--font-mono);
+    }
+
+    .tree-node-badge.root {
+      background: rgba(183, 121, 31, 0.1);
+      color: var(--color-legal);
+    }
+
+    .tree-node-badge.leaf {
+      background: rgba(100, 100, 100, 0.08);
+      color: var(--color-text-tertiary);
+    }
+
+    .tree-node-badge.chance {
+      background: rgba(36, 113, 163, 0.08);
+      color: var(--color-finance);
+    }
+
+    .tree-row input[type="text"],
+    .tree-row input[type="number"] {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: 4px 8px;
+      min-height: 32px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-sans);
+    }
+
+    .tree-row input[type="number"] { text-align: right; }
+    .tree-row input:focus { outline: none; border-color: var(--color-legal); }
+    .tree-row input:disabled { background: #f5f5f5; color: var(--color-text-tertiary); cursor: not-allowed; }
+
+    .tree-row-actions {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .tree-btn {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-tertiary);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      line-height: 1;
+      width: 28px;
+      height: 28px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      font-family: var(--font-sans);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tree-btn:hover { border-color: var(--color-legal); color: var(--color-legal); }
+    .tree-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .tree-btn.remove:hover { border-color: var(--color-risk); color: var(--color-risk); }
+
+    .prob-warnings {
+      margin-top: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .prob-warning {
+      font-size: var(--text-xs);
+      color: #8a4b0f;
+      background: rgba(230, 126, 34, 0.08);
+      border: 1px solid rgba(230, 126, 34, 0.2);
+      padding: var(--space-xs) var(--space-sm);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+    }
+
+    /* CSV */
+    .csv-section { display: none; }
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      background: var(--color-surface);
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-3xl);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-legal);
+      background: rgba(183, 121, 31, 0.03);
+    }
+
+    .csv-upload-zone__title { font-size: var(--text-base); font-weight: 600; margin-bottom: var(--space-xs); }
+    .csv-upload-zone__sub { font-size: var(--text-sm); color: var(--color-text-secondary); }
+    .csv-upload-zone__status { font-size: var(--text-sm); margin-top: var(--space-md); min-height: 1.25em; }
+    .csv-upload-zone__status.success { color: #1e8449; }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .csv-actions {
+      margin-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-actions a,
+    .csv-actions code {
+      color: var(--color-legal);
+      text-decoration: none;
+    }
+
+    .csv-actions a { text-decoration: underline; text-underline-offset: 2px; }
+
+    .csv-actions code {
+      background: rgba(183, 121, 31, 0.06);
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+    }
+
+    /* Generate row */
+    .generate-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-top: var(--space-xl);
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    /* Report */
+    .report-output { display: none; }
+    .report-output.visible { display: block; }
+
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: flex-end;
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-header {
+      text-align: center;
+      padding-bottom: var(--space-xl);
+      margin-bottom: var(--space-xl);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-header__case {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+
+    .report-header__sub {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    .report-header__meta {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin: 4px 0 0;
+      font-family: var(--font-mono);
+    }
+
+    .report-body {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl);
+    }
+
+    /* Verdict banner */
+    .verdict {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-xl);
+      padding: var(--space-lg) var(--space-xl);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+    }
+
+    .verdict.settle { background: rgba(30, 132, 73, 0.06); border: 1px solid rgba(30, 132, 73, 0.2); }
+    .verdict.fight  { background: rgba(192, 57, 43, 0.06); border: 1px solid rgba(192, 57, 43, 0.2); }
+    .verdict.neutral { background: #fafafa; border: 1px solid var(--color-border-light); }
+
+    .verdict__label {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+    }
+
+    .verdict__headline {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .verdict.settle .verdict__headline { color: #1e8449; }
+    .verdict.fight .verdict__headline { color: var(--color-risk); }
+
+    .verdict__detail {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+      max-width: 520px;
+    }
+
+    .verdict__numbers {
+      display: flex;
+      gap: var(--space-xl);
+      flex-wrap: wrap;
+    }
+
+    .verdict__numbers > div { text-align: right; }
+
+    .verdict__numbers .big {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .verdict__numbers .small {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Stats grid */
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-2xl);
+    }
+
+    .report-stat {
+      background: #fafafa;
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-md) var(--space-lg);
+    }
+
+    .report-stat__label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    .report-stat__value {
+      font-size: var(--text-xl);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .report-stat__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* Tree render + side charts */
+    .tree-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-2xl);
+      margin-bottom: var(--space-2xl);
+    }
+
+    .tree-section h4,
+    .tree-chart-box h4 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin: 0 0 var(--space-md);
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .tree-svg-wrapper {
+      background: #fafafa;
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      overflow-x: auto;
+    }
+
+    .tree-svg { display: block; max-width: 100%; height: auto; }
+
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+      margin-bottom: var(--space-2xl);
+    }
+
+    .tree-chart-box {
+      background: #fafafa;
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .tree-chart-wrapper { position: relative; height: 260px; }
+
+    /* Detail table */
+    .report-detail { margin-top: var(--space-md); }
+
+    .report-section-header {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: var(--space-md);
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th,
+    .report-table td {
+      padding: var(--space-sm) var(--space-md);
+      text-align: left;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table th {
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-table th.num,
+    .report-table td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .report-table tr.total-row td {
+      font-weight: 700;
+      border-top: 2px solid var(--color-border);
+      background: #fafafa;
+    }
+
+    .path-crumbs {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      line-height: 1.4;
+    }
+
+    .path-crumbs .sep { margin: 0 4px; color: #ccc; }
+    .path-crumbs .final { color: var(--color-text); font-weight: 500; }
+
+    .report-footer {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xl);
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .charts-row { grid-template-columns: 1fr; }
+
+      .tree-column-header,
+      .tree-row {
+        grid-template-columns: 1fr 70px 110px 70px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .verdict { flex-direction: column; align-items: flex-start; }
+      .verdict__numbers { width: 100%; justify-content: space-between; }
+      .verdict__numbers > div { text-align: left; }
+
+      .generate-row,
+      .print-row { justify-content: stretch; }
+
+      .generate-row .btn,
+      .print-row .btn { flex: 1; }
+    }
+
+    @media print {
+      .site-nav, .tool-header, .input-section, .print-row { display: none !important; }
+      body { background: #fff; }
+      .report-output { display: block !important; }
+      .report-body { background: #fff; border: none; padding: 0; box-shadow: none; }
+      .report-stat,
+      .tree-svg-wrapper,
+      .tree-chart-box,
+      .verdict { background: #fff !important; border: 1px solid #ddd !important; }
+      .charts-row, .tree-layout { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--legal">Legal Ops</span>
+        <h1>Litigation Decision Tree</h1>
+        <p class="hero__subtitle">
+          Turn "should we settle or fight it" into a math problem. Build the case as a probability tree, roll up expected value, and compare any settlement number to the full distribution of outcomes &mdash; including the tail.
+        </p>
+      </div>
+    </section>
+
+    <section class="input-section" id="inputSection">
+      <div class="container">
+
+        <div class="input-modes">
+          <span class="mode-label">Input method</span>
+          <button class="mode-btn active" data-mode="form" type="button">Form</button>
+          <button class="mode-btn" data-mode="csv" type="button">CSV Upload</button>
+          <button class="mode-btn" data-mode="demo" type="button">Demo Data</button>
+        </div>
+
+        <div class="settings-row">
+          <div class="form-group">
+            <label for="caseName">Case / matter</label>
+            <input type="text" id="caseName" placeholder="e.g., Acme v. Smith Industries">
+          </div>
+          <div class="form-group">
+            <label for="settlementOffer">Settlement offer ($)</label>
+            <input type="number" id="settlementOffer" placeholder="0" step="10000">
+          </div>
+          <div class="form-group">
+            <label for="preparedBy">Prepared by (optional)</label>
+            <input type="text" id="preparedBy" placeholder="Your name">
+          </div>
+        </div>
+
+        <div id="formEditor">
+          <div class="tree-editor">
+            <div class="tree-editor__header">
+              <div>
+                <div class="tree-editor__title">Decision Tree</div>
+                <div class="tree-editor__help">
+                  Add child outcomes under any node. Costs are total dollars you'd pay (defense + payout) at that outcome. Siblings' probabilities should sum to 100%.
+                </div>
+              </div>
+            </div>
+
+            <div class="tree-column-header">
+              <div>Label</div>
+              <div class="num">Probability</div>
+              <div class="num">Cost ($)</div>
+              <div></div>
+            </div>
+
+            <div class="tree-rows" id="treeRows"></div>
+
+            <div class="prob-warnings" id="probWarnings"></div>
+          </div>
+        </div>
+
+        <div class="csv-section" id="csvSection">
+          <div class="csv-upload-zone" id="csvUploadZone">
+            <div class="csv-upload-zone__title">Drop your tree CSV here</div>
+            <div class="csv-upload-zone__sub">or click to choose a file</div>
+            <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+            <div class="csv-upload-zone__status" id="csvStatus"></div>
+          </div>
+          <div class="csv-actions">
+            Columns: <code>depth, label, probability, cost</code> &middot; one row per node in pre-order (depth 0 = root) &middot;
+            <a href="#" id="downloadTemplate">Download template</a>
+          </div>
+        </div>
+
+        <div class="generate-row">
+          <button class="btn btn--primary" id="generateBtn" type="button">Analyze Case &rarr;</button>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="report-output" id="reportOutput">
+      <div class="container">
+        <div class="print-row">
+          <button class="btn btn--secondary" id="editBtn" type="button">&larr; Edit inputs</button>
+          <button class="btn btn--primary" id="printBtn" type="button">Print / Save as PDF</button>
+        </div>
+        <div id="report"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Demo — $5M breach of contract suit
+    // ==============================
+    function demoTree() {
+      const root = createNode('Litigate', 1, 0);
+      const sj = createNode('Summary judgment dismissal', 0.60, 300000);
+      const trial = createNode('Trial', 0.40, 0);
+      const tWin = createNode('Trial win', 0.50, 1500000);
+      const tPartial = createNode('Partial loss', 0.35, 3500000);
+      const tBig = createNode('Big loss', 0.15, 6500000);
+      trial.children = [tWin, tPartial, tBig];
+      root.children = [sj, trial];
+      return root;
+    }
+
+    const DEMO_DATA = {
+      caseName: 'Acme Industries v. Smith Co.',
+      settlementOffer: 1200000,
+      tree: demoTree(),
+    };
+
+    // ==============================
+    // State
+    // ==============================
+    let state = {
+      caseName: '',
+      preparedBy: '',
+      settlementOffer: 0,
+      tree: null,
+      mode: 'form',
+    };
+
+    let distributionChart = null;
+    let tornadoChart = null;
+
+    // ==============================
+    // Node helpers
+    // ==============================
+    let nodeCounter = 0;
+    function createNode(label, probability, cost) {
+      nodeCounter++;
+      return {
+        id: 'n_' + nodeCounter + '_' + Math.random().toString(36).slice(2, 8),
+        label: label || '',
+        probability: probability == null ? 1 : probability,
+        cost: cost == null ? 0 : cost,
+        children: [],
+      };
+    }
+
+    function findNode(root, id) {
+      if (!root) return null;
+      if (root.id === id) return root;
+      for (const c of root.children) {
+        const r = findNode(c, id);
+        if (r) return r;
+      }
+      return null;
+    }
+
+    function findParent(root, id) {
+      for (const c of root.children) {
+        if (c.id === id) return root;
+      }
+      for (const c of root.children) {
+        const r = findParent(c, id);
+        if (r) return r;
+      }
+      return null;
+    }
+
+    function removeNodeById(root, id) {
+      for (let i = 0; i < root.children.length; i++) {
+        if (root.children[i].id === id) {
+          root.children.splice(i, 1);
+          return true;
+        }
+        if (removeNodeById(root.children[i], id)) return true;
+      }
+      return false;
+    }
+
+    function addChildTo(root, parentId) {
+      const parent = findNode(root, parentId);
+      if (!parent) return;
+      // Default probability — try to balance siblings
+      const currentSum = parent.children.reduce((s, c) => s + c.probability, 0);
+      const newProb = Math.max(0, Math.min(1, 1 - currentSum));
+      parent.children.push(createNode('New outcome', newProb, 0));
+    }
+
+    function getDepth(root, id, depth = 0) {
+      if (root.id === id) return depth;
+      for (const c of root.children) {
+        const d = getDepth(c, id, depth + 1);
+        if (d >= 0) return d;
+      }
+      return -1;
+    }
+
+    // ==============================
+    // Path enumeration / stats
+    // ==============================
+    function enumeratePaths(root) {
+      const result = [];
+      function walk(n, labels, prob, cost) {
+        const newLabels = [...labels, n.label];
+        const newProb = prob * (n.probability == null ? 1 : n.probability);
+        const newCost = cost + (n.cost || 0);
+        if (!n.children.length) {
+          result.push({ labels: newLabels, probability: newProb, cost: newCost, leafId: n.id });
+        } else {
+          n.children.forEach(c => walk(c, newLabels, newProb, newCost));
+        }
+      }
+      walk(root, [], 1, 0);
+      return result;
+    }
+
+    function computeStats(tree, settlementOffer) {
+      const paths = enumeratePaths(tree);
+      if (!paths.length) return null;
+      const probSum = paths.reduce((s, p) => s + p.probability, 0);
+      // Normalize if probabilities don't quite sum to 1 (we also surface a warning upstream)
+      const norm = probSum > 0 ? 1 / probSum : 1;
+      const ev = paths.reduce((s, p) => s + p.probability * p.cost, 0) * norm;
+      const costs = paths.map(p => p.cost);
+      const bestCase = Math.min(...costs);
+      const worstCase = Math.max(...costs);
+      const bestPath = paths.find(p => p.cost === bestCase);
+      const worstPath = paths.find(p => p.cost === worstCase);
+      const worstCaseProb = worstPath ? worstPath.probability * norm : 0;
+      const variance = paths.reduce((s, p) => s + p.probability * Math.pow(p.cost - ev, 2), 0) * norm;
+      const stddev = Math.sqrt(variance);
+
+      let probWorseThanSettle = 0;
+      let probBetterThanSettle = 0;
+      if (settlementOffer != null && settlementOffer >= 0) {
+        paths.forEach(p => {
+          const pn = p.probability * norm;
+          if (p.cost > settlementOffer) probWorseThanSettle += pn;
+          else if (p.cost < settlementOffer) probBetterThanSettle += pn;
+        });
+      }
+
+      let recommendation = null;
+      if (settlementOffer != null && settlementOffer > 0) {
+        const margin = ev - settlementOffer;
+        recommendation = margin > 0 ? 'settle' : (margin < 0 ? 'fight' : 'neutral');
+      }
+
+      return {
+        paths, probSum, ev, bestCase, worstCase, bestPath, worstPath,
+        worstCaseProb, variance, stddev,
+        probWorseThanSettle, probBetterThanSettle,
+        recommendation, breakeven: ev,
+      };
+    }
+
+    function findProbWarnings(tree) {
+      const warnings = [];
+      function walk(n, path) {
+        if (n.children.length > 0) {
+          const sum = n.children.reduce((s, c) => s + (c.probability || 0), 0);
+          if (Math.abs(sum - 1) > 0.005) {
+            warnings.push({
+              parent: n.label || '(unnamed)',
+              path,
+              sum,
+              count: n.children.length,
+            });
+          }
+          n.children.forEach(c => walk(c, path + (path ? ' > ' : '') + (n.label || '?')));
+        }
+      }
+      walk(tree, '');
+      return warnings;
+    }
+
+    // ==============================
+    // Tornado sensitivity
+    // ==============================
+    function computeTornado(tree, settlementOffer) {
+      // For each non-root node whose parent has >= 2 children, swing its probability
+      // by +/- 10 percentage points (clamped to [0, 1]) while proportionally
+      // rescaling its siblings to preserve sum(children) = 1.
+      const DELTA = 0.1;
+      const base = computeStats(tree, settlementOffer);
+      const baseEV = base.ev;
+
+      const swings = [];
+      function walk(node, parent) {
+        if (parent && parent.children.length >= 2) {
+          const baseP = node.probability;
+          const pLow = Math.max(0, baseP - DELTA);
+          const pHigh = Math.min(1, baseP + DELTA);
+          if (pLow !== baseP || pHigh !== baseP) {
+            const evLow = evWithOverride(tree, parent.id, node.id, pLow, settlementOffer);
+            const evHigh = evWithOverride(tree, parent.id, node.id, pHigh, settlementOffer);
+            swings.push({
+              label: node.label || '(unnamed)',
+              parentLabel: parent.label || '(root)',
+              baseP, pLow, pHigh,
+              evLow, evHigh, baseEV,
+              swing: Math.abs(evHigh - evLow),
+            });
+          }
+        }
+        node.children.forEach(c => walk(c, node));
+      }
+      walk(tree, null);
+      swings.sort((a, b) => b.swing - a.swing);
+      return { baseEV, swings };
+    }
+
+    function evWithOverride(tree, parentId, targetId, newProb, settlementOffer) {
+      // Clone tree structure shallowly — we only override probabilities,
+      // so we can walk with overrides rather than mutating.
+      const overrides = {};
+      const parent = findNode(tree, parentId);
+      if (!parent) return computeStats(tree, settlementOffer).ev;
+      const target = parent.children.find(c => c.id === targetId);
+      if (!target) return computeStats(tree, settlementOffer).ev;
+
+      const siblingSum = parent.children
+        .filter(c => c.id !== targetId)
+        .reduce((s, c) => s + c.probability, 0);
+      const remaining = 1 - newProb;
+      parent.children.forEach(c => {
+        if (c.id === targetId) overrides[c.id] = newProb;
+        else overrides[c.id] = siblingSum > 0 ? (c.probability / siblingSum) * remaining : 0;
+      });
+
+      const paths = [];
+      function walk(n, prob, cost) {
+        const p = overrides[n.id] != null ? overrides[n.id] : n.probability;
+        const np = prob * p;
+        const nc = cost + (n.cost || 0);
+        if (!n.children.length) paths.push({ probability: np, cost: nc });
+        else n.children.forEach(c => walk(c, np, nc));
+      }
+      walk(tree, 1, 0);
+      return paths.reduce((s, p) => s + p.probability * p.cost, 0);
+    }
+
+    // ==============================
+    // Rendering: editor
+    // ==============================
+    const treeRowsEl = document.getElementById('treeRows');
+    const probWarningsEl = document.getElementById('probWarnings');
+
+    function renderTree() {
+      if (!state.tree) state.tree = createNode('Litigate', 1, 0);
+      let html = '';
+      function walk(node, depth, isRoot, parentId) {
+        const isLeaf = node.children.length === 0;
+        const badge = isRoot ? '<span class="tree-node-badge root">Root</span>' :
+                     (isLeaf ? '<span class="tree-node-badge leaf">Outcome</span>' :
+                               '<span class="tree-node-badge chance">Chance</span>');
+        let guides = '';
+        for (let i = 0; i < depth; i++) guides += '<span class="depth-guide"></span>';
+        const probPct = (node.probability * 100);
+        const probStr = Math.abs(probPct - Math.round(probPct)) < 0.01 ? Math.round(probPct) : probPct.toFixed(1);
+
+        html += '<div class="tree-row">';
+        html += '<div class="tree-label-cell">';
+        html += '<div class="depth-guides">' + guides + '</div>';
+        html += '<div class="node-markers">' + badge + '</div>';
+        html += '<input type="text" data-field="label" data-id="' + node.id + '" value="' + escapeAttr(node.label) + '" placeholder="' + (isRoot ? 'Root label' : 'Outcome label') + '">';
+        html += '</div>';
+        html += '<input type="number" data-field="probability" data-id="' + node.id + '" value="' + probStr + '" step="1" min="0" max="100"' + (isRoot ? ' disabled title="Root probability is always 100%"' : '') + '>';
+        html += '<input type="number" data-field="cost" data-id="' + node.id + '" value="' + (node.cost || 0) + '" step="10000" min="0" placeholder="0">';
+        html += '<div class="tree-row-actions">';
+        html += '<button class="tree-btn add" data-action="add" data-id="' + node.id + '" title="Add child outcome">+</button>';
+        html += '<button class="tree-btn remove" data-action="remove" data-id="' + node.id + '" title="Remove outcome"' + (isRoot ? ' disabled' : '') + '>&times;</button>';
+        html += '</div>';
+        html += '</div>';
+        node.children.forEach(c => walk(c, depth + 1, false, node.id));
+      }
+      walk(state.tree, 0, true, null);
+      treeRowsEl.innerHTML = html;
+
+      renderProbWarnings();
+    }
+
+    function renderProbWarnings() {
+      const warnings = findProbWarnings(state.tree);
+      if (!warnings.length) { probWarningsEl.innerHTML = ''; return; }
+      let html = '';
+      warnings.forEach(w => {
+        const pct = (w.sum * 100).toFixed(1);
+        html += '<div class="prob-warning">';
+        html += 'Children of <strong>' + escapeHtml(w.parent) + '</strong> sum to ' + pct + '% (should be 100%). ';
+        html += 'Calculations below renormalize automatically, but fix the inputs for cleaner output.';
+        html += '</div>';
+      });
+      probWarningsEl.innerHTML = html;
+    }
+
+    // Event delegation on tree editor
+    treeRowsEl.addEventListener('input', e => {
+      const t = e.target;
+      if (t.tagName !== 'INPUT') return;
+      const id = t.dataset.id;
+      const field = t.dataset.field;
+      if (!id || !field) return;
+      const node = findNode(state.tree, id);
+      if (!node) return;
+      if (field === 'label') node.label = t.value;
+      else if (field === 'probability') {
+        let v = parseFloat(t.value);
+        if (isNaN(v)) v = 0;
+        node.probability = v / 100;
+      } else if (field === 'cost') {
+        let v = parseFloat(t.value);
+        if (isNaN(v)) v = 0;
+        node.cost = v;
+      }
+      renderProbWarnings();
+    });
+
+    treeRowsEl.addEventListener('click', e => {
+      const t = e.target.closest('button.tree-btn');
+      if (!t) return;
+      const id = t.dataset.id;
+      if (t.dataset.action === 'add') {
+        addChildTo(state.tree, id);
+        renderTree();
+      } else if (t.dataset.action === 'remove') {
+        if (state.tree.id === id) return;
+        removeNodeById(state.tree, id);
+        renderTree();
+      }
+    });
+
+    // ==============================
+    // Mode switching + settings
+    // ==============================
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const caseNameEl = document.getElementById('caseName');
+    const settlementOfferEl = document.getElementById('settlementOffer');
+    const preparedByEl = document.getElementById('preparedBy');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+    const downloadTemplate = document.getElementById('downloadTemplate');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+
+    function setStateFromDemo() {
+      state.caseName = DEMO_DATA.caseName;
+      state.settlementOffer = DEMO_DATA.settlementOffer;
+      state.tree = deepCloneTree(DEMO_DATA.tree);
+      caseNameEl.value = state.caseName;
+      settlementOfferEl.value = state.settlementOffer;
+    }
+
+    function deepCloneTree(node) {
+      const n = createNode(node.label, node.probability, node.cost);
+      n.children = node.children.map(deepCloneTree);
+      return n;
+    }
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = mode;
+
+        if (mode === 'form') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+        } else if (mode === 'csv') {
+          formEditor.style.display = 'none';
+          csvSection.classList.add('visible');
+        } else if (mode === 'demo') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+          setStateFromDemo();
+          renderTree();
+        }
+      });
+    });
+
+    caseNameEl.addEventListener('input', () => { state.caseName = caseNameEl.value; });
+    settlementOfferEl.addEventListener('input', () => {
+      const v = parseFloat(settlementOfferEl.value);
+      state.settlementOffer = isNaN(v) ? 0 : v;
+    });
+    preparedByEl.addEventListener('input', () => { state.preparedBy = preparedByEl.value; });
+
+    // ==============================
+    // CSV
+    // ==============================
+    function parseCSVLine(line) {
+      const out = [];
+      let cur = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQuote) {
+          if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+          else if (c === '"') inQuote = false;
+          else cur += c;
+        } else {
+          if (c === ',') { out.push(cur); cur = ''; }
+          else if (c === '"') inQuote = true;
+          else cur += c;
+        }
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    }
+
+    function parseCSVToTree(text) {
+      const lines = text.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+      const iDepth = headers.indexOf('depth');
+      const iLabel = headers.indexOf('label');
+      const iProb = headers.indexOf('probability');
+      const iCost = headers.indexOf('cost');
+      if (iDepth < 0 || iLabel < 0 || iProb < 0 || iCost < 0) {
+        throw new Error('Required columns: depth, label, probability, cost');
+      }
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCSVLine(lines[i]);
+        rows.push({
+          depth: parseInt(cells[iDepth], 10),
+          label: cells[iLabel] || '',
+          probability: parseFloat(cells[iProb]) || 0,
+          cost: parseFloat(cells[iCost]) || 0,
+        });
+      }
+      if (!rows.length || rows[0].depth !== 0) throw new Error('First row must be depth 0 (root).');
+      const root = createNode(rows[0].label, rows[0].probability, rows[0].cost);
+      const stack = [root];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (isNaN(r.depth) || r.depth < 1 || r.depth > stack.length) {
+          throw new Error('Invalid depth at row ' + (i + 1) + '.');
+        }
+        const node = createNode(r.label, r.probability, r.cost);
+        stack[r.depth - 1].children.push(node);
+        stack[r.depth] = node;
+        stack.length = r.depth + 1;
+      }
+      return root;
+    }
+
+    function treeToCSV(root) {
+      const rows = [['depth', 'label', 'probability', 'cost'].join(',')];
+      function walk(n, depth) {
+        const label = n.label.includes(',') || n.label.includes('"')
+          ? '"' + n.label.replace(/"/g, '""') + '"'
+          : n.label;
+        rows.push([depth, label, n.probability, n.cost].join(','));
+        n.children.forEach(c => walk(c, depth + 1));
+      }
+      walk(root, 0);
+      return rows.join('\n');
+    }
+
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    csvFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleCSVFile(e.target.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          state.tree = parseCSVToTree(e.target.result);
+          csvStatus.textContent = 'Loaded tree with ' + countLeaves(state.tree) + ' terminal outcome(s).';
+          csvStatus.className = 'csv-upload-zone__status success';
+          renderTree();
+        } catch (err) {
+          csvStatus.textContent = err.message;
+          csvStatus.className = 'csv-upload-zone__status error';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    downloadTemplate.addEventListener('click', e => {
+      e.preventDefault();
+      const csv = treeToCSV(demoTree());
+      const blob = new Blob([csv + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'litigation-decision-tree-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function countLeaves(node) {
+      if (!node.children.length) return 1;
+      return node.children.reduce((s, c) => s + countLeaves(c), 0);
+    }
+
+    // ==============================
+    // Formatters
+    // ==============================
+    function fmtDollarShort(v) {
+      const abs = Math.abs(v);
+      if (abs >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return '$' + (v / 1e6).toFixed(2).replace(/\.?0+$/, '') + 'M';
+      if (abs >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+      return '$' + Math.round(v).toLocaleString();
+    }
+
+    function fmtDollarFull(v) {
+      return '$' + Math.round(v).toLocaleString();
+    }
+
+    function fmtPct(v) {
+      if (v == null || isNaN(v)) return '—';
+      return (v * 100).toFixed(1) + '%';
+    }
+
+    function escapeAttr(v) {
+      return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+
+    function escapeHtml(str) {
+      return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    // ==============================
+    // Report generation
+    // ==============================
+    function generate() {
+      if (!state.tree || !state.tree.children.length) {
+        alert('Add at least one child outcome under the root before analyzing.');
+        return;
+      }
+      const stats = computeStats(state.tree, state.settlementOffer);
+      if (!stats) { alert('Nothing to analyze.'); return; }
+      const tornado = computeTornado(state.tree, state.settlementOffer);
+      const warnings = findProbWarnings(state.tree);
+
+      const caseName = (state.caseName || '').trim() || 'Untitled Case';
+      const preparedBy = (state.preparedBy || '').trim();
+
+      const html = buildReport({ stats, tornado, warnings, caseName, preparedBy });
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      setTimeout(() => {
+        renderTreeSVG(state.tree, stats);
+        renderDistributionChart(stats);
+        renderTornadoChart(tornado);
+      }, 30);
+    }
+
+    function buildReport(r) {
+      const { stats, tornado, warnings, caseName, preparedBy } = r;
+      const { ev, bestCase, worstCase, bestPath, worstPath, worstCaseProb,
+              stddev, probWorseThanSettle, probBetterThanSettle, recommendation, breakeven } = stats;
+      const offer = state.settlementOffer;
+
+      let html = '';
+
+      // Header
+      html += '<div class="report-header">';
+      html += '<div class="report-header__case">' + escapeHtml(caseName) + '</div>';
+      html += '<p class="report-header__sub">Expected value: ' + fmtDollarShort(ev) +
+              (offer > 0 ? ' &middot; Settlement offer: ' + fmtDollarShort(offer) : '') + '</p>';
+      html += '<p class="report-header__meta">';
+      html += stats.paths.length + ' terminal outcome' + (stats.paths.length === 1 ? '' : 's');
+      if (preparedBy) html += ' &middot; Prepared by ' + escapeHtml(preparedBy);
+      html += '</p>';
+      html += '</div>';
+
+      html += '<div class="report-body">';
+
+      // Verdict banner
+      if (offer > 0 && recommendation) {
+        const cls = recommendation;
+        let headline, detail;
+        if (recommendation === 'settle') {
+          const savings = offer - ev;
+          // Wait — if EV > offer, then settling saves money. Let me recompute.
+          // If ev > offer, settlement is cheaper → recommend SETTLE
+          // savings = ev - offer
+          const s = ev - offer;
+          headline = 'Settle — the offer beats expected cost of fighting';
+          detail = 'Expected cost of litigating is ' + fmtDollarShort(ev) +
+                   '. The offer of ' + fmtDollarShort(offer) + ' is ' + fmtDollarShort(s) +
+                   ' cheaper in expectation. There is also a ' + fmtPct(probWorseThanSettle) +
+                   ' chance a trial outcome costs more than the offer.';
+        } else if (recommendation === 'fight') {
+          const savings = offer - ev;
+          headline = 'Fight — expected cost of trial is lower than the offer';
+          detail = 'Expected cost of litigating is ' + fmtDollarShort(ev) +
+                   '. The offer of ' + fmtDollarShort(offer) + ' is ' + fmtDollarShort(savings) +
+                   ' more expensive in expectation. Weigh this against the ' +
+                   fmtPct(worstCaseProb) + ' chance of the worst-case outcome (' + fmtDollarShort(worstCase) + ').';
+        } else {
+          headline = 'Offer equals expected cost';
+          detail = 'The offer is at breakeven. Risk tolerance and tail exposure (' +
+                   fmtPct(worstCaseProb) + ' chance of ' + fmtDollarShort(worstCase) +
+                   ') should drive the decision.';
+        }
+        html += '<div class="verdict ' + cls + '">';
+        html += '<div>';
+        html += '<div class="verdict__label">Recommendation</div>';
+        html += '<div class="verdict__headline">' + escapeHtml(headline) + '</div>';
+        html += '<div class="verdict__detail">' + detail + '</div>';
+        html += '</div>';
+        html += '<div class="verdict__numbers">';
+        html += '<div><div class="big">' + fmtDollarShort(ev) + '</div><div class="small">Expected cost</div></div>';
+        html += '<div><div class="big">' + fmtDollarShort(offer) + '</div><div class="small">Settlement offer</div></div>';
+        html += '</div>';
+        html += '</div>';
+      }
+
+      // Stats
+      html += '<div class="report-stats">';
+      html += statCard('Expected value', fmtDollarShort(ev), 'Probability-weighted cost of litigating');
+      html += statCard('Settlement breakeven', fmtDollarShort(breakeven), 'Offers below this favor settling');
+      html += statCard('Best case', fmtDollarShort(bestCase),
+                       bestPath ? 'From: ' + escapeHtml(bestPath.labels.slice(1).join(' &rsaquo; ') || '(root)') : '');
+      html += statCard('Worst case', fmtDollarShort(worstCase),
+                       'P = ' + fmtPct(worstCaseProb) + ' &middot; ' +
+                       (worstPath ? escapeHtml(worstPath.labels[worstPath.labels.length - 1] || '') : ''));
+      html += statCard('Std. deviation', fmtDollarShort(stddev), 'Spread around expected value');
+      if (offer > 0) {
+        html += statCard('P(outcome > offer)', fmtPct(probWorseThanSettle),
+                         'Chance a trial result exceeds the offer');
+      }
+      html += '</div>';
+
+      // Tree visualization
+      html += '<div class="tree-layout">';
+      html += '<div class="tree-section">';
+      html += '<h4>Decision Tree</h4>';
+      html += '<div class="tree-svg-wrapper" id="treeSvgWrapper"></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Charts
+      html += '<div class="charts-row">';
+      html += '<div class="tree-chart-box">';
+      html += '<h4>Outcome Distribution</h4>';
+      html += '<div class="tree-chart-wrapper"><canvas id="distributionCanvas"></canvas></div>';
+      html += '</div>';
+      html += '<div class="tree-chart-box">';
+      html += '<h4>Sensitivity (&plusmn;10pp probability shift)</h4>';
+      html += '<div class="tree-chart-wrapper"><canvas id="tornadoCanvas"></canvas></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Paths detail table
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Outcome Paths</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Path</th>';
+      html += '<th class="num">Probability</th>';
+      html += '<th class="num">Cost</th>';
+      html += '<th class="num">Contribution to EV</th>';
+      html += '</tr></thead><tbody>';
+      const sortedPaths = [...stats.paths].sort((a, b) => b.probability - a.probability);
+      const norm = stats.probSum > 0 ? 1 / stats.probSum : 1;
+      sortedPaths.forEach(p => {
+        const pn = p.probability * norm;
+        const contribution = pn * p.cost;
+        const pathBits = p.labels.slice(1);
+        html += '<tr>';
+        html += '<td><div class="path-crumbs">';
+        if (pathBits.length === 0) {
+          html += '<span class="final">(root)</span>';
+        } else {
+          pathBits.forEach((lbl, i) => {
+            if (i > 0) html += '<span class="sep">&rsaquo;</span>';
+            const cls = i === pathBits.length - 1 ? 'final' : '';
+            html += '<span class="' + cls + '">' + escapeHtml(lbl || '?') + '</span>';
+          });
+        }
+        html += '</div></td>';
+        html += '<td class="num">' + fmtPct(pn) + '</td>';
+        html += '<td class="num">' + fmtDollarFull(p.cost) + '</td>';
+        html += '<td class="num">' + fmtDollarFull(contribution) + '</td>';
+        html += '</tr>';
+      });
+      html += '<tr class="total-row">';
+      html += '<td>All outcomes</td>';
+      html += '<td class="num">' + fmtPct(1) + '</td>';
+      html += '<td class="num"></td>';
+      html += '<td class="num">' + fmtDollarFull(ev) + '</td>';
+      html += '</tr>';
+      html += '</tbody></table></div>';
+
+      // Warnings
+      if (warnings.length) {
+        html += '<div class="prob-warnings" style="margin-top: var(--space-lg);">';
+        warnings.forEach(w => {
+          const pct = (w.sum * 100).toFixed(1);
+          html += '<div class="prob-warning">';
+          html += 'Note: children of <strong>' + escapeHtml(w.parent) + '</strong> sum to ' + pct + '%. ';
+          html += 'The analysis above renormalized them to 100%.';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Footer
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += '<p class="report-footer">Generated ' + today + '. ';
+      html += 'Expected value (EV) = sum over every root-to-leaf path of (joint probability &times; path cost). ';
+      html += 'Sensitivity bars show EV if each branch probability is shifted &plusmn;10 percentage points, with siblings renormalized. ';
+      html += 'Tool is for analytical illustration only &mdash; not legal advice. Inputs and outputs are unverified.</p>';
+
+      html += '</div>'; // close report-body
+
+      return html;
+    }
+
+    function statCard(label, value, sub) {
+      return '<div class="report-stat">' +
+             '<div class="report-stat__label">' + label + '</div>' +
+             '<div class="report-stat__value">' + value + '</div>' +
+             (sub ? '<div class="report-stat__sub">' + sub + '</div>' : '') +
+             '</div>';
+    }
+
+    // ==============================
+    // Tree SVG render
+    // ==============================
+    function renderTreeSVG(tree, stats) {
+      const wrapper = document.getElementById('treeSvgWrapper');
+      if (!wrapper) return;
+      if (!tree) { wrapper.innerHTML = ''; return; }
+
+      // Compute layout
+      const leafList = [];
+      function collectLeaves(n) {
+        if (!n.children.length) leafList.push(n);
+        else n.children.forEach(collectLeaves);
+      }
+      collectLeaves(tree);
+
+      const LEAF_H = 64;
+      const MAX_DEPTH = (function maxD(n, d) {
+        if (!n.children.length) return d;
+        return Math.max(...n.children.map(c => maxD(c, d + 1)));
+      })(tree, 0);
+      const COL_W = 220;
+      const PAD_L = 20, PAD_R = 20, PAD_T = 20, PAD_B = 20;
+
+      const width = PAD_L + PAD_R + (MAX_DEPTH + 1) * COL_W;
+      const height = PAD_T + PAD_B + Math.max(1, leafList.length) * LEAF_H;
+
+      // Assign y to leaves first
+      const yMap = {};
+      leafList.forEach((leaf, i) => {
+        yMap[leaf.id] = PAD_T + (i + 0.5) * LEAF_H;
+      });
+      // Internal y = average of child y
+      function setY(n) {
+        if (!n.children.length) return yMap[n.id];
+        const ys = n.children.map(setY);
+        const y = (Math.min(...ys) + Math.max(...ys)) / 2;
+        yMap[n.id] = y;
+        return y;
+      }
+      setY(tree);
+      // Depth (x)
+      const depthMap = {};
+      (function setD(n, d) {
+        depthMap[n.id] = d;
+        n.children.forEach(c => setD(c, d + 1));
+      })(tree, 0);
+      const xMap = {};
+      Object.keys(depthMap).forEach(id => {
+        xMap[id] = PAD_L + depthMap[id] * COL_W + 80; // node center x
+      });
+
+      const NODE_W = 160, NODE_H = 44;
+      const LEAF_W = 160, LEAF_H_BOX = 52;
+
+      // Precompute leaf contributions for highlighting (optional tint)
+      const norm = stats && stats.probSum > 0 ? 1 / stats.probSum : 1;
+      const leafInfo = {};
+      (stats ? stats.paths : []).forEach(p => {
+        leafInfo[p.leafId] = { pathProb: p.probability * norm, pathCost: p.cost };
+      });
+
+      let svg = '<svg class="tree-svg" viewBox="0 0 ' + width + ' ' + height + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Litigation decision tree">';
+
+      // Edges first (so nodes overlay them)
+      function drawEdges(n) {
+        n.children.forEach(c => {
+          const x1 = xMap[n.id] + NODE_W / 2;
+          const y1 = yMap[n.id];
+          const x2 = xMap[c.id] - (c.children.length ? NODE_W : LEAF_W) / 2;
+          const y2 = yMap[c.id];
+          const midX = (x1 + x2) / 2;
+          // L-shaped / curved connector
+          svg += '<path d="M ' + x1 + ' ' + y1 +
+                 ' C ' + midX + ' ' + y1 + ', ' + midX + ' ' + y2 + ', ' + x2 + ' ' + y2 + '" ' +
+                 'stroke="#c9c9c9" stroke-width="1.5" fill="none"/>';
+          // Probability label on the edge
+          const labelX = midX;
+          const labelY = (y1 + y2) / 2 - 6;
+          const probPct = (c.probability * 100);
+          const probStr = Math.abs(probPct - Math.round(probPct)) < 0.01 ? Math.round(probPct) + '%' : probPct.toFixed(1) + '%';
+          svg += '<rect x="' + (labelX - 22) + '" y="' + (labelY - 10) + '" width="44" height="16" rx="8" fill="rgba(250,250,250,0.95)" stroke="#e0e0e0" stroke-width="1"/>';
+          svg += '<text x="' + labelX + '" y="' + (labelY + 2) + '" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="600" fill="#666">' + probStr + '</text>';
+          drawEdges(c);
+        });
+      }
+      drawEdges(tree);
+
+      // Nodes
+      function drawNodes(n, depth, isRoot) {
+        const isLeaf = n.children.length === 0;
+        const w = isLeaf ? LEAF_W : NODE_W;
+        const h = isLeaf ? LEAF_H_BOX : NODE_H;
+        const cx = xMap[n.id];
+        const cy = yMap[n.id];
+        const x = cx - w / 2;
+        const y = cy - h / 2;
+
+        let fill, stroke, textFill;
+        if (isRoot) {
+          fill = 'rgba(183, 121, 31, 0.12)'; stroke = 'rgba(183, 121, 31, 0.5)'; textFill = '#5a3a0f';
+        } else if (isLeaf) {
+          fill = '#ffffff'; stroke = '#cfcfcf'; textFill = '#333';
+        } else {
+          fill = 'rgba(36, 113, 163, 0.08)'; stroke = 'rgba(36, 113, 163, 0.35)'; textFill = '#1a4d76';
+        }
+
+        svg += '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="6" fill="' + fill + '" stroke="' + stroke + '" stroke-width="1.25"/>';
+
+        const label = n.label || (isRoot ? 'Root' : (isLeaf ? 'Outcome' : 'Chance'));
+        const labelTrunc = label.length > 22 ? label.slice(0, 21) + '…' : label;
+
+        if (isLeaf) {
+          const info = leafInfo[n.id];
+          svg += '<text x="' + cx + '" y="' + (cy - 6) + '" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="' + textFill + '">' + escapeHtml(labelTrunc) + '</text>';
+          const sub = fmtDollarShort(n.cost) + (info ? '  \u00B7  P ' + (info.pathProb * 100).toFixed(1) + '%' : '');
+          svg += '<text x="' + cx + '" y="' + (cy + 10) + '" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" fill="#666">' + sub + '</text>';
+        } else {
+          svg += '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-family="Inter, sans-serif" font-size="12" font-weight="600" fill="' + textFill + '">' + escapeHtml(labelTrunc) + '</text>';
+        }
+        n.children.forEach(c => drawNodes(c, depth + 1, false));
+      }
+      drawNodes(tree, 0, true);
+
+      svg += '</svg>';
+      wrapper.innerHTML = svg;
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    function chartFontFamily() { return 'Inter'; }
+
+    function renderDistributionChart(stats) {
+      if (distributionChart) distributionChart.destroy();
+      const canvas = document.getElementById('distributionCanvas');
+      if (!canvas) return;
+      // Sort leaves by cost
+      const norm = stats.probSum > 0 ? 1 / stats.probSum : 1;
+      const points = stats.paths
+        .map(p => ({
+          label: p.labels[p.labels.length - 1] || '?',
+          cost: p.cost,
+          prob: p.probability * norm,
+        }))
+        .sort((a, b) => a.cost - b.cost);
+
+      const labels = points.map(p => fmtDollarShort(p.cost));
+      const data = points.map(p => p.prob * 100);
+      const namesForTooltip = points.map(p => p.label);
+
+      const offer = state.settlementOffer;
+
+      distributionChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Probability',
+            data,
+            backgroundColor: points.map(p => offer > 0 && p.cost > offer ? 'rgba(192, 57, 43, 0.75)' : 'rgba(183, 121, 31, 0.75)'),
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                title: items => fmtDollarShort(points[items[0].dataIndex].cost) + ' — ' + namesForTooltip[items[0].dataIndex],
+                label: item => 'P = ' + item.parsed.y.toFixed(1) + '%',
+              }
+            },
+            annotation: {}
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              title: { display: true, text: 'Outcome cost', font: { family: chartFontFamily(), size: 11 }, color: '#777' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999' }
+            },
+            y: {
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => v + '%' },
+              title: { display: true, text: 'Probability', font: { family: chartFontFamily(), size: 11 }, color: '#777' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTornadoChart(tornado) {
+      if (tornadoChart) tornadoChart.destroy();
+      const canvas = document.getElementById('tornadoCanvas');
+      if (!canvas) return;
+      const top = tornado.swings.slice(0, 6);
+      if (!top.length) {
+        canvas.getContext('2d').fillText('Need at least 2 sibling branches for sensitivity.', 20, 40);
+        return;
+      }
+      const labels = top.map(s => s.label.length > 26 ? s.label.slice(0, 25) + '…' : s.label);
+      // Center bars on baseEV, show delta to low/high
+      const base = tornado.baseEV;
+      const deltas = top.map(s => ({
+        low: s.evLow - base,
+        high: s.evHigh - base,
+        min: Math.min(s.evLow, s.evHigh),
+        max: Math.max(s.evLow, s.evHigh),
+      }));
+      // Chart.js floating bar: data as [low, high]
+      const data = deltas.map(d => [d.min - base, d.max - base]);
+
+      tornadoChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'EV swing',
+            data,
+            backgroundColor: 'rgba(183, 121, 31, 0.5)',
+            borderColor: 'rgba(183, 121, 31, 0.8)',
+            borderWidth: 1,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => {
+                  const i = item.dataIndex;
+                  const s = top[i];
+                  return 'EV at P=' + (s.pLow * 100).toFixed(0) + '%: ' + fmtDollarShort(s.evLow) +
+                         '  vs  P=' + (s.pHigh * 100).toFixed(0) + '%: ' + fmtDollarShort(s.evHigh);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: chartFontFamily(), size: 10 },
+                color: '#999',
+                callback: v => (v >= 0 ? '+' : '') + fmtDollarShort(v),
+              },
+              title: { display: true, text: '$ change from baseline EV (' + fmtDollarShort(base) + ')', font: { family: chartFontFamily(), size: 11 }, color: '#777' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: chartFontFamily(), size: 11 }, color: '#555' }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================
+    // Buttons
+    // ==============================
+    generateBtn.addEventListener('click', generate);
+    printBtn.addEventListener('click', () => window.print());
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ==============================
+    // Init — start with the demo so the tool is instantly useful
+    // ==============================
+    setStateFromDemo();
+    renderTree();
+
+  })();
+  </script>
+</body>
+</html>

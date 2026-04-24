@@ -858,7 +858,8 @@
       const totalPaid = claims.reduce((s, c) => s + c.paid, 0);
       const totalReserved = claims.reduce((s, c) => s + c.reserved, 0);
       const openCount = claims.filter(c => c.status === 'Open').length;
-      const avgSeverity = totalIncurred / claims.length;
+      const avgSeverity = claims.length > 0 ? totalIncurred / claims.length : 0;
+      const reservedPctOfIncurred = totalIncurred > 0 ? (totalReserved / totalIncurred * 100).toFixed(1) : '0.0';
 
       // Calculate frequency trend
       const years = [...new Set(claims.map(c => c.year))].sort();
@@ -882,7 +883,7 @@
         <div class="metric-card">
           <div class="metric-card__label">Outstanding Reserves</div>
           <div class="metric-card__value">${formatCurrency(totalReserved)}</div>
-          <div class="metric-card__sub">${(totalReserved / totalIncurred * 100).toFixed(1)}% of incurred</div>
+          <div class="metric-card__sub">${reservedPctOfIncurred}% of incurred</div>
         </div>
         <div class="metric-card">
           <div class="metric-card__label">Avg Severity</div>

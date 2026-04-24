@@ -40,7 +40,7 @@
     }
 
     .strategy-btn:hover {
-      border-color: #ccc;
+      border-color: var(--color-text-tertiary);
       color: var(--color-text);
     }
 
@@ -622,8 +622,16 @@
       const minRef = Math.min(...allPrices);
       const maxRef = Math.max(...allPrices);
       const range = Math.max(maxRef - minRef, 10);
-      const lo = Math.max(0, minRef - range * 0.8);
-      const hi = maxRef + range * 0.8;
+      let lo = Math.max(0, minRef - range * 0.8);
+      let hi = maxRef + range * 0.8;
+
+      // If strategy includes stock, widen the range so the downside curve
+      // toward zero and significant upside moves are both visible.
+      const hasStock = legs.some(l => l.type === 'stock');
+      if (hasStock && underlying > 0) {
+        lo = Math.max(0, Math.min(lo, underlying * 0.2));
+        hi = Math.max(hi, underlying * 1.6);
+      }
 
       // Generate data points
       const step = (hi - lo) / 300;
@@ -634,15 +642,28 @@
         pnls.push(Math.round(calcPnL(p) * 100) / 100);
       }
 
-      // Detect unlimited profit/loss analytically
-      const pnlFarRight = calcPnL(hi * 10);
-      const pnlAtHi = calcPnL(hi);
-      const isMaxProfitUnlimited = pnlFarRight > pnlAtHi + 1;
+      // Detect unlimited profit/loss analytically via the slope of total P&L
+      // as price → ∞ (above all strikes). Downside is always bounded because
+      // price cannot go below $0, so no left-side check is needed.
+      //   Long stock  → +qty      per $1
+      //   Short stock → -qty      per $1
+      //   Long call   → +qty*100  per $1 (above strike)
+      //   Short call  → -qty*100  per $1 (above strike)
+      //   Puts        → 0         (above strike)
+      let rightSlope = 0;
+      legs.forEach(leg => {
+        const dir = leg.direction === 'long' ? 1 : -1;
+        if (leg.type === 'stock') {
+          rightSlope += dir * leg.qty;
+        } else if (leg.type === 'call') {
+          rightSlope += dir * leg.qty * 100;
+        }
+      });
+      const isMaxProfitUnlimited = rightSlope > 0;
+      const isMaxLossUnlimited = rightSlope < 0;
 
-      const pnlFarLeft = calcPnL(Math.max(0, lo * 0.01));
-      const pnlAtLo = calcPnL(lo);
-      const isMaxLossUnlimited = pnlFarLeft < pnlAtLo - 1;
-
+      // Piecewise-linear P&L: extrema lie at $0, at strike prices, or at infinity.
+      // Include price=0 and a far-right point so bounded endpoints are captured.
       const pnlAtZero = calcPnL(0);
       const pnlAtVeryHigh = calcPnL(hi * 5);
       const allPnlPoints = [...pnls, pnlAtZero, pnlAtVeryHigh];

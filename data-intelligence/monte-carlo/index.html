@@ -619,15 +619,25 @@
       const min = sorted[0];
       const max = sorted[sorted.length - 1];
       const binCount = 40;
-      const binWidth = (max - min) / binCount;
 
+      // Degenerate case: zero spread (e.g. volatility = 0). Render a single centered bar.
       const bins = [];
       const binLabels = [];
-      for (let i = 0; i < binCount; i++) {
-        const lo = min + i * binWidth;
-        const hi = lo + binWidth;
-        bins.push(finals.filter(v => v >= lo && v < hi).length);
-        binLabels.push(lo + binWidth / 2);
+      if (max - min < 1e-9) {
+        for (let i = 0; i < binCount; i++) {
+          bins.push(i === Math.floor(binCount / 2) ? finals.length : 0);
+          binLabels.push(min);
+        }
+      } else {
+        const binWidth = (max - min) / binCount;
+        for (let i = 0; i < binCount; i++) {
+          const lo = min + i * binWidth;
+          const hi = lo + binWidth;
+          // Last bin is inclusive of the upper bound so the maximum value is counted.
+          const isLast = i === binCount - 1;
+          bins.push(finals.filter(v => v >= lo && (isLast ? v <= hi : v < hi)).length);
+          binLabels.push(lo + binWidth / 2);
+        }
       }
 
       const colors = binLabels.map(v => v >= S0 ? 'rgba(30, 132, 73, 0.5)' : 'rgba(192, 57, 43, 0.5)');

@@ -992,9 +992,6 @@
 
       html += '</tbody></table></div>';
       bfFields.innerHTML = html;
-
-      // Re-run on change
-      bfFields.addEventListener('input', () => { if (method === 'bf') runAnalysis(); });
     }
 
     function getBFInputs() {
@@ -1076,6 +1073,10 @@
         runAnalysis();
       });
     });
+
+    // BF inputs: attach once via event delegation so re-rendering the inputs
+    // doesn't stack duplicate listeners.
+    bfFields.addEventListener('input', () => { if (method === 'bf') runAnalysis(); });
 
   })();
   </script>

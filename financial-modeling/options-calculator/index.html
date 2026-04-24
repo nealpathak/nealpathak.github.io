@@ -340,7 +340,7 @@
   <main>
     <section class="tool-header">
       <div class="container">
-        <span class="category-badge category-badge--finance">Financial Modeling</span>
+        <span class="category-badge category-badge--finance">Finance</span>
         <h1>Options P&L Calculator</h1>
         <p>Model single-leg and multi-leg options strategies. Visualize payoff diagrams, calculate breakevens, and understand your risk profile before entering a trade.</p>
       </div>
@@ -879,14 +879,14 @@
             if (underlyingIdx >= 0) {
               const x = xScale.getPixelForValue(underlyingIdx);
               chartCtx.save();
-              chartCtx.strokeStyle = 'rgba(36, 113, 163, 0.5)';
+              chartCtx.strokeStyle = 'rgba(30, 132, 73, 0.5)';
               chartCtx.lineWidth = 1.5;
               chartCtx.setLineDash([3, 3]);
               chartCtx.beginPath();
               chartCtx.moveTo(x, yScale.top);
               chartCtx.lineTo(x, yScale.bottom);
               chartCtx.stroke();
-              chartCtx.fillStyle = 'rgba(36, 113, 163, 0.7)';
+              chartCtx.fillStyle = 'rgba(30, 132, 73, 0.7)';
               chartCtx.font = '10px Inter';
               chartCtx.textAlign = 'center';
               chartCtx.fillText('Current $' + underlying, x, yScale.top - 6);

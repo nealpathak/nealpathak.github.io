@@ -26,10 +26,12 @@
 
   /* Category Colors */
   --color-risk: #c0392b;
-  --color-finance: #2471a3;
+  --color-finance: #1e8449;
+  --color-legal: #2471a3;
+
+  /* Semantic (kept for existing component usage) */
   --color-data: #1e8449;
-  --color-sim: #884ea0;
-  --color-legal: #b7791f;
+  --color-success: #1e8449;
 
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -187,22 +189,12 @@ a:hover {
 
 .category-badge--finance {
   color: var(--color-finance);
-  background: rgba(36, 113, 163, 0.08);
-}
-
-.category-badge--data {
-  color: var(--color-data);
   background: rgba(30, 132, 73, 0.08);
-}
-
-.category-badge--sim {
-  color: var(--color-sim);
-  background: rgba(136, 78, 160, 0.08);
 }
 
 .category-badge--legal {
   color: var(--color-legal);
-  background: rgba(183, 121, 31, 0.08);
+  background: rgba(36, 113, 163, 0.08);
 }
 
 /* --- Card --- */

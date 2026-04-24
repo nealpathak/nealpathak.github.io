@@ -137,7 +137,7 @@
       position: relative;
     }
 
-    .tree-row:hover { background: rgba(183, 121, 31, 0.03); }
+    .tree-row:hover { background: rgba(36, 113, 163, 0.03); }
 
     .tree-row .tree-label-cell {
       display: flex;
@@ -176,7 +176,7 @@
     }
 
     .tree-node-badge.root {
-      background: rgba(183, 121, 31, 0.1);
+      background: rgba(36, 113, 163, 0.1);
       color: var(--color-legal);
     }
 
@@ -187,7 +187,7 @@
 
     .tree-node-badge.chance {
       background: rgba(36, 113, 163, 0.08);
-      color: var(--color-finance);
+      color: var(--color-legal);
     }
 
     .tree-row input[type="text"],
@@ -242,7 +242,7 @@
 
     .prob-warning {
       font-size: var(--text-xs);
-      color: #8a4b0f;
+      color: #1a4d76;
       background: rgba(230, 126, 34, 0.08);
       border: 1px solid rgba(230, 126, 34, 0.2);
       padding: var(--space-xs) var(--space-sm);
@@ -267,7 +267,7 @@
     .csv-upload-zone:hover,
     .csv-upload-zone.dragover {
       border-color: var(--color-legal);
-      background: rgba(183, 121, 31, 0.03);
+      background: rgba(36, 113, 163, 0.03);
     }
 
     .csv-upload-zone__title { font-size: var(--text-base); font-weight: 600; margin-bottom: var(--space-xs); }
@@ -291,7 +291,7 @@
     .csv-actions a { text-decoration: underline; text-underline-offset: 2px; }
 
     .csv-actions code {
-      background: rgba(183, 121, 31, 0.06);
+      background: rgba(36, 113, 163, 0.06);
       padding: 2px 5px;
       border-radius: 3px;
       font-family: var(--font-mono);
@@ -604,7 +604,7 @@
   <main>
     <section class="hero tool-header">
       <div class="container">
-        <span class="category-badge category-badge--legal">Legal Ops</span>
+        <span class="category-badge category-badge--legal">Legal</span>
         <h1>Litigation Decision Tree</h1>
         <p class="hero__subtitle">
           Turn "should we settle or fight it" into a math problem. Build the case as a probability tree, roll up expected value, and compare any settlement number to the full distribution of outcomes &mdash; including the tail.
@@ -1546,7 +1546,7 @@
 
         let fill, stroke, textFill;
         if (isRoot) {
-          fill = 'rgba(183, 121, 31, 0.12)'; stroke = 'rgba(183, 121, 31, 0.5)'; textFill = '#5a3a0f';
+          fill = 'rgba(36, 113, 163, 0.12)'; stroke = 'rgba(36, 113, 163, 0.5)'; textFill = '#1a4d76';
         } else if (isLeaf) {
           fill = '#ffffff'; stroke = '#cfcfcf'; textFill = '#333';
         } else {
@@ -1606,7 +1606,7 @@
           datasets: [{
             label: 'Probability',
             data,
-            backgroundColor: points.map(p => offer > 0 && p.cost > offer ? 'rgba(192, 57, 43, 0.75)' : 'rgba(183, 121, 31, 0.75)'),
+            backgroundColor: points.map(p => offer > 0 && p.cost > offer ? 'rgba(192, 57, 43, 0.75)' : 'rgba(36, 113, 163, 0.75)'),
             borderRadius: 4,
           }]
         },
@@ -1672,8 +1672,8 @@
           datasets: [{
             label: 'EV swing',
             data,
-            backgroundColor: 'rgba(183, 121, 31, 0.5)',
-            borderColor: 'rgba(183, 121, 31, 0.8)',
+            backgroundColor: 'rgba(36, 113, 163, 0.5)',
+            borderColor: 'rgba(36, 113, 163, 0.8)',
             borderWidth: 1,
             borderRadius: 4,
           }]

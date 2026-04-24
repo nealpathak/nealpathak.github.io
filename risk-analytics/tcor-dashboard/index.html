@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Total Cost of Risk Dashboard &mdash; Neal Pathak</title>
+  <meta name="description" content="Track total cost of risk across premium, retained losses, broker fees, loss control, and claims admin over time. Normalized per $1,000 of revenue with peer benchmark comparison.">
+  <meta property="og:title" content="Total Cost of Risk Dashboard &mdash; Neal Pathak">
+  <meta property="og:description" content="Multi-year TCOR trending, composition, and peer benchmark comparison for risk committees and CFOs.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* Input section */
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-text-tertiary);
+      color: var(--color-text);
+    }
+
+    .mode-btn.active {
+      background: var(--color-risk);
+      color: #fff;
+      border-color: var(--color-risk);
+    }
+
+    /* Settings row — company + period + years + benchmark */
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 180px; }
+
+    .settings-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input,
+    .settings-row select {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    /* Grid editor */
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .grid-editor__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .grid-editor h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .grid-editor .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .tcor-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .tcor-grid th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .tcor-grid th.num { text-align: right; }
+
+    .tcor-grid td {
+      padding: var(--space-xs) var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .tcor-grid tr:last-child td { border-bottom: none; }
+
+    .tcor-grid .row-label {
+      font-weight: 500;
+      color: var(--color-text);
+      padding-right: var(--space-md);
+    }
+
+    .tcor-grid .row-sub {
+      display: block;
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    .tcor-grid input[type="number"] {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      min-height: 32px;
+      width: 130px;
+      text-align: right;
+    }
+
+    .tcor-grid .revenue-row td {
+      background: rgba(192, 57, 43, 0.03);
+      border-bottom: 2px solid var(--color-border);
+    }
+
+    .tcor-grid .revenue-row .row-label { color: var(--color-risk); }
+
+    /* CSV upload */
+    .csv-section { display: none; }
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-risk);
+      background: rgba(192, 57, 43, 0.02);
+    }
+
+    .csv-upload-zone p { max-width: none; }
+
+    .csv-upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .csv-upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .csv-upload-zone__status.success { color: var(--color-data); }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .template-link {
+      display: inline-block;
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+    }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+      max-width: none;
+    }
+
+    /* Generate */
+    .generate-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    /* Report output */
+    .report-output { display: none; }
+    .report-output.visible { display: block; margin-top: var(--space-2xl); }
+
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .report-header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: var(--space-xl) var(--space-2xl);
+    }
+
+    .report-header__company {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .report-header__subtitle {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-header__period {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-body { padding: var(--space-xl) var(--space-2xl) var(--space-2xl); }
+
+    /* Stat band */
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: var(--space-lg) var(--space-md);
+      border-right: 1px solid var(--color-border-light);
+      background: var(--color-bg);
+    }
+
+    .report-stat:last-child { border-right: none; }
+
+    .report-stat__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-stat__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-top: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .report-stat__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    .report-stat__change {
+      font-size: var(--text-xs);
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .report-stat__change.up { color: var(--color-risk); }
+    .report-stat__change.down { color: var(--color-data); }
+    .report-stat__change.flat { color: var(--color-text-tertiary); }
+
+    /* Charts */
+    .report-chart-full {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-chart-full h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-full__wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .report-charts {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-chart-box {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .report-chart-box h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-wrapper {
+      position: relative;
+      height: 260px;
+    }
+
+    /* Section header */
+    .report-section-header {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-detail { margin-bottom: var(--space-xl); }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .report-table th.num { text-align: right; }
+
+    .report-table td {
+      padding: 10px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+      font-size: var(--text-xs);
+    }
+
+    .report-table .row-name {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .report-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .report-table .revenue-total-row td {
+      color: var(--color-text-secondary);
+      background: rgba(192, 57, 43, 0.02);
+      border-top: 2px solid var(--color-border);
+    }
+
+    /* Change pill */
+    .change-pill {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
+
+    .change-pill.up { color: var(--color-risk); }
+    .change-pill.down { color: var(--color-data); }
+    .change-pill.flat { color: var(--color-text-tertiary); }
+
+    /* Footer */
+    .report-footer {
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    /* Print styles */
+    @media print {
+      @page { margin: 0.5in 0.6in; }
+      .site-nav, .site-footer, .tool-header, .input-section, .print-row { display: none !important; }
+      .report-output { display: block !important; margin-top: 0 !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+
+      .report { border: none; border-radius: 0; box-shadow: none; }
+
+      .report-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 16px 20px;
+      }
+      .report-header__company { font-size: 20px; }
+      .report-header__subtitle { font-size: 11px; }
+      .report-header__period { font-size: 9px; }
+
+      .report-body { padding: 16px 20px 20px; }
+
+      .report-stats {
+        margin-bottom: 14px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        break-inside: avoid;
+      }
+      .report-stat { padding: 10px 6px; }
+      .report-stat__label { font-size: 8px; }
+      .report-stat__value { font-size: 18px; }
+      .report-stat__sub, .report-stat__change { font-size: 9px; }
+
+      .report-chart-full {
+        padding: 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+      }
+      .report-chart-full h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-full__wrapper { height: 200px !important; }
+
+      .report-charts {
+        gap: 12px;
+        margin-bottom: 14px;
+        break-inside: avoid;
+      }
+      .report-chart-box { padding: 10px; }
+      .report-chart-box h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-wrapper { height: 170px !important; }
+
+      .report-detail { margin-bottom: 12px; break-inside: avoid; }
+      .report-section-header { font-size: 9px; margin-bottom: 6px; }
+
+      .report-table { font-size: 10px; }
+      .report-table th { font-size: 8px; padding: 4px 6px; }
+      .report-table td { padding: 5px 6px; }
+
+      .report-footer { font-size: 8px; padding-top: 8px; }
+    }
+
+    @media (max-width: 900px) {
+      .report-stats { grid-template-columns: repeat(2, 1fr); }
+      .report-charts { grid-template-columns: 1fr; }
+      .settings-row { flex-direction: column; align-items: stretch; }
+    }
+
+    @media (max-width: 480px) {
+      .report-stats { grid-template-columns: 1fr; }
+      .report-chart-wrapper,
+      .report-chart-full__wrapper { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk Analytics</span>
+        <h1>Total Cost of Risk Dashboard</h1>
+        <p>Track total cost of risk across premium, retained losses, broker fees, loss control, and claims administration. Multi-year trending with revenue normalization and peer benchmarking for risk committees and CFOs.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="input-section" id="inputSection">
+
+          <!-- Mode -->
+          <div class="input-modes">
+            <span class="mode-label">Input:</span>
+            <button class="mode-btn active" data-mode="form">Form</button>
+            <button class="mode-btn" data-mode="csv">CSV Upload</button>
+            <button class="mode-btn" data-mode="demo">Demo Data</button>
+          </div>
+
+          <!-- Settings -->
+          <div class="settings-row">
+            <div class="form-group">
+              <label>Company Name</label>
+              <input type="text" id="companyName" placeholder="e.g. Acme Industries">
+            </div>
+            <div class="form-group">
+              <label>Years of History</label>
+              <select id="yearCount">
+                <option value="3">3 years</option>
+                <option value="5" selected>5 years</option>
+                <option value="7">7 years</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Latest Year</label>
+              <input type="number" id="latestYear" value="2025" min="1990" max="2100">
+            </div>
+            <div class="form-group">
+              <label>Benchmark ($ per $1k Revenue)</label>
+              <input type="number" id="benchmark" value="7.50" step="0.1" min="0">
+            </div>
+            <div class="form-group">
+              <label>Prepared By</label>
+              <input type="text" id="preparedBy" placeholder="Optional">
+            </div>
+          </div>
+
+          <!-- Form editor -->
+          <div class="grid-editor" id="formEditor">
+            <div class="grid-editor__header">
+              <h3>Cost of Risk Components</h3>
+            </div>
+            <p class="subtitle">Enter annual values in full dollars. Revenue is the normalizer for &quot;per $1,000 of revenue&quot; metrics.</p>
+            <div style="overflow-x:auto; margin-top: var(--space-md);">
+              <table class="tcor-grid" id="tcorGrid"></table>
+            </div>
+          </div>
+
+          <!-- CSV -->
+          <div class="csv-section" id="csvSection">
+            <div class="csv-upload-zone" id="csvUploadZone">
+              <p class="csv-upload-zone__title">Drop a CSV file here or click to upload</p>
+              <p class="csv-upload-zone__hint">Columns: year, revenue, premium, retained_losses, broker_fees, loss_control, tpa, other</p>
+              <p class="csv-upload-zone__status" id="csvStatus"></p>
+              <input type="file" id="csvFileInput" accept=".csv" hidden aria-label="Upload TCOR CSV">
+            </div>
+            <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+            <a class="template-link" id="downloadTemplate">Download CSV template</a>
+          </div>
+
+          <div class="generate-row">
+            <button class="btn btn--primary" id="generateBtn">Generate Dashboard</button>
+          </div>
+        </div>
+
+        <!-- Report -->
+        <div class="report-output" id="reportOutput">
+          <div class="print-row">
+            <button class="btn btn--primary" id="printBtn">Print / Save as PDF</button>
+            <button class="btn" id="editBtn">Edit Data</button>
+          </div>
+          <div class="report" id="report"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span class="site-footer__text">&copy; 2026 Neal Pathak</span>
+      <ul class="site-footer__links">
+        <li><a href="https://github.com/nealpathak" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Fixed TCOR components — standard risk-finance buckets
+    // ==============================
+    const COMPONENTS = [
+      { key: 'premium',    name: 'Insurance Premium',          csv: 'premium',          color: 'rgba(36, 113, 163, 0.85)',  sub: 'Total commercial insurance spend' },
+      { key: 'retained',   name: 'Retained Losses',            csv: 'retained_losses',  color: 'rgba(192, 57, 43, 0.85)',   sub: 'Deductibles, SIR, uninsured claims' },
+      { key: 'broker',     name: 'Broker & Consulting Fees',   csv: 'broker_fees',      color: 'rgba(136, 78, 160, 0.85)',  sub: 'Net of commission if applicable' },
+      { key: 'lossctl',    name: 'Risk Mgmt / Loss Control',   csv: 'loss_control',     color: 'rgba(30, 132, 73, 0.85)',   sub: 'Safety programs, prevention spend' },
+      { key: 'tpa',        name: 'Claims Administration',      csv: 'tpa',              color: 'rgba(230, 126, 34, 0.85)',  sub: 'TPA and claims handling fees' },
+      { key: 'other',      name: 'Other Risk Costs',           csv: 'other',            color: 'rgba(127, 140, 141, 0.85)', sub: 'Collateral, taxes, captive admin, legal' },
+    ];
+
+    // ==============================
+    // Demo Data — representative 5-year trend
+    // ==============================
+    const DEMO_DATA = {
+      company: 'Acme Industries',
+      years: [2021, 2022, 2023, 2024, 2025],
+      revenue: [450000000, 475000000, 500000000, 525000000, 550000000],
+      benchmark: 7.50,
+      values: {
+        premium:  [2400000, 2600000, 2900000, 3200000, 3500000],
+        retained: [1100000,  900000, 1300000, 1500000, 1200000],
+        broker:   [ 180000,  195000,  210000,  220000,  235000],
+        lossctl:  [  85000,   90000,  110000,  125000,  140000],
+        tpa:      [  95000,  100000,  110000,  115000,  125000],
+        other:    [  40000,   45000,   50000,   55000,   60000],
+      },
+    };
+
+    // ==============================
+    // State
+    // ==============================
+    let state = {
+      company: '',
+      preparedBy: '',
+      years: [],
+      revenue: [],
+      values: {},       // { componentKey: [values by year] }
+      benchmark: 7.50,
+      mode: 'form',
+    };
+
+    // Chart refs
+    let stackedChart = null;
+    let trendChart = null;
+    let donutChart = null;
+
+    // ==============================
+    // Elements
+    // ==============================
+    const companyNameEl = document.getElementById('companyName');
+    const yearCountEl = document.getElementById('yearCount');
+    const latestYearEl = document.getElementById('latestYear');
+    const benchmarkEl = document.getElementById('benchmark');
+    const preparedByEl = document.getElementById('preparedBy');
+    const tcorGridEl = document.getElementById('tcorGrid');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+    const downloadTemplate = document.getElementById('downloadTemplate');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    // ==============================
+    // State <-> UI
+    // ==============================
+    function initState(yearCount, latestYear) {
+      const n = parseInt(yearCount, 10);
+      const latest = parseInt(latestYear, 10);
+      state.years = [];
+      for (let i = n - 1; i >= 0; i--) state.years.push(latest - i);
+      state.revenue = new Array(n).fill(0);
+      state.values = {};
+      COMPONENTS.forEach(c => { state.values[c.key] = new Array(n).fill(0); });
+    }
+
+    function setStateFromDemo() {
+      const d = DEMO_DATA;
+      state.company = d.company;
+      state.years = [...d.years];
+      state.revenue = [...d.revenue];
+      state.values = {};
+      COMPONENTS.forEach(c => { state.values[c.key] = [...d.values[c.key]]; });
+      state.benchmark = d.benchmark;
+      companyNameEl.value = state.company;
+      latestYearEl.value = d.years[d.years.length - 1];
+      yearCountEl.value = String(d.years.length);
+      benchmarkEl.value = state.benchmark;
+    }
+
+    function renderGrid() {
+      const n = state.years.length;
+      let html = '<thead><tr><th class="row-label">Component</th>';
+      for (let i = 0; i < n; i++) html += '<th class="num">' + state.years[i] + '</th>';
+      html += '</tr></thead><tbody>';
+
+      // Revenue row (special)
+      html += '<tr class="revenue-row"><td class="row-label">Revenue<span class="row-sub">Normalizer for per-$1k and % metrics</span></td>';
+      for (let i = 0; i < n; i++) {
+        html += '<td class="num"><input type="number" data-field="revenue" data-idx="' + i + '" value="' + (state.revenue[i] || '') + '" placeholder="0" step="1000"></td>';
+      }
+      html += '</tr>';
+
+      // Component rows
+      COMPONENTS.forEach(c => {
+        html += '<tr><td class="row-label">' + c.name + '<span class="row-sub">' + c.sub + '</span></td>';
+        for (let i = 0; i < n; i++) {
+          const v = state.values[c.key][i];
+          html += '<td class="num"><input type="number" data-field="' + c.key + '" data-idx="' + i + '" value="' + (v || '') + '" placeholder="0" step="1000"></td>';
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      tcorGridEl.innerHTML = html;
+
+      // Wire up input events (delegation)
+      tcorGridEl.oninput = function(e) {
+        const t = e.target;
+        if (t.tagName !== 'INPUT') return;
+        const field = t.dataset.field;
+        const idx = parseInt(t.dataset.idx, 10);
+        const val = parseFloat(t.value) || 0;
+        if (field === 'revenue') state.revenue[idx] = val;
+        else state.values[field][idx] = val;
+      };
+    }
+
+    // ==============================
+    // Mode switching
+    // ==============================
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = mode;
+
+        if (mode === 'form') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+        } else if (mode === 'csv') {
+          formEditor.style.display = 'none';
+          csvSection.classList.add('visible');
+        } else if (mode === 'demo') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+          setStateFromDemo();
+          renderGrid();
+        }
+      });
+    });
+
+    // Year-count / latest-year changes reset the grid shape
+    yearCountEl.addEventListener('change', () => {
+      initState(yearCountEl.value, latestYearEl.value);
+      renderGrid();
+    });
+
+    latestYearEl.addEventListener('change', () => {
+      const latest = parseInt(latestYearEl.value, 10);
+      if (isNaN(latest)) return;
+      const n = state.years.length;
+      state.years = [];
+      for (let i = n - 1; i >= 0; i--) state.years.push(latest - i);
+      renderGrid();
+    });
+
+    benchmarkEl.addEventListener('input', () => {
+      state.benchmark = parseFloat(benchmarkEl.value) || 0;
+    });
+
+    companyNameEl.addEventListener('input', () => { state.company = companyNameEl.value; });
+    preparedByEl.addEventListener('input', () => { state.preparedBy = preparedByEl.value; });
+
+    // ==============================
+    // CSV
+    // ==============================
+    function parseCSV(text) {
+      const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+      const requiredHeaders = ['year', 'revenue', ...COMPONENTS.map(c => c.csv)];
+      const missing = requiredHeaders.filter(h => headers.indexOf(h) === -1);
+      if (missing.length) throw new Error('Missing columns: ' + missing.join(', '));
+
+      const idxYear = headers.indexOf('year');
+      const idxRev = headers.indexOf('revenue');
+      const idxMap = {};
+      COMPONENTS.forEach(c => { idxMap[c.key] = headers.indexOf(c.csv); });
+
+      const years = [];
+      const revenue = [];
+      const values = {};
+      COMPONENTS.forEach(c => { values[c.key] = []; });
+
+      for (let i = 1; i < lines.length; i++) {
+        const cells = lines[i].split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
+        const y = parseInt(cells[idxYear], 10);
+        if (isNaN(y)) continue;
+        years.push(y);
+        revenue.push(parseFloat(cells[idxRev]) || 0);
+        COMPONENTS.forEach(c => {
+          values[c.key].push(parseFloat(cells[idxMap[c.key]]) || 0);
+        });
+      }
+
+      if (years.length === 0) throw new Error('No valid data rows found.');
+
+      // Sort by year ascending so the trend makes sense
+      const order = years.map((y, i) => i).sort((a, b) => years[a] - years[b]);
+      const sortedYears = order.map(i => years[i]);
+      const sortedRev = order.map(i => revenue[i]);
+      const sortedValues = {};
+      COMPONENTS.forEach(c => { sortedValues[c.key] = order.map(i => values[c.key][i]); });
+
+      return { years: sortedYears, revenue: sortedRev, values: sortedValues };
+    }
+
+    function loadCSV(text) {
+      try {
+        const parsed = parseCSV(text);
+        state.years = parsed.years;
+        state.revenue = parsed.revenue;
+        state.values = parsed.values;
+        yearCountEl.value = String(parsed.years.length);
+        latestYearEl.value = parsed.years[parsed.years.length - 1];
+        csvStatus.textContent = 'Loaded ' + parsed.years.length + ' years of data.';
+        csvStatus.className = 'csv-upload-zone__status success';
+        renderGrid();
+      } catch (err) {
+        csvStatus.textContent = err.message;
+        csvStatus.className = 'csv-upload-zone__status error';
+      }
+    }
+
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    csvFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleCSVFile(e.target.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => loadCSV(e.target.result);
+      reader.readAsText(file);
+    }
+
+    downloadTemplate.addEventListener('click', e => {
+      e.preventDefault();
+      const header = ['year', 'revenue', ...COMPONENTS.map(c => c.csv)].join(',');
+      const sampleRow = ['2025', '500000000', '3500000', '1200000', '235000', '140000', '125000', '60000'].join(',');
+      const blob = new Blob([header + '\n' + sampleRow + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tcor-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ==============================
+    // Formatters
+    // ==============================
+    function fmtDollarShort(v) {
+      const abs = Math.abs(v);
+      if (abs >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'K';
+      return '$' + Math.round(v).toLocaleString();
+    }
+
+    function fmtDollarFull(v) {
+      return '$' + Math.round(v).toLocaleString();
+    }
+
+    function fmtPct(v) {
+      return v.toFixed(2) + '%';
+    }
+
+    function yoyPill(curr, prior) {
+      if (prior === 0 || prior == null) return { text: '—', cls: 'flat' };
+      const diff = ((curr - prior) / prior) * 100;
+      let cls = 'flat';
+      if (diff > 1) cls = 'up';
+      else if (diff < -1) cls = 'down';
+      const sign = diff > 0 ? '+' : '';
+      return { text: sign + diff.toFixed(1) + '%', cls };
+    }
+
+    // ==============================
+    // Report generation
+    // ==============================
+    function generate() {
+      if (!state.years.length) return;
+
+      const n = state.years.length;
+      const company = state.company.trim() || 'Company';
+      const preparedBy = state.preparedBy.trim();
+
+      // Per-year totals
+      const tcorByYear = state.years.map((_, i) => {
+        return COMPONENTS.reduce((s, c) => s + (state.values[c.key][i] || 0), 0);
+      });
+
+      const perThousandByYear = state.years.map((_, i) => {
+        const r = state.revenue[i] || 0;
+        return r > 0 ? (tcorByYear[i] / (r / 1000)) : 0;
+      });
+
+      const pctOfRevenueByYear = state.years.map((_, i) => {
+        const r = state.revenue[i] || 0;
+        return r > 0 ? (tcorByYear[i] / r) * 100 : 0;
+      });
+
+      // Latest vs prior
+      const currIdx = n - 1;
+      const priorIdx = n > 1 ? n - 2 : null;
+      const currTCOR = tcorByYear[currIdx];
+      const priorTCOR = priorIdx != null ? tcorByYear[priorIdx] : null;
+      const currPerK = perThousandByYear[currIdx];
+      const currPctRev = pctOfRevenueByYear[currIdx];
+      const yoy = priorTCOR != null ? yoyPill(currTCOR, priorTCOR) : { text: '—', cls: 'flat' };
+
+      // Benchmark gap
+      const benchmark = state.benchmark || 0;
+      const benchGap = benchmark > 0 ? currPerK - benchmark : 0;
+      const benchGapPct = benchmark > 0 ? ((currPerK - benchmark) / benchmark) * 100 : 0;
+
+      // Build report HTML
+      const html = buildReport({
+        company, preparedBy, n, currIdx, priorIdx,
+        tcorByYear, perThousandByYear, pctOfRevenueByYear,
+        currTCOR, priorTCOR, currPerK, currPctRev, yoy,
+        benchmark, benchGap, benchGapPct,
+      });
+
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      // Render charts after DOM flush
+      setTimeout(() => {
+        renderStackedChart(tcorByYear);
+        renderTrendChart(perThousandByYear, benchmark);
+        renderDonutChart(currIdx);
+      }, 30);
+    }
+
+    function buildReport(r) {
+      const { company, preparedBy, n, currIdx, priorIdx,
+              tcorByYear, perThousandByYear, pctOfRevenueByYear,
+              currTCOR, priorTCOR, currPerK, currPctRev, yoy,
+              benchmark, benchGap, benchGapPct } = r;
+
+      const periodLabel = state.years[0] + '–' + state.years[currIdx];
+      const priorYearLabel = priorIdx != null ? state.years[priorIdx] : '';
+
+      let html = '';
+
+      // Header
+      html += '<div class="report-header">';
+      html += '<div class="report-header__company">' + escapeHtml(company) + '</div>';
+      html += '<p class="report-header__subtitle">Total Cost of Risk Dashboard &mdash; ' + periodLabel + '</p>';
+      html += '<p class="report-header__period">Latest period: ' + state.years[currIdx];
+      if (preparedBy) html += ' &middot; Prepared by ' + escapeHtml(preparedBy);
+      html += '</p>';
+      html += '</div>';
+
+      html += '<div class="report-body">';
+
+      // Stats
+      html += '<div class="report-stats">';
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">Total Cost of Risk</div>';
+      html += '<div class="report-stat__value">' + fmtDollarShort(currTCOR) + '</div>';
+      html += '<div class="report-stat__sub">' + state.years[currIdx] + '</div>';
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">Per $1K Revenue</div>';
+      html += '<div class="report-stat__value">$' + currPerK.toFixed(2) + '</div>';
+      if (benchmark > 0) {
+        const gapText = benchGap > 0 ? '+' + benchGap.toFixed(2) + ' vs benchmark' : benchGap.toFixed(2) + ' vs benchmark';
+        const gapCls = benchGap > 0.5 ? 'up' : benchGap < -0.5 ? 'down' : 'flat';
+        html += '<div class="report-stat__change ' + gapCls + '">' + gapText + '</div>';
+      } else {
+        html += '<div class="report-stat__sub">No benchmark set</div>';
+      }
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">% of Revenue</div>';
+      html += '<div class="report-stat__value">' + currPctRev.toFixed(2) + '%</div>';
+      html += '<div class="report-stat__sub">' + state.years[currIdx] + '</div>';
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">YoY Change</div>';
+      html += '<div class="report-stat__value"><span class="change-pill ' + yoy.cls + '">' + yoy.text + '</span></div>';
+      if (priorIdx != null) html += '<div class="report-stat__sub">vs ' + priorYearLabel + '</div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Stacked bar — full width
+      html += '<div class="report-chart-full">';
+      html += '<h4>TCOR Composition by Year</h4>';
+      html += '<div class="report-chart-full__wrapper"><canvas id="stackedCanvas"></canvas></div>';
+      html += '</div>';
+
+      // Trend + Donut
+      html += '<div class="report-charts">';
+      html += '<div class="report-chart-box">';
+      html += '<h4>TCOR per $1K Revenue';
+      if (benchmark > 0) html += ' (benchmark $' + benchmark.toFixed(2) + ')';
+      html += '</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="trendCanvas"></canvas></div>';
+      html += '</div>';
+
+      html += '<div class="report-chart-box">';
+      html += '<h4>' + state.years[currIdx] + ' Composition</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="donutCanvas"></canvas></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Detail table
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Component Detail</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Component</th>';
+      state.years.forEach(y => { html += '<th class="num">' + y + '</th>'; });
+      html += '<th class="num">YoY</th>';
+      html += '</tr></thead><tbody>';
+
+      COMPONENTS.forEach(c => {
+        const vals = state.values[c.key];
+        html += '<tr>';
+        html += '<td class="row-name">' + c.name + '</td>';
+        vals.forEach(v => { html += '<td class="num">' + fmtDollarFull(v) + '</td>'; });
+        const pill = priorIdx != null ? yoyPill(vals[currIdx], vals[priorIdx]) : { text: '—', cls: 'flat' };
+        html += '<td class="num"><span class="change-pill ' + pill.cls + '">' + pill.text + '</span></td>';
+        html += '</tr>';
+      });
+
+      // TCOR total
+      html += '<tr class="total-row">';
+      html += '<td>Total Cost of Risk</td>';
+      tcorByYear.forEach(v => { html += '<td class="num">' + fmtDollarFull(v) + '</td>'; });
+      html += '<td class="num"><span class="change-pill ' + yoy.cls + '">' + yoy.text + '</span></td>';
+      html += '</tr>';
+
+      // Revenue
+      html += '<tr class="revenue-total-row">';
+      html += '<td>Revenue</td>';
+      state.revenue.forEach(v => { html += '<td class="num">' + fmtDollarFull(v) + '</td>'; });
+      const revPill = priorIdx != null ? yoyPill(state.revenue[currIdx], state.revenue[priorIdx]) : { text: '—', cls: 'flat' };
+      html += '<td class="num"><span class="change-pill ' + revPill.cls + '">' + revPill.text + '</span></td>';
+      html += '</tr>';
+
+      // TCOR per $1K
+      html += '<tr class="revenue-total-row">';
+      html += '<td>TCOR per $1K Revenue</td>';
+      perThousandByYear.forEach(v => { html += '<td class="num">$' + v.toFixed(2) + '</td>'; });
+      const perKPill = priorIdx != null && perThousandByYear[priorIdx] > 0
+        ? yoyPill(perThousandByYear[currIdx], perThousandByYear[priorIdx])
+        : { text: '—', cls: 'flat' };
+      html += '<td class="num"><span class="change-pill ' + perKPill.cls + '">' + perKPill.text + '</span></td>';
+      html += '</tr>';
+
+      html += '</tbody></table></div>';
+
+      // Footer
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += '<p class="report-footer">Generated ' + today + '. TCOR components: ' +
+              COMPONENTS.map(c => c.name).join(', ') + '. ';
+      if (benchmark > 0) html += 'Benchmark of $' + benchmark.toFixed(2) + ' per $1,000 of revenue reflects user-entered peer comparison. ';
+      html += 'All data provided by user &mdash; not independently verified. For informational purposes only.</p>';
+
+      html += '</div>'; // close report-body
+
+      return html;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    function chartFontFamily() { return 'Inter'; }
+
+    function renderStackedChart(tcorByYear) {
+      if (stackedChart) stackedChart.destroy();
+      const canvas = document.getElementById('stackedCanvas');
+      if (!canvas) return;
+
+      const datasets = COMPONENTS.map(c => ({
+        label: c.name,
+        data: state.values[c.key].slice(),
+        backgroundColor: c.color,
+        borderRadius: 4,
+        borderSkipped: false,
+      }));
+
+      stackedChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels: state.years.map(String), datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: chartFontFamily(), size: 11 }, padding: 12, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.dataset.label + ': ' + fmtDollarShort(item.parsed.y),
+                footer: items => {
+                  const total = items.reduce((s, it) => s + it.parsed.y, 0);
+                  return 'Total: ' + fmtDollarShort(total);
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { family: chartFontFamily(), size: 11 }, color: '#999' } },
+            y: {
+              stacked: true,
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: chartFontFamily(), size: 10 },
+                color: '#999',
+                callback: v => fmtDollarShort(v),
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTrendChart(perThousandByYear, benchmark) {
+      if (trendChart) trendChart.destroy();
+      const canvas = document.getElementById('trendCanvas');
+      if (!canvas) return;
+
+      const datasets = [{
+        label: 'TCOR per $1K Revenue',
+        data: perThousandByYear.slice(),
+        borderColor: 'rgba(192, 57, 43, 0.85)',
+        backgroundColor: 'rgba(192, 57, 43, 0.08)',
+        borderWidth: 2.5,
+        pointRadius: 4,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: 'rgba(192, 57, 43, 0.85)',
+        pointBorderWidth: 2,
+        tension: 0.3,
+        fill: true,
+      }];
+
+      if (benchmark > 0) {
+        datasets.push({
+          label: 'Benchmark',
+          data: state.years.map(() => benchmark),
+          borderColor: 'rgba(100, 100, 100, 0.6)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        });
+      }
+
+      trendChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: state.years.map(String), datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: {
+              display: benchmark > 0,
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: chartFontFamily(), size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.dataset.label + ': $' + item.parsed.y.toFixed(2)
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: chartFontFamily(), size: 11 }, color: '#999' } },
+            y: {
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: chartFontFamily(), size: 10 },
+                color: '#999',
+                callback: v => '$' + v.toFixed(2),
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDonutChart(idx) {
+      if (donutChart) donutChart.destroy();
+      const canvas = document.getElementById('donutCanvas');
+      if (!canvas) return;
+
+      const labels = COMPONENTS.map(c => c.name);
+      const values = COMPONENTS.map(c => state.values[c.key][idx] || 0);
+      const colors = COMPONENTS.map(c => c.color);
+      const total = values.reduce((s, v) => s + v, 0);
+
+      donutChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { font: { family: chartFontFamily(), size: 10 }, boxWidth: 10, padding: 8 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: ctx => {
+                  const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                  return ctx.label + ': ' + fmtDollarShort(ctx.parsed) + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================
+    // Buttons
+    // ==============================
+    generateBtn.addEventListener('click', generate);
+    printBtn.addEventListener('click', () => window.print());
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ==============================
+    // Init — start with demo loaded so the tool is instantly useful
+    // ==============================
+    initState(5, 2025);
+    setStateFromDemo();
+    renderGrid();
+
+  })();
+  </script>
+</body>
+</html>

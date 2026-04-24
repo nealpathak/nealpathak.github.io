@@ -698,6 +698,21 @@
     'use strict';
 
     // ==============================
+    // Node helpers (must come before demoTree)
+    // ==============================
+    let nodeCounter = 0;
+    function createNode(label, probability, cost) {
+      nodeCounter++;
+      return {
+        id: 'n_' + nodeCounter + '_' + Math.random().toString(36).slice(2, 8),
+        label: label || '',
+        probability: probability == null ? 1 : probability,
+        cost: cost == null ? 0 : cost,
+        children: [],
+      };
+    }
+
+    // ==============================
     // Demo — $5M breach of contract suit
     // ==============================
     function demoTree() {
@@ -731,21 +746,6 @@
 
     let distributionChart = null;
     let tornadoChart = null;
-
-    // ==============================
-    // Node helpers
-    // ==============================
-    let nodeCounter = 0;
-    function createNode(label, probability, cost) {
-      nodeCounter++;
-      return {
-        id: 'n_' + nodeCounter + '_' + Math.random().toString(36).slice(2, 8),
-        label: label || '',
-        probability: probability == null ? 1 : probability,
-        cost: cost == null ? 0 : cost,
-        children: [],
-      };
-    }
 
     function findNode(root, id) {
       if (!root) return null;

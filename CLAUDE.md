@@ -19,6 +19,7 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 - **IBNR Reserve Estimator** — Estimate Incurred But Not Reported reserves from loss development triangles. Chain-Ladder and Bornhuetter-Ferguson methods. CSV upload of cumulative incurred by policy year and development period. Demo data included.
 - **Executive Risk Summary** — Generate a printable executive risk summary with total cost of risk, loss ratios by line, and year-over-year comparisons. Form input, CSV upload with downloadable template, or demo data. Print/Save as PDF.
 - **TCOR Dashboard** — Track total cost of risk across premium, retained losses, broker fees, loss control, and claims admin over multiple years. Normalized per $1,000 of revenue with peer benchmark comparison. Form-grid input (components × years), CSV upload, or demo data. Stacked bar, trend line, and composition donut charts plus detail table. Print/Save as PDF.
+- **Insurance Tower Visualizer** — Render a layered insurance program as a vertical tower (primary through excess). Custom SVG tower with per-layer carrier, attachment, limit, premium, and rate-on-line labels; gap and overlap detection; program-level metrics (total limit, total premium, blended ROL, program top). Form editor (add/remove layers), CSV upload with template, or demo data. Premium-by-layer and ROL-by-layer companion charts. Print/Save as PDF.
 
 ### Financial Modeling (`/financial-modeling/`)
 - **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
@@ -35,6 +36,7 @@ Personal site showcasing risk analytics, financial modeling, and data intelligen
 ├── risk-analytics/ibnr-estimator/          (IBNR Reserve Estimator)
 ├── risk-analytics/executive-summary/       (Executive Risk Summary)
 ├── risk-analytics/tcor-dashboard/          (TCOR Dashboard)
+├── risk-analytics/insurance-tower/         (Insurance Tower Visualizer)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
 ├── data-intelligence/monte-carlo/          (Monte Carlo Simulator)
 ├── Neal_Pathak_Resume.pdf

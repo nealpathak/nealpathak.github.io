@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monty Hall — Neal Pathak</title>
+  <meta name="description" content="Play the Monty Hall problem and watch the math converge.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .stage {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+    }
+
+    .doors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .door {
+      position: relative;
+      aspect-ratio: 2 / 3;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg);
+      cursor: pointer;
+      transition: border-color var(--transition-fast), transform var(--transition-base), background var(--transition-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      user-select: none;
+    }
+
+    .door:hover:not(:disabled):not(.is-revealed) {
+      border-color: var(--color-fun);
+      transform: translateY(-2px);
+    }
+
+    .door:disabled {
+      cursor: default;
+    }
+
+    .door__number {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--color-text-tertiary);
+      letter-spacing: -0.02em;
+    }
+
+    .door__label {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xs);
+    }
+
+    .door.is-picked {
+      border-color: var(--color-fun);
+      background: rgba(108, 52, 131, 0.04);
+    }
+
+    .door.is-picked .door__number {
+      color: var(--color-fun);
+    }
+
+    .door.is-revealed {
+      cursor: default;
+    }
+
+    .door.is-revealed .door__number {
+      display: none;
+    }
+
+    .door.is-revealed .door__label {
+      display: none;
+    }
+
+    .door__content {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-md);
+      text-align: center;
+    }
+
+    .door.is-revealed .door__content {
+      display: flex;
+    }
+
+    .door__icon {
+      font-family: var(--font-mono);
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+
+    .door__caption {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    .door.is-prize .door__icon { color: var(--color-finance); }
+    .door.is-prize .door__caption { color: var(--color-finance); }
+    .door.is-empty .door__icon { color: var(--color-text-tertiary); }
+    .door.is-empty .door__caption { color: var(--color-text-tertiary); }
+    .door.is-host-opened {
+      background: var(--color-bg);
+      border-color: var(--color-border-light);
+      opacity: 0.85;
+    }
+    .door.is-winner {
+      border-color: var(--color-finance);
+      box-shadow: 0 0 0 3px rgba(30, 132, 73, 0.18);
+    }
+    .door.is-loser {
+      border-color: var(--color-risk);
+      box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.16);
+    }
+
+    .status {
+      text-align: center;
+      margin: var(--space-xl) auto 0;
+      max-width: 640px;
+      min-height: 3.5rem;
+    }
+
+    .status__phase {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text-tertiary);
+      font-weight: 600;
+    }
+
+    .status__msg {
+      font-size: var(--text-lg);
+      color: var(--color-text);
+      margin-top: var(--space-xs);
+      font-weight: 500;
+    }
+
+    .status__msg em {
+      font-style: normal;
+      color: var(--color-fun);
+      font-weight: 600;
+    }
+
+    .status__msg .win { color: var(--color-finance); font-weight: 600; }
+    .status__msg .lose { color: var(--color-risk); font-weight: 600; }
+
+    .actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: center;
+      margin-top: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    .actions .btn {
+      min-width: 120px;
+    }
+
+    /* Stats */
+    .stats-panel {
+      margin-top: var(--space-2xl);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+    }
+
+    .stat-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .stat-card__label {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      font-weight: 600;
+    }
+
+    .stat-card__value {
+      font-size: var(--text-3xl);
+      font-weight: 700;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+      margin-top: var(--space-sm);
+      font-family: var(--font-sans);
+    }
+
+    .stat-card__detail {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-xs);
+      font-family: var(--font-mono);
+    }
+
+    .stat-card--theory .stat-card__value {
+      color: var(--color-text-tertiary);
+    }
+
+    .sim-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .sim-row__label {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-right: var(--space-sm);
+    }
+
+    /* Explainer */
+    .explainer {
+      margin-top: var(--space-3xl);
+      max-width: 720px;
+    }
+
+    .explainer h3 {
+      font-size: var(--text-lg);
+      margin-bottom: var(--space-md);
+    }
+
+    .explainer p {
+      max-width: none;
+      margin-bottom: var(--space-md);
+    }
+
+    .explainer p code {
+      font-family: var(--font-mono);
+      font-size: 0.92em;
+      padding: 1px 4px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border-light);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xl);
+    }
+
+    .back-link:hover { color: var(--color-text); }
+
+    @media (max-width: 768px) {
+      .stats-panel { grid-template-columns: 1fr; }
+      .doors { gap: var(--space-md); }
+      .door__number { font-size: var(--text-2xl); }
+      .door__icon { font-size: var(--text-2xl); }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="../../" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="../../#risk">Risk</a></li>
+        <li><a href="../../#finance">Finance</a></li>
+        <li><a href="../../#legal">Legal</a></li>
+        <li><a href="../../#fun">Fun</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <header class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--fun">Fun</span>
+        <h1>Monty Hall</h1>
+        <p>The classic probability puzzle. Pick a door, watch the host reveal an empty one, then choose: switch or stay. Play enough rounds and the math reveals itself.</p>
+      </div>
+    </header>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="stage">
+          <div class="doors" id="doors">
+            <button class="door" data-door="0" type="button">
+              <span class="door__number">1</span>
+              <span class="door__label">Door</span>
+              <div class="door__content">
+                <span class="door__icon"></span>
+                <span class="door__caption"></span>
+              </div>
+            </button>
+            <button class="door" data-door="1" type="button">
+              <span class="door__number">2</span>
+              <span class="door__label">Door</span>
+              <div class="door__content">
+                <span class="door__icon"></span>
+                <span class="door__caption"></span>
+              </div>
+            </button>
+            <button class="door" data-door="2" type="button">
+              <span class="door__number">3</span>
+              <span class="door__label">Door</span>
+              <div class="door__content">
+                <span class="door__icon"></span>
+                <span class="door__caption"></span>
+              </div>
+            </button>
+          </div>
+
+          <div class="status">
+            <div class="status__phase" id="phase">Round 1</div>
+            <div class="status__msg" id="msg">Pick a door to begin.</div>
+          </div>
+
+          <div class="actions" id="actions">
+            <!-- buttons injected by JS -->
+          </div>
+        </div>
+
+        <div class="stats-panel">
+          <div class="stat-card">
+            <div class="stat-card__label">If you always switch</div>
+            <div class="stat-card__value" id="switch-pct">—</div>
+            <div class="stat-card__detail" id="switch-detail">0 of 0 won</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">If you always stay</div>
+            <div class="stat-card__value" id="stay-pct">—</div>
+            <div class="stat-card__detail" id="stay-detail">0 of 0 won</div>
+          </div>
+          <div class="stat-card stat-card--theory">
+            <div class="stat-card__label">Theoretical</div>
+            <div class="stat-card__value">66.7% / 33.3%</div>
+            <div class="stat-card__detail">switch / stay</div>
+          </div>
+        </div>
+
+        <div class="sim-row">
+          <span class="sim-row__label">Speed it up:</span>
+          <button class="btn" id="sim-switch" type="button">Sim 100 (always switch)</button>
+          <button class="btn" id="sim-stay" type="button">Sim 100 (always stay)</button>
+          <button class="btn" id="reset" type="button">Reset stats</button>
+        </div>
+
+        <div class="explainer">
+          <h3>Why switching wins twice as often</h3>
+          <p>Your first pick has a <code>1/3</code> chance of being right. That means there's a <code>2/3</code> chance the prize is behind one of the other two doors. The host knows where the prize is and always opens an empty door from those two — which concentrates that <code>2/3</code> probability onto the single remaining unopened door.</p>
+          <p>So staying wins <code>1/3</code> of the time. Switching wins <code>2/3</code> of the time. Run a few hundred sims above and you'll watch the percentages converge.</p>
+        </div>
+
+        <a href="../../" class="back-link">&larr; Back to all tools</a>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // --- State ---
+    let prizeDoor = null;
+    let pickedDoor = null;
+    let openedDoor = null;
+    let phase = 'pick'; // 'pick' | 'decide' | 'reveal'
+    let roundCount = 0;
+
+    const stats = {
+      switch: { played: 0, won: 0 },
+      stay:   { played: 0, won: 0 }
+    };
+
+    // --- DOM refs ---
+    const doorsEl = document.getElementById('doors');
+    const phaseEl = document.getElementById('phase');
+    const msgEl   = document.getElementById('msg');
+    const actionsEl = document.getElementById('actions');
+    const doorButtons = Array.from(doorsEl.querySelectorAll('.door'));
+
+    // --- Game logic ---
+    function newRound() {
+      prizeDoor = Math.floor(Math.random() * 3);
+      pickedDoor = null;
+      openedDoor = null;
+      phase = 'pick';
+
+      doorButtons.forEach(btn => {
+        btn.className = 'door';
+        btn.disabled = false;
+        const content = btn.querySelector('.door__content');
+        content.querySelector('.door__icon').textContent = '';
+        content.querySelector('.door__caption').textContent = '';
+      });
+
+      phaseEl.textContent = 'Round ' + (roundCount + 1);
+      msgEl.innerHTML = 'Pick a door to begin.';
+      renderActions();
+    }
+
+    function pickDoor(idx) {
+      if (phase !== 'pick') return;
+      pickedDoor = idx;
+
+      // Host opens a non-prize, non-picked door
+      const candidates = [0, 1, 2].filter(d => d !== pickedDoor && d !== prizeDoor);
+      openedDoor = candidates[Math.floor(Math.random() * candidates.length)];
+
+      // Mark UI
+      doorButtons.forEach((btn, i) => {
+        if (i === pickedDoor) btn.classList.add('is-picked');
+        if (i === openedDoor) {
+          btn.classList.add('is-revealed', 'is-empty', 'is-host-opened');
+          btn.querySelector('.door__icon').textContent = '×';
+          btn.querySelector('.door__caption').textContent = 'Empty';
+        }
+      });
+
+      phase = 'decide';
+      const otherDoor = [0, 1, 2].find(d => d !== pickedDoor && d !== openedDoor);
+      msgEl.innerHTML = 'Host opens door <em>' + (openedDoor + 1) + '</em>. Stick with door <em>' + (pickedDoor + 1) + '</em>, or switch to door <em>' + (otherDoor + 1) + '</em>?';
+      renderActions();
+    }
+
+    function decide(action) {
+      if (phase !== 'decide') return;
+      const finalChoice = action === 'switch'
+        ? [0, 1, 2].find(d => d !== pickedDoor && d !== openedDoor)
+        : pickedDoor;
+
+      const won = finalChoice === prizeDoor;
+
+      // Update stats
+      stats[action].played += 1;
+      if (won) stats[action].won += 1;
+
+      // Reveal all doors
+      doorButtons.forEach((btn, i) => {
+        btn.classList.add('is-revealed');
+        btn.disabled = true;
+        const isPrize = i === prizeDoor;
+        btn.classList.remove('is-picked');
+        btn.classList.add(isPrize ? 'is-prize' : 'is-empty');
+        btn.querySelector('.door__icon').textContent = isPrize ? '★' : '×';
+        btn.querySelector('.door__caption').textContent = isPrize ? 'Prize' : 'Empty';
+        if (i === finalChoice) {
+          btn.classList.add(won ? 'is-winner' : 'is-loser');
+        }
+      });
+
+      phase = 'reveal';
+      roundCount += 1;
+      const verb = action === 'switch' ? 'Switched' : 'Stayed';
+      msgEl.innerHTML = verb + ' to door <em>' + (finalChoice + 1) + '</em>. ' +
+        (won ? '<span class="win">You won!</span>' : '<span class="lose">No prize.</span>');
+
+      updateStats();
+      renderActions();
+    }
+
+    function renderActions() {
+      actionsEl.innerHTML = '';
+      if (phase === 'decide') {
+        const otherDoor = [0, 1, 2].find(d => d !== pickedDoor && d !== openedDoor);
+        const switchBtn = document.createElement('button');
+        switchBtn.className = 'btn btn--primary';
+        switchBtn.type = 'button';
+        switchBtn.textContent = 'Switch to door ' + (otherDoor + 1);
+        switchBtn.addEventListener('click', function() { decide('switch'); });
+
+        const stayBtn = document.createElement('button');
+        stayBtn.className = 'btn';
+        stayBtn.type = 'button';
+        stayBtn.textContent = 'Stay with door ' + (pickedDoor + 1);
+        stayBtn.addEventListener('click', function() { decide('stay'); });
+
+        actionsEl.appendChild(switchBtn);
+        actionsEl.appendChild(stayBtn);
+      } else if (phase === 'reveal') {
+        const next = document.createElement('button');
+        next.className = 'btn btn--primary';
+        next.type = 'button';
+        next.textContent = 'Next round';
+        next.addEventListener('click', newRound);
+        actionsEl.appendChild(next);
+      }
+    }
+
+    // --- Stats rendering ---
+    function pct(n, d) {
+      if (d === 0) return '—';
+      return ((n / d) * 100).toFixed(1) + '%';
+    }
+
+    function updateStats() {
+      document.getElementById('switch-pct').textContent = pct(stats.switch.won, stats.switch.played);
+      document.getElementById('switch-detail').textContent = stats.switch.won + ' of ' + stats.switch.played + ' won';
+      document.getElementById('stay-pct').textContent = pct(stats.stay.won, stats.stay.played);
+      document.getElementById('stay-detail').textContent = stats.stay.won + ' of ' + stats.stay.played + ' won';
+    }
+
+    // --- Door click handler ---
+    doorButtons.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const idx = parseInt(btn.getAttribute('data-door'), 10);
+        pickDoor(idx);
+      });
+    });
+
+    // --- Simulation ---
+    function simulate(strategy, n) {
+      let won = 0;
+      for (let i = 0; i < n; i++) {
+        const prize = Math.floor(Math.random() * 3);
+        const pick  = Math.floor(Math.random() * 3);
+        // Host opens any non-pick, non-prize door (we don't need to track which)
+        // If strategy is stay: final = pick, win iff pick === prize
+        // If strategy is switch: final = the third door; that wins iff pick !== prize
+        if (strategy === 'stay'   && pick === prize) won += 1;
+        if (strategy === 'switch' && pick !== prize) won += 1;
+      }
+      stats[strategy].played += n;
+      stats[strategy].won += won;
+      updateStats();
+    }
+
+    document.getElementById('sim-switch').addEventListener('click', function() { simulate('switch', 100); });
+    document.getElementById('sim-stay').addEventListener('click', function() { simulate('stay', 100); });
+    document.getElementById('reset').addEventListener('click', function() {
+      stats.switch.played = 0; stats.switch.won = 0;
+      stats.stay.played = 0;   stats.stay.won = 0;
+      roundCount = 0;
+      updateStats();
+      newRound();
+    });
+
+    // --- Init ---
+    newRound();
+    updateStats();
+  })();
+  </script>
+</body>
+</html>

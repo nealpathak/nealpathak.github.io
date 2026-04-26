@@ -28,6 +28,7 @@
   --color-risk: #c0392b;
   --color-finance: #1e8449;
   --color-legal: #2471a3;
+  --color-fun: #6c3483;
 
   /* Semantic (kept for existing component usage) */
   --color-data: #1e8449;
@@ -195,6 +196,11 @@ a:hover {
 .category-badge--legal {
   color: var(--color-legal);
   background: rgba(36, 113, 163, 0.08);
+}
+
+.category-badge--fun {
+  color: var(--color-fun);
+  background: rgba(108, 52, 131, 0.08);
 }
 
 /* --- Card --- */

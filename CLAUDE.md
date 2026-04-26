@@ -27,6 +27,9 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ### Legal (`/legal-ops/`)
 - **Litigation Decision Tree** — Model settle-vs-fight decisions as a probability-weighted tree. Interactive editor for branches (probability, cost, label) plus CSV upload with pre-order `depth,label,probability,cost` encoding. Computes expected value, best/worst case, standard deviation, probability of an outcome worse than settlement, and tornado sensitivity analysis (±10pp probability shift per branch with sibling renormalization). SVG tree rendering, outcome distribution chart, paths detail table, and a settle/fight recommendation against a user-entered offer. Print/Save as PDF.
 
+### Fun (`/games/`)
+- **Monty Hall** — Play the classic probability puzzle. Pick a door, host reveals an empty one, choose switch or stay. Tracks running win rates split by strategy plus 100-round simulators for switch and stay so users can watch the percentages converge to the theoretical 2/3 vs 1/3.
+
 ## File Structure
 ```
 /
@@ -39,6 +42,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ├── risk-analytics/insurance-tower/         (Insurance Tower Visualizer)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
 ├── legal-ops/litigation-decision-tree/      (Litigation Decision Tree)
+├── games/monty-hall/                        (Monty Hall game)
 ├── Neal_Pathak_Resume.pdf
 ├── CLAUDE.md
 └── README.md
@@ -46,7 +50,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 
 ## Design System
 - **Font**: Inter (Google Fonts)
-- **Colors**: Neutral palette, category accent colors (Risk=red, Finance=green, Legal=blue)
+- **Colors**: Neutral palette, category accent colors (Risk=red, Finance=green, Legal=blue, Fun=purple)
 - **CSS Variables**: Comprehensive design tokens in shared.css
 - **Responsive**: Breakpoints at 480px, 768px, 1024px
 - **Charts**: Chart.js v3.9.1 with consistent styling across tools

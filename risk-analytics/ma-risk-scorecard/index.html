@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M&amp;A Risk Scorecard — Neal Pathak</title>
+  <meta name="description" content="Pre-acquisition risk profile with deal-protection recommendations and a board-ready memo.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    /* Layout */
+    .panel {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+
+    .panel__title {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    .panel__subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-lg);
+      max-width: 720px;
+    }
+
+    /* Target form */
+    .target-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-md);
+    }
+
+    /* Dimension card */
+    .dim-card {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-md);
+      background: var(--color-surface);
+    }
+
+    .dim-card__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-md);
+    }
+
+    .dim-card__name {
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .dim-card__weight {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .dim-card__weight input {
+      width: 60px;
+      text-align: right;
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+    }
+
+    .factors {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .factor {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-sm) 0;
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .factor:first-child { border-top: none; }
+
+    .factor__label {
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .factor__desc {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* Score chips */
+    .chips {
+      display: flex;
+      gap: 4px;
+    }
+
+    .chip {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      transition: all var(--transition-fast);
+      padding: 0;
+    }
+
+    .chip:hover {
+      border-color: var(--color-text-tertiary);
+      transform: translateY(-1px);
+    }
+
+    .chip.active {
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .chip[data-score="1"].active { background: #1e8449; }
+    .chip[data-score="2"].active { background: #6abf69; color: #0d3320; }
+    .chip[data-score="3"].active { background: #95a5a6; }
+    .chip[data-score="4"].active { background: #d97455; }
+    .chip[data-score="5"].active { background: #c0392b; }
+
+    /* Action bar */
+    .action-bar {
+      display: flex;
+      gap: var(--space-md);
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-xl);
+    }
+
+    .action-bar .scale-legend {
+      margin-left: auto;
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .scale-legend__swatches {
+      display: flex;
+      gap: 2px;
+    }
+
+    .scale-legend__swatches span {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+    }
+
+    /* Results */
+    .results { display: none; }
+    .results.is-visible { display: block; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-xl);
+      align-items: center;
+      padding: var(--space-2xl);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .hero__score {
+      text-align: center;
+      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      min-width: 180px;
+    }
+
+    .hero__score-value {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: #ffffff;
+    }
+
+    .hero__score-of {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.85);
+      margin-top: var(--space-xs);
+    }
+
+    .hero__score-rating {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #ffffff;
+      margin-top: var(--space-sm);
+    }
+
+    .hero__name {
+      font-size: var(--text-2xl);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-xs);
+    }
+
+    .hero__meta {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      font-family: var(--font-mono);
+      margin-bottom: var(--space-md);
+    }
+
+    .hero__narrative {
+      font-size: var(--text-base);
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      max-width: 640px;
+    }
+
+    .rating-low      { background: #1e8449; }
+    .rating-moderate { background: #6abf69; }
+    .rating-elevated { background: #95a5a6; }
+    .rating-high     { background: #d97455; }
+    .rating-critical { background: #c0392b; }
+
+    /* Two-up */
+    .two-up {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+      margin-bottom: var(--space-xl);
+    }
+
+    @media (max-width: 900px) {
+      .two-up { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+    }
+
+    .chart-card h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    .chart-card__canvas-wrap {
+      position: relative;
+      height: 320px;
+    }
+
+    /* Dimension bars */
+    .dim-bars {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .dim-bar {
+      display: grid;
+      grid-template-columns: 180px 1fr 60px;
+      align-items: center;
+      gap: var(--space-md);
+      font-size: var(--text-sm);
+    }
+
+    .dim-bar__name {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+
+    .dim-bar__track {
+      height: 22px;
+      background: var(--color-bg);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dim-bar__fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width var(--transition-base);
+    }
+
+    .dim-bar__value {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      text-align: right;
+    }
+
+    /* Top risks */
+    .risk-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .risk-row {
+      display: grid;
+      grid-template-columns: 28px 1fr auto auto;
+      align-items: center;
+      gap: var(--space-md);
+      padding: var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+
+    .risk-row__rank {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      font-weight: 600;
+    }
+
+    .risk-row__main {
+      min-width: 0;
+    }
+
+    .risk-row__factor {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .risk-row__dim {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    .risk-row__score {
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+
+    .score-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 700;
+    }
+
+    /* Recommendations */
+    .recs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-md);
+      margin-top: var(--space-md);
+    }
+
+    .rec-card {
+      padding: var(--space-lg);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+    }
+
+    .rec-card__label {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      font-weight: 600;
+    }
+
+    .rec-card__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-top: var(--space-xs);
+      color: var(--color-text);
+    }
+
+    .rec-card__detail {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-sm);
+      line-height: 1.5;
+    }
+
+    .reps-list {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-md) 0 0;
+    }
+
+    .reps-list li {
+      padding: var(--space-sm) 0;
+      border-top: 1px solid var(--color-border-light);
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-md);
+      align-items: start;
+    }
+
+    .reps-list li:first-child { border-top: none; }
+
+    .reps-list strong {
+      font-weight: 600;
+    }
+
+    .reps-list .reps-list__cat {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding-top: 2px;
+    }
+
+    /* Memo */
+    .memo {
+      background: var(--color-bg);
+      border: 1px dashed var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-xl);
+      font-family: var(--font-mono);
+      font-size: var(--text-sm);
+      color: var(--color-text);
+      white-space: pre-wrap;
+      line-height: 1.65;
+      margin-top: var(--space-md);
+    }
+
+    /* Print */
+    .print-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-md);
+      margin: var(--space-xl) 0;
+    }
+
+    @media print {
+      .site-nav, .input-section, .action-bar, .print-bar, .back-link {
+        display: none !important;
+      }
+      .panel, .chart-card, .rec-card, .hero { box-shadow: none !important; }
+      .results { display: block !important; }
+      body { background: #fff; }
+      .memo { display: none; }
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-xl);
+    }
+
+    .back-link:hover { color: var(--color-text); }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .factor { grid-template-columns: 1fr; }
+      .chips { justify-content: flex-start; }
+      .dim-bar { grid-template-columns: 1fr; gap: var(--space-xs); }
+      .risk-row { grid-template-columns: 24px 1fr auto; }
+      .risk-row__score { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="../../" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="../../#risk">Risk</a></li>
+        <li><a href="../../#finance">Finance</a></li>
+        <li><a href="../../#legal">Legal</a></li>
+        <li><a href="../../#fun">Fun</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <header class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>M&amp;A Risk Scorecard</h1>
+        <p>Pre-acquisition risk profile across financial, legal, operational, insurance, ESG, and integration dimensions. Generates a heatmap, deal-protection recommendations, and a board-ready memo.</p>
+      </div>
+    </header>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <!-- Input Section -->
+        <div class="input-section">
+          <div class="action-bar">
+            <button class="btn" id="loadDemo" type="button">Load demo</button>
+            <button class="btn" id="reset" type="button">Reset</button>
+            <button class="btn btn--primary" id="analyze" type="button">Analyze</button>
+            <div class="scale-legend">
+              <span>Score scale:</span>
+              <div class="scale-legend__swatches" aria-hidden="true">
+                <span style="background:#1e8449"></span>
+                <span style="background:#6abf69"></span>
+                <span style="background:#95a5a6"></span>
+                <span style="background:#d97455"></span>
+                <span style="background:#c0392b"></span>
+              </div>
+              <span>1 low &rarr; 5 critical</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Target details</div>
+            <div class="target-grid">
+              <div class="form-group">
+                <label for="t-name">Target company</label>
+                <input type="text" id="t-name" placeholder="e.g., Acme Industrial Co">
+              </div>
+              <div class="form-group">
+                <label for="t-industry">Industry</label>
+                <select id="t-industry">
+                  <option value="Manufacturing">Manufacturing</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Financial Services">Financial Services</option>
+                  <option value="Healthcare">Healthcare</option>
+                  <option value="Energy">Energy</option>
+                  <option value="Consumer">Consumer</option>
+                  <option value="Real Estate">Real Estate</option>
+                  <option value="Logistics">Logistics</option>
+                  <option value="Professional Services">Professional Services</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="t-revenue">Revenue ($M)</label>
+                <input type="number" id="t-revenue" min="0" step="1" placeholder="180">
+              </div>
+              <div class="form-group">
+                <label for="t-employees">Employees</label>
+                <input type="number" id="t-employees" min="0" step="1" placeholder="850">
+              </div>
+              <div class="form-group">
+                <label for="t-geo">Geographies</label>
+                <input type="text" id="t-geo" placeholder="US, Mexico">
+              </div>
+              <div class="form-group">
+                <label for="t-deal">Deal size ($M)</label>
+                <input type="number" id="t-deal" min="0" step="1" placeholder="450">
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Risk dimensions</div>
+            <p class="panel__subtitle">Score each factor 1 (very low risk) to 5 (critical). Adjust dimension weights if a particular axis matters more for this deal &mdash; weights normalize to 100% on analyze.</p>
+            <div id="dim-container"></div>
+          </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results" id="results">
+
+          <div class="hero">
+            <div class="hero__score" id="hero-score">
+              <div class="hero__score-value" id="hero-score-value">—</div>
+              <div class="hero__score-of">of 5.0</div>
+              <div class="hero__score-rating" id="hero-rating">—</div>
+            </div>
+            <div>
+              <div class="hero__name" id="hero-name">—</div>
+              <div class="hero__meta" id="hero-meta">—</div>
+              <div class="hero__narrative" id="hero-narrative">—</div>
+            </div>
+          </div>
+
+          <div class="two-up">
+            <div class="chart-card">
+              <h3>Risk profile</h3>
+              <div class="chart-card__canvas-wrap">
+                <canvas id="radar"></canvas>
+              </div>
+            </div>
+            <div class="chart-card">
+              <h3>Dimension scores</h3>
+              <div class="dim-bars" id="dim-bars"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Top risks</div>
+            <p class="panel__subtitle">Ranked by contribution to the overall score (factor score &times; dimension weight, normalized).</p>
+            <div class="risk-list" id="risk-list"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Deal protection recommendations</div>
+            <p class="panel__subtitle">Anchored to the overall risk rating; ranges narrow as the rating improves. These are starting positions for negotiation, not absolute floors.</p>
+            <div class="recs-grid" id="recs-grid"></div>
+            <div style="margin-top: var(--space-xl);">
+              <div class="panel__title" style="font-size: var(--text-base);">Reps &amp; warranties to push for</div>
+              <ul class="reps-list" id="reps-list"></ul>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Due diligence priorities</div>
+            <p class="panel__subtitle">Where to spend your DD budget &mdash; the highest-contribution risks deserve the deepest scrutiny.</p>
+            <ol class="reps-list" id="dd-list" style="counter-reset: dd-counter;"></ol>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">Board memo</div>
+            <p class="panel__subtitle">Print-ready summary you can paste into a deal review deck or DD memo.</p>
+            <div class="memo" id="memo"></div>
+          </div>
+
+          <div class="print-bar">
+            <button class="btn" id="printBtn" type="button">Print / Save as PDF</button>
+          </div>
+
+        </div>
+
+        <a href="../../" class="back-link">&larr; Back to all tools</a>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // -----------------------------------------------------------------
+    //   DATA MODEL
+    // -----------------------------------------------------------------
+
+    const DIMENSIONS = [
+      {
+        id: 'financial',
+        name: 'Financial Health',
+        defaultWeight: 18,
+        factors: [
+          { id: 'leverage',       name: 'Leverage and debt levels',       desc: 'Net debt / EBITDA, refinancing risk, covenant headroom' },
+          { id: 'wc',             name: 'Working capital adequacy',       desc: 'Cash conversion cycle, AR aging, inventory turns' },
+          { id: 'concentration',  name: 'Customer concentration',         desc: 'Top-10 customer share of revenue, contract durations' },
+          { id: 'quality',        name: 'Revenue quality',                desc: 'Recurring vs. one-time mix, retention, gross margin trend' },
+          { id: 'cashflow',       name: 'Cash flow stability',            desc: 'Free cash flow volatility, capex requirements' }
+        ]
+      },
+      {
+        id: 'legal',
+        name: 'Legal & Regulatory',
+        defaultWeight: 18,
+        factors: [
+          { id: 'litigation',     name: 'Pending litigation',             desc: 'Open matters, exposure estimates, class action risk' },
+          { id: 'regulatory',     name: 'Regulatory enforcement history', desc: 'Investigations, consent decrees, agency relationships' },
+          { id: 'ip',             name: 'IP portfolio defensibility',     desc: 'Patent strength, trademark validity, infringement risk' },
+          { id: 'contracts',      name: 'Material contract risk',         desc: 'Change-of-control clauses, key-customer consents needed' },
+          { id: 'compliance',     name: 'Compliance program maturity',    desc: 'Policies, training, internal audit, hotline metrics' }
+        ]
+      },
+      {
+        id: 'operational',
+        name: 'Operational',
+        defaultWeight: 14,
+        factors: [
+          { id: 'keyperson',      name: 'Key person dependency',          desc: 'Founder/CEO concentration, succession plan, retention agreements' },
+          { id: 'supplier',       name: 'Supplier concentration',         desc: 'Single-source inputs, geopolitical exposure, qualification timelines' },
+          { id: 'cyber',          name: 'Cyber security posture',         desc: 'Last assessment, breach history, MFA/EDR coverage' },
+          { id: 'it',             name: 'IT modernity and tech debt',     desc: 'Legacy systems, integration readiness, ERP cohesion' },
+          { id: 'bcdr',           name: 'Business continuity readiness',  desc: 'DR tested, RTO/RPO commitments, alternate-site capability' }
+        ]
+      },
+      {
+        id: 'insurance',
+        name: 'Insurance & Risk Transfer',
+        defaultWeight: 16,
+        factors: [
+          { id: 'adequacy',       name: 'Program adequacy',               desc: 'Limits vs. exposure, peer benchmark comparison' },
+          { id: 'losstrend',      name: '5-year loss trend',              desc: 'Frequency and severity trajectory, normalized for growth' },
+          { id: 'gaps',           name: 'Coverage gaps',                  desc: 'Cyber sublimits, employment practices, environmental, key-person' },
+          { id: 'volatility',     name: 'Claims volatility',              desc: 'Standard deviation of annual incurred, large-loss frequency' },
+          { id: 'retention',      name: 'Retention and captive exposure', desc: 'SIR levels, captive capitalization, collateral requirements' }
+        ]
+      },
+      {
+        id: 'esg',
+        name: 'ESG & Compliance',
+        defaultWeight: 14,
+        factors: [
+          { id: 'environmental',  name: 'Environmental exposure',         desc: 'Site contamination, emissions liabilities, transition risk' },
+          { id: 'fcpa',           name: 'FCPA and sanctions exposure',    desc: 'Operations in high-risk jurisdictions, third-party intermediaries' },
+          { id: 'labor',          name: 'Labor and employment claims',    desc: 'Wage-hour, harassment, union activity, EEOC charges' },
+          { id: 'privacy',        name: 'Data privacy posture',           desc: 'GDPR/CCPA readiness, breach history, subject-access response time' }
+        ]
+      },
+      {
+        id: 'integration',
+        name: 'Integration',
+        defaultWeight: 20,
+        factors: [
+          { id: 'culture',        name: 'Cultural alignment',             desc: 'Management philosophy, decision velocity, comp structure' },
+          { id: 'systems',        name: 'Systems harmonization',          desc: 'ERP, CRM, finance-stack overlap, data migration scope' },
+          { id: 'geo',            name: 'Geographic redundancy',          desc: 'Office overlap, real-estate consolidation, headcount duplication' },
+          { id: 'synergy',        name: 'Synergy execution risk',         desc: 'Speed-to-realize cost / revenue synergies, dis-synergy potential' },
+          { id: 'customer',       name: 'Customer / channel disruption',  desc: 'Overlap with acquirer accounts, channel conflict, brand effects' }
+        ]
+      }
+    ];
+
+    // Demo: mid-market manufacturing target with elevated insurance + integration risk
+    const DEMO = {
+      target: {
+        name: 'Acme Industrial Co.',
+        industry: 'Manufacturing',
+        revenue: 180,
+        employees: 850,
+        geo: 'US, Mexico',
+        deal: 450
+      },
+      scores: {
+        // Financial — moderate
+        leverage: 2, wc: 3, concentration: 3, quality: 2, cashflow: 2,
+        // Legal — elevated (open class action, IP question)
+        litigation: 4, regulatory: 3, ip: 2, contracts: 4, compliance: 3,
+        // Operational — moderate-elevated (key supplier in Asia, aging ERP)
+        keyperson: 3, supplier: 4, cyber: 3, it: 2, bcdr: 2,
+        // Insurance — elevated (cyber sublimit, rising frequency)
+        adequacy: 4, losstrend: 3, gaps: 4, volatility: 3, retention: 2,
+        // ESG — moderate (paint shop legacy, wage-hour history)
+        environmental: 3, fcpa: 2, labor: 3, privacy: 3,
+        // Integration — elevated (geographic overlap, ERP migration)
+        culture: 3, systems: 3, geo: 4, synergy: 3, customer: 3
+      }
+    };
+
+    const RATING_BANDS = [
+      { min: 0,    max: 1.7, key: 'low',      label: 'Low',      color: '#1e8449' },
+      { min: 1.7,  max: 2.4, key: 'moderate', label: 'Moderate', color: '#6abf69' },
+      { min: 2.4,  max: 3.1, key: 'elevated', label: 'Elevated', color: '#95a5a6' },
+      { min: 3.1,  max: 3.8, key: 'high',     label: 'High',     color: '#d97455' },
+      { min: 3.8,  max: 5.1, key: 'critical', label: 'Critical', color: '#c0392b' }
+    ];
+
+    // Deal-protection rules anchored to overall rating.
+    const PROTECTION_RULES = {
+      low:      { escrow: '5%',    cap: '10%',   survival: '18 months',  rwi: 'Optional, often cost-effective vs. larger escrow.', impact: '0% to -2%' },
+      moderate: { escrow: '7%',    cap: '12.5%', survival: '18 months',  rwi: 'Recommended; standard market terms achievable.',     impact: '-2% to -5%' },
+      elevated: { escrow: '10%',   cap: '15%',   survival: '24 months',  rwi: 'Strongly recommended; expect modest exclusions on flagged areas.', impact: '-4% to -8%' },
+      high:     { escrow: '12.5%', cap: '20%',   survival: '24 months',  rwi: 'Available but expect higher retention and specific-matter exclusions.', impact: '-7% to -12%' },
+      critical: { escrow: '15%+',  cap: '25%+',  survival: '30 months',  rwi: 'Limited insurer appetite; rely on traditional escrow plus specific indemnities.', impact: '-10% to -20%+' }
+    };
+
+    // Reps to push, indexed by dimension id, surfacing only when the dim is in the top 3.
+    const REPS_BY_DIMENSION = {
+      financial:   ['Financial statements (bring-down to closing)', 'No undisclosed liabilities', 'Accuracy of financial information'],
+      legal:       ['Litigation rep with carveouts for known matters and longer survival', 'IP ownership and non-infringement', 'Compliance with laws (5-year lookback)'],
+      operational: ['Key contracts in full force, no consents required', 'Employee retention through closing', 'IT systems sufficiency and licensing'],
+      insurance:   ['All policies in force and fully paid', 'Full claims-history disclosure', 'No coverage gaps or pending non-renewals'],
+      esg:         ['Environmental compliance and no off-site contamination', 'FCPA and trade-controls compliance', 'No material data breaches'],
+      integration: ['(no specific rep) — flag as transition planning risk; address via TSA scope and integration milestones']
+    };
+
+    // -----------------------------------------------------------------
+    //   STATE
+    // -----------------------------------------------------------------
+
+    const state = {
+      target: { name: '', industry: 'Manufacturing', revenue: '', employees: '', geo: '', deal: '' },
+      scores: {},
+      weights: {}
+    };
+
+    // Init weights and scores to defaults
+    DIMENSIONS.forEach(function(d) {
+      state.weights[d.id] = d.defaultWeight;
+      d.factors.forEach(function(f) { state.scores[f.id] = 3; });
+    });
+
+    let radarChart = null;
+
+    // -----------------------------------------------------------------
+    //   RENDER FORM
+    // -----------------------------------------------------------------
+
+    function renderDimensions() {
+      const container = document.getElementById('dim-container');
+      container.innerHTML = '';
+      DIMENSIONS.forEach(function(dim) {
+        const card = document.createElement('div');
+        card.className = 'dim-card';
+        card.innerHTML =
+          '<div class="dim-card__head">' +
+            '<div class="dim-card__name">' + dim.name + '</div>' +
+            '<div class="dim-card__weight">' +
+              '<label for="w-' + dim.id + '">Weight</label>' +
+              '<input type="number" id="w-' + dim.id + '" min="0" max="100" step="1" value="' + dim.defaultWeight + '">' +
+              '<span>%</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="factors" id="f-' + dim.id + '"></div>';
+        container.appendChild(card);
+
+        const factorsEl = card.querySelector('#f-' + dim.id);
+        dim.factors.forEach(function(f) {
+          const row = document.createElement('div');
+          row.className = 'factor';
+          row.innerHTML =
+            '<div>' +
+              '<div class="factor__label">' + f.name + '</div>' +
+              '<div class="factor__desc">' + f.desc + '</div>' +
+            '</div>' +
+            '<div class="chips" data-factor="' + f.id + '">' +
+              [1,2,3,4,5].map(function(s) {
+                return '<button type="button" class="chip" data-score="' + s + '" data-factor="' + f.id + '">' + s + '</button>';
+              }).join('') +
+            '</div>';
+          factorsEl.appendChild(row);
+        });
+
+        // Weight input listener
+        card.querySelector('#w-' + dim.id).addEventListener('input', function(e) {
+          state.weights[dim.id] = parseFloat(e.target.value) || 0;
+        });
+      });
+
+      // Wire chip clicks
+      container.addEventListener('click', function(e) {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        const factorId = chip.getAttribute('data-factor');
+        const score = parseInt(chip.getAttribute('data-score'), 10);
+        state.scores[factorId] = score;
+        updateChipUI(factorId);
+      });
+
+      // Apply default scores to UI
+      Object.keys(state.scores).forEach(updateChipUI);
+    }
+
+    function updateChipUI(factorId) {
+      const chips = document.querySelectorAll('.chip[data-factor="' + factorId + '"]');
+      const score = state.scores[factorId];
+      chips.forEach(function(c) {
+        const s = parseInt(c.getAttribute('data-score'), 10);
+        c.classList.toggle('active', s === score);
+      });
+    }
+
+    function renderTargetForm() {
+      document.getElementById('t-name').value      = state.target.name;
+      document.getElementById('t-industry').value  = state.target.industry;
+      document.getElementById('t-revenue').value   = state.target.revenue;
+      document.getElementById('t-employees').value = state.target.employees;
+      document.getElementById('t-geo').value       = state.target.geo;
+      document.getElementById('t-deal').value      = state.target.deal;
+    }
+
+    function readTargetForm() {
+      state.target.name      = document.getElementById('t-name').value.trim();
+      state.target.industry  = document.getElementById('t-industry').value;
+      state.target.revenue   = parseFloat(document.getElementById('t-revenue').value) || 0;
+      state.target.employees = parseInt(document.getElementById('t-employees').value, 10) || 0;
+      state.target.geo       = document.getElementById('t-geo').value.trim();
+      state.target.deal      = parseFloat(document.getElementById('t-deal').value) || 0;
+    }
+
+    function readWeights() {
+      DIMENSIONS.forEach(function(d) {
+        const v = parseFloat(document.getElementById('w-' + d.id).value);
+        state.weights[d.id] = isNaN(v) ? 0 : v;
+      });
+    }
+
+    // -----------------------------------------------------------------
+    //   COMPUTE
+    // -----------------------------------------------------------------
+
+    function compute() {
+      readTargetForm();
+      readWeights();
+
+      // Normalize weights to sum to 1
+      const totalWeight = DIMENSIONS.reduce(function(s, d) { return s + state.weights[d.id]; }, 0);
+      const normW = {};
+      DIMENSIONS.forEach(function(d) {
+        normW[d.id] = totalWeight > 0 ? state.weights[d.id] / totalWeight : 0;
+      });
+
+      // Per-dimension average score
+      const dimScores = {};
+      DIMENSIONS.forEach(function(d) {
+        const sum = d.factors.reduce(function(s, f) { return s + (state.scores[f.id] || 0); }, 0);
+        dimScores[d.id] = sum / d.factors.length;
+      });
+
+      // Weighted overall
+      const overall = DIMENSIONS.reduce(function(s, d) {
+        return s + dimScores[d.id] * normW[d.id];
+      }, 0);
+
+      const rating = ratingFor(overall);
+
+      // Per-factor contribution to overall = score * dim_weight / num_factors
+      const factorContribs = [];
+      DIMENSIONS.forEach(function(d) {
+        d.factors.forEach(function(f) {
+          const score = state.scores[f.id] || 0;
+          const contrib = score * normW[d.id] / d.factors.length;
+          factorContribs.push({
+            factor: f, dim: d, score: score, contrib: contrib
+          });
+        });
+      });
+      factorContribs.sort(function(a, b) { return b.contrib - a.contrib; });
+
+      // Top dimensions (for reps)
+      const dimRanking = DIMENSIONS.slice().sort(function(a, b) {
+        return (dimScores[b.id] * normW[b.id]) - (dimScores[a.id] * normW[a.id]);
+      });
+
+      return {
+        overall: overall,
+        rating: rating,
+        dimScores: dimScores,
+        normW: normW,
+        factorContribs: factorContribs,
+        dimRanking: dimRanking
+      };
+    }
+
+    function ratingFor(score) {
+      for (let i = 0; i < RATING_BANDS.length; i++) {
+        if (score >= RATING_BANDS[i].min && score < RATING_BANDS[i].max) return RATING_BANDS[i];
+      }
+      return RATING_BANDS[RATING_BANDS.length - 1];
+    }
+
+    function colorForScore(score) {
+      // 1->green, 2->lt green, 3->gray, 4->coral, 5->red, with linear interp
+      const stops = [
+        [1, '#1e8449'],
+        [2, '#6abf69'],
+        [3, '#95a5a6'],
+        [4, '#d97455'],
+        [5, '#c0392b']
+      ];
+      const clamped = Math.max(1, Math.min(5, score));
+      const lower = Math.floor(clamped);
+      const upper = Math.min(5, lower + 1);
+      if (lower === upper) return stops[lower - 1][1];
+      const t = clamped - lower;
+      const a = hexToRgb(stops[lower - 1][1]);
+      const b = hexToRgb(stops[upper - 1][1]);
+      const r = Math.round(a[0] + (b[0] - a[0]) * t);
+      const g = Math.round(a[1] + (b[1] - a[1]) * t);
+      const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+      return 'rgb(' + r + ',' + g + ',' + bl + ')';
+    }
+
+    function hexToRgb(hex) {
+      const h = hex.replace('#', '');
+      return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+    }
+
+    // -----------------------------------------------------------------
+    //   RENDER RESULTS
+    // -----------------------------------------------------------------
+
+    function renderResults(r) {
+      // Hero
+      document.getElementById('hero-score').className = 'hero__score rating-' + r.rating.key;
+      document.getElementById('hero-score-value').textContent = r.overall.toFixed(2);
+      document.getElementById('hero-rating').textContent = r.rating.label;
+      document.getElementById('hero-name').textContent = state.target.name || 'Unnamed target';
+      const meta = [
+        state.target.industry,
+        state.target.revenue ? '$' + state.target.revenue + 'M revenue' : null,
+        state.target.employees ? state.target.employees.toLocaleString() + ' employees' : null,
+        state.target.geo,
+        state.target.deal ? 'Deal $' + state.target.deal + 'M' : null
+      ].filter(Boolean).join('  ·  ');
+      document.getElementById('hero-meta').textContent = meta;
+      document.getElementById('hero-narrative').textContent = narrativeFor(r);
+
+      // Radar
+      renderRadar(r);
+
+      // Dimension bars
+      renderDimBars(r);
+
+      // Top risks
+      renderTopRisks(r);
+
+      // Recommendations
+      renderRecs(r);
+
+      // Reps list
+      renderReps(r);
+
+      // DD priorities
+      renderDDPriorities(r);
+
+      // Memo
+      document.getElementById('memo').textContent = generateMemo(r);
+
+      const resultsEl = document.getElementById('results');
+      resultsEl.classList.add('is-visible');
+      if (typeof resultsEl.scrollIntoView === 'function') {
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function narrativeFor(r) {
+      const top = r.factorContribs.slice(0, 2).map(function(x) { return x.factor.name.toLowerCase(); });
+      const lowest = r.factorContribs.slice().reverse()[0];
+      const dealSize = state.target.deal ? '$' + state.target.deal + 'M' : 'the deal';
+      const ratingLabel = r.rating.label.toLowerCase();
+      const sentences = [];
+      sentences.push(
+        'Composite risk profile is ' + ratingLabel + ' (' + r.overall.toFixed(2) + ' / 5.0).'
+      );
+      if (top.length) {
+        sentences.push('Largest contributors: ' + top.join(' and ') + '.');
+      }
+      sentences.push('Use the recommendations below as starting positions for the SPA negotiation; tighten or relax based on findings from focused DD on the highlighted dimensions.');
+      return sentences.join(' ');
+    }
+
+    function renderRadar(r) {
+      const ctx = document.getElementById('radar').getContext('2d');
+      const labels = DIMENSIONS.map(function(d) { return d.name; });
+      const data = DIMENSIONS.map(function(d) { return parseFloat(r.dimScores[d.id].toFixed(2)); });
+      if (radarChart) radarChart.destroy();
+      radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Dimension score',
+            data: data,
+            backgroundColor: 'rgba(192, 57, 43, 0.12)',
+            borderColor: '#c0392b',
+            borderWidth: 2,
+            pointBackgroundColor: '#c0392b',
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 5,
+              ticks: { stepSize: 1, color: '#717171', backdropColor: 'transparent' },
+              pointLabels: { font: { size: 11, family: 'Inter' }, color: '#1a1a1a' },
+              grid: { color: '#e5e5e5' },
+              angleLines: { color: '#e5e5e5' }
+            }
+          },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function renderDimBars(r) {
+      const container = document.getElementById('dim-bars');
+      container.innerHTML = '';
+      DIMENSIONS.forEach(function(d) {
+        const score = r.dimScores[d.id];
+        const pct = (score / 5) * 100;
+        const color = colorForScore(score);
+        const row = document.createElement('div');
+        row.className = 'dim-bar';
+        row.innerHTML =
+          '<div class="dim-bar__name">' + d.name + '</div>' +
+          '<div class="dim-bar__track"><div class="dim-bar__fill" style="width:' + pct.toFixed(1) + '%; background:' + color + '"></div></div>' +
+          '<div class="dim-bar__value">' + score.toFixed(2) + ' &middot; ' + (r.normW[d.id]*100).toFixed(0) + '%</div>';
+        container.appendChild(row);
+      });
+    }
+
+    function renderTopRisks(r) {
+      const container = document.getElementById('risk-list');
+      container.innerHTML = '';
+      r.factorContribs.slice(0, 5).forEach(function(item, i) {
+        const row = document.createElement('div');
+        row.className = 'risk-row';
+        const color = colorForScore(item.score);
+        row.innerHTML =
+          '<div class="risk-row__rank">' + (i + 1) + '</div>' +
+          '<div class="risk-row__main">' +
+            '<div class="risk-row__factor">' + item.factor.name + '</div>' +
+            '<div class="risk-row__dim">' + item.dim.name + '</div>' +
+          '</div>' +
+          '<div class="risk-row__score">' + (item.contrib * 100).toFixed(1) + ' pts</div>' +
+          '<div class="score-pill" style="background:' + color + '">' + item.score + '</div>';
+        container.appendChild(row);
+      });
+    }
+
+    function renderRecs(r) {
+      const rules = PROTECTION_RULES[r.rating.key];
+      const grid = document.getElementById('recs-grid');
+      grid.innerHTML = '';
+      const cards = [
+        { label: 'Escrow / holdback',         value: rules.escrow,  detail: 'Of purchase price; release at the end of the general survival period.' },
+        { label: 'Indemnity cap (general)',   value: rules.cap,     detail: 'Excluding fundamental reps, fraud, and specific indemnities, which run uncapped.' },
+        { label: 'Survival period (general)', value: rules.survival,detail: 'Tax reps run to statute; fundamental reps survive indefinitely.' },
+        { label: 'R&W insurance',             value: '',            detail: rules.rwi },
+        { label: 'Risk-adjusted price impact',value: rules.impact,  detail: 'Adjustment range to deal price (or escrow uplift) to reflect post-close risk.' }
+      ];
+      cards.forEach(function(c) {
+        const el = document.createElement('div');
+        el.className = 'rec-card';
+        el.innerHTML =
+          '<div class="rec-card__label">' + c.label + '</div>' +
+          (c.value ? '<div class="rec-card__value">' + c.value + '</div>' : '') +
+          '<div class="rec-card__detail">' + c.detail + '</div>';
+        grid.appendChild(el);
+      });
+    }
+
+    function renderReps(r) {
+      const ul = document.getElementById('reps-list');
+      ul.innerHTML = '';
+      // Pull reps from top 3 dimensions by weighted contribution
+      const top3 = r.dimRanking.slice(0, 3);
+      const seen = new Set();
+      top3.forEach(function(d) {
+        const reps = REPS_BY_DIMENSION[d.id] || [];
+        reps.forEach(function(rep) {
+          if (seen.has(rep)) return;
+          seen.add(rep);
+          const li = document.createElement('li');
+          li.innerHTML =
+            '<span class="reps-list__cat">' + d.name + '</span>' +
+            '<span>' + rep + '</span>';
+          ul.appendChild(li);
+        });
+      });
+    }
+
+    function renderDDPriorities(r) {
+      const ol = document.getElementById('dd-list');
+      ol.innerHTML = '';
+      r.factorContribs.slice(0, 5).forEach(function(item, i) {
+        const li = document.createElement('li');
+        li.innerHTML =
+          '<span class="reps-list__cat">DD #' + (i + 1) + '</span>' +
+          '<span><strong>' + item.factor.name + '</strong> &mdash; ' + item.factor.desc + '</span>';
+        ol.appendChild(li);
+      });
+    }
+
+    function generateMemo(r) {
+      const lines = [];
+      lines.push('M&A RISK PROFILE — ' + (state.target.name || 'TARGET'));
+      lines.push('Generated ' + new Date().toLocaleDateString());
+      lines.push('');
+      lines.push('OVERALL RATING:  ' + r.rating.label.toUpperCase() + '  (Score ' + r.overall.toFixed(2) + ' / 5.00)');
+      lines.push('Industry:        ' + state.target.industry);
+      if (state.target.revenue)   lines.push('Revenue:         $' + state.target.revenue + 'M');
+      if (state.target.employees) lines.push('Employees:       ' + state.target.employees.toLocaleString());
+      if (state.target.geo)       lines.push('Geographies:     ' + state.target.geo);
+      if (state.target.deal)      lines.push('Deal size:       $' + state.target.deal + 'M');
+      lines.push('');
+      lines.push('DIMENSION SCORES (weight)');
+      DIMENSIONS.forEach(function(d) {
+        const s = r.dimScores[d.id];
+        const w = (r.normW[d.id] * 100).toFixed(0);
+        lines.push('  ' + d.name.padEnd(28) + s.toFixed(2) + '   (' + w + '%)');
+      });
+      lines.push('');
+      lines.push('TOP 5 RISKS');
+      r.factorContribs.slice(0, 5).forEach(function(item, i) {
+        lines.push('  ' + (i + 1) + '. ' + item.factor.name + ' [' + item.dim.name + '] — score ' + item.score + ', contribution ' + (item.contrib * 100).toFixed(1) + ' pts');
+      });
+      lines.push('');
+      lines.push('DEAL PROTECTION RECOMMENDATIONS');
+      const rules = PROTECTION_RULES[r.rating.key];
+      lines.push('  Escrow / holdback:        ' + rules.escrow);
+      lines.push('  Indemnity cap (general):  ' + rules.cap);
+      lines.push('  Survival period:          ' + rules.survival);
+      lines.push('  R&W insurance:            ' + rules.rwi);
+      lines.push('  Risk-adj price impact:    ' + rules.impact);
+      lines.push('');
+      lines.push('REPS & WARRANTIES TO PUSH FOR');
+      const top3 = r.dimRanking.slice(0, 3);
+      const seen = new Set();
+      top3.forEach(function(d) {
+        const reps = REPS_BY_DIMENSION[d.id] || [];
+        reps.forEach(function(rep) {
+          if (seen.has(rep)) return;
+          seen.add(rep);
+          lines.push('  · [' + d.name + '] ' + rep);
+        });
+      });
+      lines.push('');
+      lines.push('DUE DILIGENCE PRIORITIES');
+      r.factorContribs.slice(0, 5).forEach(function(item, i) {
+        lines.push('  ' + (i + 1) + '. ' + item.factor.name);
+        lines.push('     ' + item.factor.desc);
+      });
+      lines.push('');
+      lines.push('— end of memo —');
+      return lines.join('\n');
+    }
+
+    // -----------------------------------------------------------------
+    //   ACTIONS
+    // -----------------------------------------------------------------
+
+    function loadDemo() {
+      state.target = Object.assign({}, DEMO.target);
+      Object.keys(DEMO.scores).forEach(function(k) { state.scores[k] = DEMO.scores[k]; });
+      DIMENSIONS.forEach(function(d) { state.weights[d.id] = d.defaultWeight; });
+      renderTargetForm();
+      DIMENSIONS.forEach(function(d) {
+        document.getElementById('w-' + d.id).value = d.defaultWeight;
+      });
+      Object.keys(state.scores).forEach(updateChipUI);
+    }
+
+    function reset() {
+      state.target = { name: '', industry: 'Manufacturing', revenue: '', employees: '', geo: '', deal: '' };
+      DIMENSIONS.forEach(function(d) {
+        state.weights[d.id] = d.defaultWeight;
+        d.factors.forEach(function(f) { state.scores[f.id] = 3; });
+      });
+      renderTargetForm();
+      DIMENSIONS.forEach(function(d) {
+        document.getElementById('w-' + d.id).value = d.defaultWeight;
+      });
+      Object.keys(state.scores).forEach(updateChipUI);
+      document.getElementById('results').classList.remove('is-visible');
+    }
+
+    document.getElementById('loadDemo').addEventListener('click', loadDemo);
+    document.getElementById('reset').addEventListener('click', reset);
+    document.getElementById('analyze').addEventListener('click', function() {
+      const r = compute();
+      renderResults(r);
+    });
+    document.getElementById('printBtn').addEventListener('click', function() { window.print(); });
+
+    // -----------------------------------------------------------------
+    //   INIT
+    // -----------------------------------------------------------------
+
+    renderDimensions();
+    renderTargetForm();
+  })();
+  </script>
+</body>
+</html>

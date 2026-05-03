@@ -20,6 +20,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 - **Executive Risk Summary** — Generate a printable executive risk summary with total cost of risk, loss ratios by line, and year-over-year comparisons. Form input, CSV upload with downloadable template, or demo data. Print/Save as PDF.
 - **TCOR Dashboard** — Track total cost of risk across premium, retained losses, broker fees, loss control, and claims admin over multiple years. Normalized per $1,000 of revenue with peer benchmark comparison. Form-grid input (components × years), CSV upload, or demo data. Stacked bar, trend line, and composition donut charts plus detail table. Print/Save as PDF.
 - **Insurance Tower Visualizer** — Render a layered insurance program as a vertical tower (primary through excess). Custom SVG tower with per-layer carrier, attachment, limit, premium, and rate-on-line labels; gap and overlap detection; program-level metrics (total limit, total premium, blended ROL, program top). Form editor (add/remove layers), CSV upload with template, or demo data. Premium-by-layer and ROL-by-layer companion charts. Print/Save as PDF.
+- **M&A Risk Scorecard** — Pre-acquisition risk profile across six dimensions (financial, legal & regulatory, operational, insurance, ESG & compliance, integration), each with 4–5 weighted factors scored 1–5. Computes weighted overall score with rating bands (Low / Moderate / Elevated / High / Critical), Chart.js radar of dimension scores, dimension bars, top-5 risks ranked by contribution, deal-protection recommendations (escrow, indemnity cap, survival, R&W insurance, valuation impact range), reps-and-warranties to push for, DD priorities, and a printable board memo. Demo data (mid-market manufacturing target) included.
 
 ### Finance (`/financial-modeling/`)
 - **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
@@ -40,6 +41,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ├── risk-analytics/executive-summary/       (Executive Risk Summary)
 ├── risk-analytics/tcor-dashboard/          (TCOR Dashboard)
 ├── risk-analytics/insurance-tower/         (Insurance Tower Visualizer)
+├── risk-analytics/ma-risk-scorecard/       (M&A Risk Scorecard)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
 ├── legal-ops/litigation-decision-tree/      (Litigation Decision Tree)
 ├── games/monty-hall/                        (Monty Hall game)

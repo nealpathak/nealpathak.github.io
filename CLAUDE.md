@@ -21,12 +21,15 @@ Personal site showcasing risk, finance, and legal-ops tools.
 - **TCOR Dashboard** — Track total cost of risk across premium, retained losses, broker fees, loss control, and claims admin over multiple years. Normalized per $1,000 of revenue with peer benchmark comparison. Form-grid input (components × years), CSV upload, or demo data. Stacked bar, trend line, and composition donut charts plus detail table. Print/Save as PDF.
 - **Insurance Tower Visualizer** — Render a layered insurance program as a vertical tower (primary through excess). Custom SVG tower with per-layer carrier, attachment, limit, premium, and rate-on-line labels; gap and overlap detection; program-level metrics (total limit, total premium, blended ROL, program top). Form editor (add/remove layers), CSV upload with template, or demo data. Premium-by-layer and ROL-by-layer companion charts. Print/Save as PDF.
 - **M&A Risk Scorecard** — Pre-acquisition risk profile across six dimensions (financial, legal & regulatory, operational, insurance, ESG & compliance, integration), each with 4–5 weighted factors scored 1–5. Computes weighted overall score with rating bands (Low / Moderate / Elevated / High / Critical), Chart.js radar of dimension scores, dimension bars, top-5 risks ranked by contribution, deal-protection recommendations (escrow, indemnity cap, survival, R&W insurance, valuation impact range), reps-and-warranties to push for, DD priorities, and a printable board memo. Demo data (mid-market manufacturing target) included.
+- **Combined Ratio & Underwriting Dashboard** — Carrier-side dashboard. One row per accident year × line of business with premium written, premium earned, losses incurred, and expenses incurred. Computes loss ratio, expense ratio, combined ratio, and underwriting result by year and by line. Multi-line trend chart with break-even (100%) and user-entered target CR overlays, stacked loss-vs-expense bars by line, current-year premium-mix donut, and a YoY summary table. Form/CSV/demo input modes; print/save as PDF.
 
 ### Finance (`/financial-modeling/`)
 - **Options P&L Calculator** — Model single and multi-leg options strategies. Payoff diagrams, breakevens, max risk/reward. Preset strategies: long call, long put, covered call, bull/bear spreads, iron condor, straddle, strangle.
 
 ### Legal (`/legal-ops/`)
 - **Litigation Decision Tree** — Model settle-vs-fight decisions as a probability-weighted tree. Interactive editor for branches (probability, cost, label) plus CSV upload with pre-order `depth,label,probability,cost` encoding. Computes expected value, best/worst case, standard deviation, probability of an outcome worse than settlement, and tornado sensitivity analysis (±10pp probability shift per branch with sibling renormalization). SVG tree rendering, outcome distribution chart, paths detail table, and a settle/fight recommendation against a user-entered offer. Print/Save as PDF.
+- **Matter Profitability Dashboard** — Law firm matter economics. Per-matter inputs: hours worked, hours billed, billed $, collected $, cost. Computes realization rate, collection rate, effective hourly rate, margin %, write-off $, and a health pill (Strong/Healthy/Thin/Bleeding). Horizontal bar of top matters by margin contribution, practice-area donut by collected $, bubble scatter of effective rate vs margin sized by collected $, plus partner leaderboard and a negative-margin watchlist. Form editor (add/remove rows), CSV upload with template, or demo data (12 matters across 6 partners). Print/Save as PDF.
+- **Contract Lifecycle Pipeline** — CLM pipeline view for corporate legal ops. Per-contract inputs: ID, counterparty, type, stage (Intake → Review → Negotiation → Signature → Executed → Expired), owner, intake/signed/expiry dates, annual value. Computes cycle time per contract (signed − intake for executed; as-of − intake for active), KPI bar (active pipeline, avg/median cycle, over-target count, expiring-in-90d count + at-risk $), funnel with bottleneck stage flagged, monthly-throughput bars, average-days-by-stage bars, contract-type donut, 90-day renewal watchlist with urgency pills, and an active-pipeline aging table. Form/CSV/demo input modes; print/save as PDF.
 
 ### Fun (`/games/`)
 - **Monty Hall** — Play the classic probability puzzle. Pick a door, host reveals an empty one, choose switch or stay. Tracks running win rates split by strategy plus 100-round simulators for switch and stay so users can watch the percentages converge to the theoretical 2/3 vs 1/3.
@@ -42,8 +45,11 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ├── risk-analytics/tcor-dashboard/          (TCOR Dashboard)
 ├── risk-analytics/insurance-tower/         (Insurance Tower Visualizer)
 ├── risk-analytics/ma-risk-scorecard/       (M&A Risk Scorecard)
+├── risk-analytics/combined-ratio/          (Combined Ratio & Underwriting Dashboard)
 ├── financial-modeling/options-calculator/   (Options P&L Calculator)
 ├── legal-ops/litigation-decision-tree/      (Litigation Decision Tree)
+├── legal-ops/matter-profitability/         (Matter Profitability Dashboard)
+├── legal-ops/clm-pipeline/                 (Contract Lifecycle Pipeline)
 ├── games/monty-hall/                        (Monty Hall game)
 ├── Neal_Pathak_Resume.pdf
 ├── CLAUDE.md

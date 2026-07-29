@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Falling Sand — Neal Pathak</title>
+  <meta name="description" content="A cellular-automata sandbox. Pour sand, water, and oil, build with stone and wood, then set it all on fire.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .stage {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+    }
+
+    /* --- Canvas --- */
+    .canvas-wrap {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #0f0f12;
+      line-height: 0;
+    }
+
+    #sim {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 8 / 5;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    /* --- Toolbar --- */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-lg);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 40px;
+    }
+
+    .swatch:hover {
+      border-color: #ccc;
+      background: var(--color-bg);
+    }
+
+    .swatch:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    .swatch[aria-pressed="true"] {
+      border-color: var(--color-accent);
+      color: var(--color-text);
+      box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+    }
+
+    .swatch__chip {
+      width: 14px;
+      height: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .swatch__key {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-md);
+      margin-left: auto;
+    }
+
+    .brush {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+
+    .brush input[type="range"] {
+      width: 96px;
+      accent-color: var(--color-fun);
+      cursor: pointer;
+    }
+
+    .brush__value {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      min-width: 2ch;
+      text-align: right;
+    }
+
+    /* --- Stats --- */
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xl);
+      margin-top: var(--space-lg);
+      padding-top: var(--space-lg);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .stat__label {
+      display: block;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .stat__value {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--color-text);
+      margin-top: 2px;
+    }
+
+    /* --- Notes --- */
+    .notes {
+      margin-top: var(--space-2xl);
+    }
+
+    .notes h2 {
+      font-size: var(--text-xl);
+      margin-bottom: var(--space-md);
+    }
+
+    .notes ul {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-md);
+    }
+
+    .notes li {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+      padding-left: var(--space-md);
+      border-left: 2px solid var(--color-border);
+    }
+
+    .notes strong {
+      color: var(--color-text);
+      font-weight: 600;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 768px) {
+      .controls {
+        margin-left: 0;
+      }
+
+      .swatch {
+        padding: var(--space-sm);
+      }
+
+      .swatch__key {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="../../" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="../../#risk">Risk</a></li>
+        <li><a href="../../#finance">Finance</a></li>
+        <li><a href="../../#legal">Legal</a></li>
+        <li><a href="../../#fun">Fun</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <header class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--fun">Fun</span>
+        <h1>Falling Sand</h1>
+        <p>A cellular-automata sandbox. Every pixel follows three rules — fall, displace what's lighter, react to your neighbors — and the rest is emergent. Pour sand, flood it with water, float oil on top, then set the whole thing on fire.</p>
+      </div>
+    </header>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="stage">
+          <div class="canvas-wrap">
+            <canvas id="sim" width="800" height="500" aria-label="Falling sand simulation. Click and drag to draw."></canvas>
+          </div>
+
+          <div class="toolbar">
+            <div class="palette" id="palette" role="group" aria-label="Material"></div>
+
+            <div class="controls">
+              <div class="brush">
+                <label for="brush">Brush</label>
+                <input type="range" id="brush" min="1" max="14" value="5">
+                <span class="brush__value" id="brushValue">5</span>
+              </div>
+              <button class="btn" id="pause" type="button">Pause</button>
+              <button class="btn" id="reset" type="button">Reset</button>
+              <button class="btn" id="clear" type="button">Clear</button>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span class="stat__label">Particles</span>
+              <span class="stat__value" id="statParticles">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">Grid</span>
+              <span class="stat__value" id="statGrid">—</span>
+            </div>
+            <div class="stat">
+              <span class="stat__label">FPS</span>
+              <span class="stat__value" id="statFps">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes">
+          <h2>How it behaves</h2>
+          <ul>
+            <li><strong>Density decides everything.</strong> Sand sinks through water, water sinks through oil, oil floats to the surface. Nothing is scripted — it falls out of one comparison.</li>
+            <li><strong>Fire needs fuel.</strong> It clings to wood and oil while they last, then lifts off as flame and dies into smoke. Water puts it out on contact.</li>
+            <li><strong>Wood burns, stone doesn't.</strong> Build a container out of stone and it holds. Build it out of wood and it holds right up until it doesn't.</li>
+            <li><strong>Keys.</strong> <kbd>1</kbd>–<kbd>7</kbd> pick a material, <kbd>[</kbd> and <kbd>]</kbd> size the brush, <kbd>Space</kbd> pauses. You can keep drawing while paused.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // --- Grid ---
+    const W = 200, H = 125, CELL = 4;
+    const SIZE = W * H;
+
+    const grid = new Uint8Array(SIZE);     // material id
+    const life = new Uint8Array(SIZE);     // countdown for fire / smoke
+    const tint = new Uint8Array(SIZE);     // per-cell color jitter
+    const moved = new Uint8Array(SIZE);    // already stepped this frame
+
+    // --- Materials ---
+    const EMPTY = 0, SAND = 1, WATER = 2, OIL = 3, WOOD = 4, STONE = 5, FIRE = 6, SMOKE = 7;
+
+    // Heavier displaces lighter. Solids are never displaced.
+    const DENSITY = [0, 9, 5, 3, 100, 100, 2, 1];
+    const SPREAD = [0, 0, 6, 2, 0, 0, 0, 0]; // lateral flow distance for liquids
+
+    const MATERIALS = [
+      { id: SAND,  name: 'Sand',   chip: '#d6b26e' },
+      { id: WATER, name: 'Water',  chip: '#3a7caa' },
+      { id: OIL,   name: 'Oil',    chip: '#4a3f56' },
+      { id: WOOD,  name: 'Wood',   chip: '#744e2e' },
+      { id: STONE, name: 'Stone',  chip: '#78787c' },
+      { id: FIRE,  name: 'Fire',   chip: '#ff8c2a' },
+      { id: EMPTY, name: 'Erase',  chip: '#0f0f12' }
+    ];
+
+    // Sparse spawns look natural for granular and fluid materials.
+    const FILL = [1, 0.65, 0.75, 0.75, 1, 1, 0.5, 1];
+
+    let material = SAND;
+    let brush = 5;
+    let paused = false;
+
+    // --- Canvas ---
+    const canvas = document.getElementById('sim');
+    const ctx = canvas.getContext('2d');
+    const off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    const offCtx = off.getContext('2d');
+    const image = offCtx.createImageData(W, H);
+    const pixels = image.data;
+    ctx.imageSmoothingEnabled = false;
+
+    // --- Cell helpers ---
+    function set(x, y, mat, span) {
+      if (x < 0 || x >= W || y < 0 || y >= H) return;
+      const i = y * W + x;
+      grid[i] = mat;
+      tint[i] = (Math.random() * 256) | 0;
+      life[i] = span || 0;
+    }
+
+    function swap(a, b) {
+      const m = grid[a], l = life[a], t = tint[a];
+      grid[a] = grid[b]; life[a] = life[b]; tint[a] = tint[b];
+      grid[b] = m; life[b] = l; tint[b] = t;
+      moved[a] = 1; moved[b] = 1;
+    }
+
+    function displaces(mover, target) {
+      if (target === STONE || target === WOOD) return false;
+      return DENSITY[mover] > DENSITY[target];
+    }
+
+    // --- Element rules ---
+    function stepPowder(x, y, i) {
+      if (y >= H - 1) return;
+      const below = i + W;
+      if (displaces(SAND, grid[below])) { swap(i, below); return; }
+
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      for (let k = 0; k < 2; k++) {
+        const d = k === 0 ? dir : -dir;
+        const nx = x + d;
+        if (nx < 0 || nx >= W) continue;
+        if (displaces(SAND, grid[below + d])) { swap(i, below + d); return; }
+      }
+    }
+
+    function stepLiquid(x, y, i, mat) {
+      const below = i + W;
+      if (y < H - 1) {
+        if (displaces(mat, grid[below])) { swap(i, below); return; }
+
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        for (let k = 0; k < 2; k++) {
+          const d = k === 0 ? dir : -dir;
+          const nx = x + d;
+          if (nx < 0 || nx >= W) continue;
+          if (displaces(mat, grid[below + d])) { swap(i, below + d); return; }
+        }
+      }
+
+      // Flow sideways, preferring any hole found along the way.
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      const reach = SPREAD[mat];
+      for (let k = 0; k < 2; k++) {
+        const d = k === 0 ? dir : -dir;
+        let last = -1;
+        for (let s = 1; s <= reach; s++) {
+          const nx = x + d * s;
+          if (nx < 0 || nx >= W) break;
+          const n = y * W + nx;
+          if (!displaces(mat, grid[n])) break;
+          last = n;
+          if (y < H - 1 && displaces(mat, grid[n + W])) { swap(i, n); return; }
+        }
+        if (last >= 0) { swap(i, last); return; }
+      }
+    }
+
+    function stepFire(x, y, i) {
+      let fueled = false;
+
+      // Check the four neighbours for fuel to spread into and water to die in.
+      for (let k = 0; k < 4; k++) {
+        const nx = x + (k === 0 ? -1 : k === 1 ? 1 : 0);
+        const ny = y + (k === 2 ? -1 : k === 3 ? 1 : 0);
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        const n = ny * W + nx;
+        const m = grid[n];
+
+        if (m === WATER) {
+          grid[i] = SMOKE; life[i] = 40 + ((Math.random() * 30) | 0);
+          moved[i] = 1;
+          return;
+        }
+        if (m === WOOD) {
+          fueled = true;
+          if (Math.random() < 0.02) { grid[n] = FIRE; life[n] = 110 + ((Math.random() * 50) | 0); moved[n] = 1; }
+        } else if (m === OIL) {
+          fueled = true;
+          if (Math.random() < 0.22) { grid[n] = FIRE; life[n] = 55 + ((Math.random() * 30) | 0); moved[n] = 1; }
+        }
+      }
+
+      if (life[i] <= 1) {
+        if (Math.random() < 0.55) { grid[i] = SMOKE; life[i] = 50 + ((Math.random() * 50) | 0); }
+        else { grid[i] = EMPTY; life[i] = 0; }
+        moved[i] = 1;
+        return;
+      }
+      life[i]--;
+
+      // Flames sit on their fuel; unfuelled fire lifts away.
+      if (fueled || y <= 0) return;
+      if (Math.random() < 0.35) {
+        const up = i - W;
+        if (grid[up] === EMPTY || grid[up] === SMOKE) { swap(i, up); return; }
+        const d = Math.random() < 0.5 ? -1 : 1;
+        if (x + d >= 0 && x + d < W && grid[up + d] === EMPTY) swap(i, up + d);
+      }
+    }
+
+    function stepSmoke(x, y, i) {
+      if (life[i] <= 1 || y <= 0) { grid[i] = EMPTY; life[i] = 0; moved[i] = 1; return; }
+      life[i]--;
+
+      const up = i - W;
+      if (grid[up] === EMPTY) { swap(i, up); return; }
+
+      const dir = Math.random() < 0.5 ? -1 : 1;
+      for (let k = 0; k < 2; k++) {
+        const d = k === 0 ? dir : -dir;
+        const nx = x + d;
+        if (nx < 0 || nx >= W) continue;
+        if (grid[up + d] === EMPTY) { swap(i, up + d); return; }
+        if (grid[i + d] === EMPTY) { swap(i, i + d); return; }
+      }
+    }
+
+    // --- Simulation ---
+    function update() {
+      moved.fill(0);
+
+      // Bottom-up so falling cells settle in one pass; the moved flag keeps
+      // rising cells (fire, smoke) from being stepped twice.
+      for (let y = H - 1; y >= 0; y--) {
+        const rightward = Math.random() < 0.5;
+        for (let k = 0; k < W; k++) {
+          const x = rightward ? k : W - 1 - k;
+          const i = y * W + x;
+          if (moved[i]) continue;
+
+          switch (grid[i]) {
+            case SAND:  stepPowder(x, y, i); break;
+            case WATER: stepLiquid(x, y, i, WATER); break;
+            case OIL:   stepLiquid(x, y, i, OIL); break;
+            case FIRE:  stepFire(x, y, i); break;
+            case SMOKE: stepSmoke(x, y, i); break;
+          }
+        }
+      }
+    }
+
+    // --- Rendering ---
+    function render() {
+      let count = 0;
+
+      for (let i = 0; i < SIZE; i++) {
+        const m = grid[i];
+        const o = i << 2;
+        let r, g, b;
+
+        if (m === EMPTY) {
+          r = 15; g = 15; b = 18;
+        } else {
+          count++;
+          const j = (tint[i] / 255 - 0.5);
+
+          switch (m) {
+            case SAND:  r = 214 + j * 34; g = 178 + j * 30; b = 110 + j * 26; break;
+            case WATER: r = 58 + j * 16;  g = 124 + j * 20; b = 170 + j * 24; break;
+            case OIL:   r = 74 + j * 14;  g = 63 + j * 12;  b = 86 + j * 14;  break;
+            case WOOD:  r = 116 + j * 26; g = 78 + j * 22;  b = 46 + j * 18;  break;
+            case STONE: r = 120 + j * 28; g = 120 + j * 28; b = 124 + j * 28; break;
+            case FIRE: {
+              const t = Math.min(1, life[i] / 90);
+              r = 255; g = 70 + t * 166; b = 20 + t * 130;
+              break;
+            }
+            default: { // SMOKE
+              const t = Math.min(1, life[i] / 100);
+              const v = 15 + t * 105;
+              r = v; g = v; b = v + 6;
+            }
+          }
+        }
+
+        pixels[o] = r; pixels[o + 1] = g; pixels[o + 2] = b; pixels[o + 3] = 255;
+      }
+
+      offCtx.putImageData(image, 0, 0);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+      return count;
+    }
+
+    // --- Painting ---
+    let pointerDown = false;
+    let px = 0, py = 0, hasPrev = false;
+
+    function paint(cx, cy) {
+      const r = brush;
+      const chance = FILL[material];
+      const span = material === FIRE ? 60 + ((Math.random() * 40) | 0) : 0;
+
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (dx * dx + dy * dy > r * r) continue;
+          if (chance < 1 && Math.random() > chance) continue;
+          set(cx + dx, cy + dy, material, span);
+        }
+      }
+    }
+
+    // Interpolate so a fast drag draws a stroke, not a dotted line.
+    function paintStroke(x, y) {
+      if (!hasPrev) { paint(x, y); px = x; py = y; hasPrev = true; return; }
+      const dx = x - px, dy = y - py;
+      const steps = Math.max(Math.abs(dx), Math.abs(dy));
+      if (steps === 0) { paint(x, y); return; }
+      for (let s = 1; s <= steps; s++) {
+        paint(Math.round(px + (dx * s) / steps), Math.round(py + (dy * s) / steps));
+      }
+      px = x; py = y;
+    }
+
+    function toCell(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.floor(((e.clientX - rect.left) / rect.width) * W),
+        y: Math.floor(((e.clientY - rect.top) / rect.height) * H)
+      };
+    }
+
+    canvas.addEventListener('pointerdown', function (e) {
+      pointerDown = true;
+      hasPrev = false;
+      canvas.setPointerCapture(e.pointerId);
+      const c = toCell(e);
+      paintStroke(c.x, c.y);
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('pointermove', function (e) {
+      if (!pointerDown) return;
+      const c = toCell(e);
+      paintStroke(c.x, c.y);
+      e.preventDefault();
+    });
+
+    function endStroke() { pointerDown = false; hasPrev = false; }
+    canvas.addEventListener('pointerup', endStroke);
+    canvas.addEventListener('pointercancel', endStroke);
+    canvas.addEventListener('pointerleave', endStroke);
+
+    // --- Scenes ---
+    function clearGrid() {
+      grid.fill(EMPTY);
+      life.fill(0);
+    }
+
+    function loadScene() {
+      clearGrid();
+
+      // Water pool along the floor, with a slick of oil floating on it.
+      for (let y = H - 16; y < H; y++) {
+        for (let x = 0; x < W; x++) set(x, y, WATER);
+      }
+      for (let y = H - 18; y < H - 16; y++) {
+        for (let x = 62; x < 138; x++) set(x, y, OIL);
+      }
+
+      // Wood shelf on stone legs.
+      for (let y = 60; y < 63; y++) {
+        for (let x = 52; x < 148; x++) set(x, y, WOOD);
+      }
+      for (let y = 63; y < H - 18; y++) {
+        for (let x = 56; x < 60; x++) set(x, y, STONE);
+        for (let x = 140; x < 144; x++) set(x, y, STONE);
+      }
+
+      // Mound of sand resting on the shelf — widest at the base.
+      for (let row = 0; row < 18; row++) {
+        const half = 17 - row;
+        for (let x = 100 - half; x <= 100 + half; x++) {
+          if (Math.random() < 0.92) set(x, 59 - row, SAND);
+        }
+      }
+    }
+
+    // --- UI ---
+    const palette = document.getElementById('palette');
+    MATERIALS.forEach(function (mat, index) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'swatch';
+      btn.dataset.mat = String(mat.id);
+      btn.setAttribute('aria-pressed', mat.id === material ? 'true' : 'false');
+      btn.innerHTML =
+        '<span class="swatch__chip" style="background:' + mat.chip + '"></span>' +
+        '<span>' + mat.name + '</span>' +
+        '<span class="swatch__key">' + (index + 1) + '</span>';
+      btn.addEventListener('click', function () { selectMaterial(mat.id); });
+      palette.appendChild(btn);
+    });
+
+    function selectMaterial(id) {
+      material = id;
+      palette.querySelectorAll('.swatch').forEach(function (b) {
+        b.setAttribute('aria-pressed', Number(b.dataset.mat) === id ? 'true' : 'false');
+      });
+    }
+
+    const brushInput = document.getElementById('brush');
+    const brushValue = document.getElementById('brushValue');
+    brushInput.addEventListener('input', function () {
+      brush = Number(brushInput.value);
+      brushValue.textContent = brush;
+    });
+
+    function setBrush(v) {
+      brush = Math.max(1, Math.min(14, v));
+      brushInput.value = brush;
+      brushValue.textContent = brush;
+    }
+
+    const pauseBtn = document.getElementById('pause');
+    pauseBtn.addEventListener('click', function () {
+      paused = !paused;
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    });
+
+    document.getElementById('reset').addEventListener('click', loadScene);
+    document.getElementById('clear').addEventListener('click', clearGrid);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target.tagName === 'INPUT') return;
+
+      if (e.key >= '1' && e.key <= String(MATERIALS.length)) {
+        selectMaterial(MATERIALS[Number(e.key) - 1].id);
+      } else if (e.key === '[') {
+        setBrush(brush - 1);
+      } else if (e.key === ']') {
+        setBrush(brush + 1);
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        pauseBtn.click();
+      }
+    });
+
+    // --- Loop ---
+    const statParticles = document.getElementById('statParticles');
+    const statFps = document.getElementById('statFps');
+    document.getElementById('statGrid').textContent = W + '×' + H;
+
+    const STEP = 1000 / 60; // fixed simulation tick, independent of refresh rate
+    const MAX_STEPS = 4;    // cap catch-up work so a slow frame can't spiral
+
+    let smoothedFps = 60;
+    let lastFrame = performance.now();
+    let statTimer = 0;
+    let accumulator = 0;
+
+    function frame(now) {
+      const dt = now - lastFrame;
+      lastFrame = now;
+      if (dt > 0 && dt < 500) smoothedFps += ((1000 / dt) - smoothedFps) * 0.1;
+
+      if (!paused) {
+        accumulator += Math.min(dt, 250);
+        let steps = 0;
+        while (accumulator >= STEP && steps < MAX_STEPS) {
+          update();
+          accumulator -= STEP;
+          steps++;
+        }
+        // Fell behind badly — drop the backlog rather than carry a debt.
+        if (accumulator > STEP) accumulator = 0;
+      }
+
+      const count = render();
+
+      statTimer += dt;
+      if (statTimer > 250) {
+        statTimer = 0;
+        statParticles.textContent = count.toLocaleString();
+        statFps.textContent = Math.round(smoothedFps);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    loadScene();
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>

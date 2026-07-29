@@ -33,6 +33,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 
 ### Fun (`/games/`)
 - **Monty Hall** — Play the classic probability puzzle. Pick a door, host reveals an empty one, choose switch or stay. Tracks running win rates split by strategy plus 100-round simulators for switch and stay so users can watch the percentages converge to the theoretical 2/3 vs 1/3.
+- **Falling Sand** — Cellular-automata sandbox on a 200×125 grid rendered to canvas. Seven materials: sand (powder), water and oil (liquids with lateral spread), wood and stone (static solids), fire (consumes wood slowly and oil fast, extinguished by water, lifts when unfuelled), smoke (rises and decays). Density-based displacement gives emergent behavior — sand sinks through water, oil floats, fire dies into smoke. Fixed 60 Hz simulation timestep decoupled from display refresh. Brush-size slider, keyboard shortcuts (1–7 materials, [ ] brush, Space pause), stroke-interpolated pointer painting (mouse + touch), preset scene, and live particle/FPS stats. No dependencies — pure canvas, no Chart.js.
 
 ## File Structure
 ```
@@ -51,6 +52,7 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ├── legal-ops/matter-profitability/         (Matter Profitability Dashboard)
 ├── legal-ops/clm-pipeline/                 (Contract Lifecycle Pipeline)
 ├── games/monty-hall/                        (Monty Hall game)
+├── games/falling-sand/                      (Falling Sand sandbox)
 ├── Neal_Pathak_Resume.pdf
 ├── CLAUDE.md
 └── README.md

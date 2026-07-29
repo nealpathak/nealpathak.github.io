@@ -53,7 +53,10 @@ Personal site showcasing risk, finance, and legal-ops tools.
 ├── legal-ops/clm-pipeline/                 (Contract Lifecycle Pipeline)
 ├── games/monty-hall/                        (Monty Hall game)
 ├── games/falling-sand/                      (Falling Sand sandbox)
-├── Neal_Pathak_Resume.pdf
+├── favicon.svg
+├── 404.html
+├── sitemap.xml
+├── robots.txt
 ├── CLAUDE.md
 └── README.md
 ```

@@ -118,7 +118,14 @@
       outline-offset: 2px;
     }
 
-    .ctrl.is-disabled { opacity: 0.45; pointer-events: none; }
+    .ctrl.is-disabled { opacity: 0.45; }
+
+    .btn--reset {
+      width: 100%;
+      margin-top: var(--space-lg);
+      min-height: 34px;
+      font-size: var(--text-xs);
+    }
 
     .ctrl select {
       width: 100%;
@@ -423,6 +430,8 @@
           <!-- ============ Assumptions panel ============ -->
           <aside class="assumptions" aria-label="Model assumptions">
             <h2>Assumptions</h2>
+            <!-- autocomplete="off" stops browser form-state restoration from clobbering values applied from a shared URL hash -->
+            <form autocomplete="off">
             <div class="assumptions__groups">
 
               <div class="ctrl-group">
@@ -482,6 +491,8 @@
               </div>
 
             </div>
+            <button class="btn btn--reset" id="resetBtn" type="button">Reset to defaults</button>
+            </form>
           </aside>
 
           <!-- ============ Main area ============ -->
@@ -759,16 +770,17 @@
       $('vLag').textContent = $('pLag').value + ' mo';
       $('vTail').textContent = $('pTail').value + ' yr';
       $('vLLSize').textContent = '$' + $('pLLSize').value + 'M';
-      $('llSizeCtrl').classList.toggle('is-disabled', !$('pLLOn').checked);
+      const llOn = $('pLLOn').checked;
+      $('llSizeCtrl').classList.toggle('is-disabled', !llOn);
+      $('pLLSize').disabled = !llOn;   // real disabled state, so keyboard users can't reach an inert slider
     }
 
     // ==============================
     // Formatting
     // ==============================
     function fmtM(v) {
-      const m = v / 1e6;
-      const s = '$' + Math.abs(m).toFixed(1) + 'M';
-      return m < 0 ? '−' + s : s;
+      const m = +(v / 1e6).toFixed(1);   // round before taking the sign so "−$0.0M" can't appear
+      return (m < 0 ? '−' : '') + '$' + Math.abs(m).toFixed(1) + 'M';
     }
     function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
     function negClass(v) { return v < 0 ? ' class="neg"' : ''; }
@@ -785,14 +797,15 @@
       return 'Month ' + m + ' (year ' + Math.ceil(m / 12) + ')';
     }
 
-    function baseTooltip(labelCb, titleCb) {
+    function baseTooltip(labelCb, titleCb, extraCbs) {
       return {
         backgroundColor: '#1a1a1a',
         titleFont: { family: FONT, size: 11 },
         bodyFont: { family: FONT, size: 11 },
+        footerFont: { family: FONT, size: 11, weight: '600' },
         padding: 10,
         cornerRadius: 6,
-        callbacks: Object.assign({}, titleCb ? { title: titleCb } : {}, { label: labelCb }),
+        callbacks: Object.assign({ label: labelCb }, titleCb ? { title: titleCb } : {}, extraCbs || {}),
       };
     }
 
@@ -867,7 +880,8 @@
             legend: baseLegend,
             tooltip: baseTooltip(
               item => item.dataset.label + ': ' + fmtM(item.parsed.y),
-              monthTitle
+              monthTitle,
+              { footer: items => 'Total float: ' + fmtM(items.reduce((s, i) => s + i.parsed.y, 0)) }
             ),
           },
           scales: { x: monthAxisX(), y: dollarAxisY(true) },
@@ -1021,8 +1035,9 @@
       ];
       const head = '<thead><tr><th>Measure</th><th>Scenario A</th><th>Scenario B</th><th>B &minus; A</th></tr></thead>';
       const body = rows.map(([label, va, vb, fmt]) => {
-        const d = vb - va;
-        const dStr = fmt === fmtPct ? ((d >= 0 ? '+' : '−') + Math.abs(d * 100).toFixed(1) + ' pts') : ((d >= 0 ? '+' : '−') + '$' + Math.abs(d / 1e6).toFixed(1) + 'M');
+        const d = fmt === fmtPct ? +((vb - va) * 100).toFixed(1) : +((vb - va) / 1e6).toFixed(1);
+        const sign = d > 0 ? '+' : d < 0 ? '−' : '';
+        const dStr = fmt === fmtPct ? sign + Math.abs(d).toFixed(1) + ' pts' : sign + '$' + Math.abs(d).toFixed(1) + 'M';
         return '<tr><td>' + label + '</td>' +
           '<td' + negClass(va) + '>' + fmt(va) + '</td>' +
           '<td' + negClass(vb) + '>' + fmt(vb) + '</td>' +
@@ -1068,17 +1083,62 @@
       renderCompare();
     }
 
+    // ==============================
+    // Defaults & shareable URL state
+    // ==============================
+    const DEFAULTS = { pPremium: '100', pLR: '82', pER: '22', pYield: '5', pCashYield: '0.5', pLag: '0', pTail: '10', pLLSize: '20' };
+    const HASH_KEYS = [['pm', 'pPremium'], ['lr', 'pLR'], ['er', 'pER'], ['py', 'pYield'], ['cy', 'pCashYield'], ['lag', 'pLag'], ['tail', 'pTail'], ['lls', 'pLLSize']];
+
+    function syncPreset() {
+      const t = +$('pTail').value;
+      $('pPreset').value = t === 7 ? 'cm' : t === 12 ? 'occ' : 'custom';
+    }
+
+    // reflect current inputs in the URL hash so a configuration can be shared; no storage involved
+    let hashTimer = null;
+    function writeHash() {
+      clearTimeout(hashTimer);
+      hashTimer = setTimeout(() => {
+        const atDefaults = Object.keys(DEFAULTS).every(id => $(id).value === DEFAULTS[id]) && !$('pLLOn').checked;
+        if (atDefaults) {
+          history.replaceState(null, '', location.pathname + location.search);
+          return;
+        }
+        const parts = HASH_KEYS.map(([k, id]) => k + '=' + $(id).value);
+        if ($('pLLOn').checked) parts.push('ll=1');
+        history.replaceState(null, '', '#' + parts.join('&'));
+      }, 200);
+    }
+
+    function readHash() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      HASH_KEYS.forEach(([k, id]) => {
+        const v = h.get(k);
+        if (v !== null && v !== '' && isFinite(+v)) $(id).value = v;   // range inputs clamp to min/max
+      });
+      $('pLLOn').checked = h.get('ll') === '1';
+    }
+
     // slider / toggle wiring — a full recompute is sub-millisecond, so render synchronously
+    function onInput() { renderAll(); writeHash(); }
     ['pPremium', 'pLR', 'pER', 'pYield', 'pCashYield', 'pLag', 'pLLSize'].forEach(id => {
-      $(id).addEventListener('input', renderAll);
+      $(id).addEventListener('input', onInput);
     });
-    $('pLLOn').addEventListener('change', renderAll);
-    $('pTail').addEventListener('input', () => { $('pPreset').value = 'custom'; renderAll(); });
+    $('pLLOn').addEventListener('change', onInput);
+    $('pTail').addEventListener('input', () => { syncPreset(); onInput(); });
     $('pPreset').addEventListener('change', () => {
       const v = $('pPreset').value;
       if (v === 'cm') $('pTail').value = 7;
       if (v === 'occ') $('pTail').value = 12;
-      renderAll();
+      onInput();
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      Object.keys(DEFAULTS).forEach(id => { $(id).value = DEFAULTS[id]; });
+      $('pLLOn').checked = false;
+      syncPreset();
+      onInput();
     });
 
     $('pinA').addEventListener('click', () => {
@@ -1090,8 +1150,23 @@
       renderChips(); renderAll();
     });
 
+    readHash();
+    syncPreset();
     renderChips();
     renderAll();
+
+    // The fragment can surface after script execution (form-state restoration, embedded
+    // viewers applying the URL late), so re-apply shared state once the load settles and
+    // on any external hash change. Our own writeHash uses replaceState, which does not
+    // fire hashchange, so this cannot loop.
+    function applySharedState() {
+      if (!location.hash) return;
+      readHash();
+      syncPreset();
+      renderAll();
+    }
+    window.addEventListener('pageshow', () => setTimeout(applySharedState, 0));
+    window.addEventListener('hashchange', applySharedState);
   })();
   </script>
 </body>

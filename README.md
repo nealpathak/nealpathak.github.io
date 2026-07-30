@@ -6,7 +6,7 @@ Personal site for Neal Pathak — a collection of interactive tools for risk, fi
 
 ## What's here
 
-- **Risk** — loss run analysis, IBNR reserving, TCOR tracking, insurance tower visualization, M&A risk scoring, combined ratio dashboards
+- **Risk** — loss run analysis, IBNR reserving, TCOR tracking, insurance tower visualization, M&A risk scoring, combined ratio dashboards, MPL underwriting & float simulation
 - **Finance** — options P&L modeling
 - **Legal** — litigation decision trees, matter profitability, contract lifecycle pipeline
 - **Fun** — Monty Hall, a falling-sand cellular-automata sandbox

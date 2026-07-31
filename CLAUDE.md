@@ -68,6 +68,18 @@ structure clears tolerance. A tool that always says yes is a brochure, not an in
   ≤ 3:1, and survival of a +20pt adverse loss ratio. Binary-search solve for minimum viable premium.
   Implied-carrier-loss-ratio readout guards against rigging the comparison basis. Presets: mid-market,
   healthcare PL, small program. Print/PDF.
+- **Captive Operations & Governance** (`/risk-analytics/captive-operations/`) — Is the operating
+  year under control, and what breaks first when something slips. The annual obligation calendar
+  modeled as a dependency graph: each obligation has an anchor (fiscal year end or renewal), an
+  offset, a lead time, and predecessors; the schedule resolves in dependency order so nothing starts
+  before its inputs finish. Hard deadlines pull statutory dates from a domicile table (Vermont /
+  Cayman / generic) — switching domicile genuinely moves which part of the year binds. Slack is
+  computed empirically per obligation (delay a day at a time until a *new* breach appears), and the
+  **binding chain** is the set sharing the minimum slack — not zero-float, since almost nothing on a
+  real calendar has literally zero. Slip-cascade simulator propagates a delay and reports what moves,
+  by how much, and what breaches. Service provider concentration table surfaces single points of
+  failure. Gantt with an as-of marker via a custom Chart.js plugin. Governance memo. Print/PDF.
+  Guards a circular dependency without hanging.
 - **Risk Financing Optimizer** (`/risk-analytics/risk-financing-optimizer/`) — How much risk to
   retain and in which structure. 10,000-trial Monte Carlo (seeded mulberry32, Poisson frequency,
   lognormal severity) across a fixed retention grid, pricing guaranteed cost vs. SIR vs.
@@ -136,7 +148,8 @@ and all listings.
 ├── assets/og/og-card.png                       (1200×630 social card, generated with PIL)
 ├── notes/                                      (index + 5 articles)
 ├── risk-analytics/
-│   ├── captive-feasibility/  risk-financing-optimizer/  board-risk-report/
+│   ├── captive-feasibility/  captive-operations/  risk-financing-optimizer/
+│   ├── board-risk-report/
 │   ├── ma-risk-scorecard/  mpl-simulator/
 │   ├── loss-run-analyzer/  ibnr-estimator/  tcor-dashboard/
 │   ├── insurance-tower/  combined-ratio/

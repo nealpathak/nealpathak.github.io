@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Captive Operations &amp; Governance — Neal Pathak</title>
+  <meta name="description" content="Is the captive's operating year under control, and what breaks first if something slips? Annual obligation calendar with dependency chains, critical path, and slip-cascade analysis.">
+  <meta property="og:title" content="Captive Operations &amp; Governance — Neal Pathak">
+  <meta property="og:description" content="Is the captive's operating year under control, and what breaks first if something slips? Annual obligation calendar with dependency chains, critical path, and slip-cascade analysis.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/captive-operations/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/captive-operations/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex; gap: var(--space-lg);
+      align-items: end; flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 165px; }
+    .settings-row .form-group label { font-size: var(--text-xs); color: var(--color-text-tertiary); font-weight: 500; }
+    .settings-row input, .settings-row select {
+      width: 100%; font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm); min-height: 36px;
+    }
+
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .grid-editor__header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: var(--space-xs); flex-wrap: wrap; gap: var(--space-sm);
+    }
+
+    .grid-editor h3 { font-size: var(--text-base); font-weight: 600; }
+    .grid-editor .subtitle { font-size: var(--text-sm); color: var(--color-text-tertiary); max-width: none; margin-bottom: var(--space-md); }
+
+    .ob-grid { width: 100%; border-collapse: collapse; font-size: var(--text-sm); white-space: nowrap; }
+
+    .ob-grid th {
+      text-align: left; font-weight: 600; font-size: var(--text-xs);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm); border-bottom: 1px solid var(--color-border);
+    }
+
+    .ob-grid td { padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-border-light); }
+    .ob-grid tr:last-child td { border-bottom: none; }
+
+    .ob-grid input, .ob-grid select {
+      font-family: var(--font-sans); font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      background: var(--color-bg); min-height: 32px;
+    }
+
+    .ob-grid input[type="number"] { font-family: var(--font-mono); text-align: right; width: 72px; }
+    .ob-grid input[type="text"] { width: 210px; }
+    .ob-grid select { width: 118px; }
+    .ob-grid select.narrow { width: 96px; }
+    .ob-grid input[type="checkbox"] { accent-color: var(--color-risk); width: 15px; height: 15px; }
+
+    .row-actions { width: 30px; text-align: center; }
+    .icon-btn {
+      background: transparent; border: none; color: var(--color-text-tertiary);
+      cursor: pointer; font-size: var(--text-lg); padding: 0 6px; line-height: 1;
+    }
+    .icon-btn:hover { color: var(--color-risk); }
+    .icon-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+    .grid-add-row { margin-top: var(--space-md); display: flex; gap: var(--space-sm); }
+
+    /* --- Verdict --- */
+    .verdict {
+      border: 1px solid var(--color-border);
+      border-left-width: 4px;
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .verdict--clear { border-left-color: var(--color-data); }
+    .verdict--tight { border-left-color: #b9710e; }
+    .verdict--breach { border-left-color: var(--color-risk); }
+
+    .verdict__label {
+      font-size: var(--text-xs); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--color-text-tertiary); margin-bottom: var(--space-xs);
+    }
+
+    .verdict__headline {
+      font-size: var(--text-xl); font-weight: 600;
+      letter-spacing: -0.015em; margin-bottom: var(--space-sm);
+    }
+
+    .verdict--clear .verdict__headline { color: var(--color-data); }
+    .verdict--tight .verdict__headline { color: #b9710e; }
+    .verdict--breach .verdict__headline { color: var(--color-risk); }
+
+    .verdict__body { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: 1.7; max-width: 72ch; }
+    .verdict__body p { margin-bottom: var(--space-sm); max-width: none; }
+    .verdict__body p:last-child { margin-bottom: 0; }
+    .verdict__body strong { color: var(--color-text); font-weight: 600; }
+
+    .kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-md); margin-bottom: var(--space-lg); }
+
+    .kpi {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-md);
+    }
+
+    .kpi__label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-tertiary);
+      margin-bottom: 4px; line-height: 1.3;
+    }
+
+    .kpi__value { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: 600; color: var(--color-text); white-space: nowrap; }
+    .kpi__value.bad { color: var(--color-risk); }
+    .kpi__value.warn { color: #b9710e; }
+    .kpi__value.good { color: var(--color-data); }
+    .kpi__sub { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+    .chart-card {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-card h3 { font-size: var(--text-sm); font-weight: 600; margin-bottom: 2px; }
+    .chart-card .chart-sub { font-size: var(--text-xs); color: var(--color-text-tertiary); max-width: none; margin-bottom: var(--space-md); }
+
+    .chart-wrap { position: relative; height: 560px; }
+    .chart-wrap--short { height: 250px; }
+
+    /* --- Cascade simulator --- */
+    .cascade-controls {
+      display: flex; gap: var(--space-lg); align-items: end;
+      flex-wrap: wrap; margin-bottom: var(--space-lg);
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+    }
+
+    .cascade-controls .form-group { flex: 1 1 220px; }
+    .cascade-controls label { font-size: var(--text-xs); color: var(--color-text-tertiary); font-weight: 500; }
+    .cascade-controls select { width: 100%; font-size: var(--text-sm); padding: var(--space-xs) var(--space-sm); min-height: 34px; }
+    .cascade-controls input[type="range"] { width: 100%; accent-color: var(--color-risk); min-height: 22px; }
+    .cascade-controls input[type="range"]:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .slip-val { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; }
+
+    .cascade-result {
+      font-size: var(--text-sm); color: var(--color-text-secondary);
+      line-height: 1.7; max-width: 72ch;
+    }
+    .cascade-result strong { color: var(--color-text); font-weight: 600; }
+    .cascade-result .breach-text { color: var(--color-risk); font-weight: 600; }
+
+    .table-scroll { overflow-x: auto; }
+
+    .out-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); white-space: nowrap; }
+
+    .out-table th {
+      text-align: right; font-weight: 600; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm); border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .out-table th:first-child, .out-table th.left { text-align: left; }
+
+    .out-table td {
+      font-family: var(--font-mono); font-size: var(--text-xs); text-align: right;
+      padding: 7px var(--space-sm); border-bottom: 1px solid var(--color-border-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .out-table td.left, .out-table td:first-child { font-family: var(--font-sans); text-align: left; }
+    .out-table td:first-child { font-weight: 500; color: var(--color-text); }
+    .out-table tr:last-child td { border-bottom: none; }
+    .out-table tr.is-breach td { background: rgba(192,57,43,0.05); }
+    .out-table tr.is-critical td:first-child { border-left: 3px solid var(--color-risk); padding-left: calc(var(--space-sm) - 3px); }
+
+    .pill {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--font-sans);
+    }
+    .pill.complete { background: rgba(30,132,73,0.12); color: var(--color-data); }
+    .pill.progress { background: rgba(36,113,163,0.12); color: var(--color-legal); }
+    .pill.notstarted { background: rgba(127,140,141,0.15); color: var(--color-text-secondary); }
+    .pill.atrisk { background: rgba(230,126,34,0.16); color: #b9710e; }
+    .pill.overdue { background: rgba(192,57,43,0.12); color: var(--color-risk); }
+    .pill.hard { background: rgba(192,57,43,0.10); color: var(--color-risk); }
+    .pill.soft { background: rgba(127,140,141,0.14); color: var(--color-text-secondary); }
+
+    /* --- Memo --- */
+    .memo {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-xl); margin-bottom: var(--space-lg);
+    }
+    .memo h3 { font-size: var(--text-base); font-weight: 600; margin-bottom: var(--space-md); }
+    .memo__section { margin-bottom: var(--space-lg); }
+    .memo__section:last-child { margin-bottom: 0; }
+    .memo__heading {
+      font-size: var(--text-xs); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--color-text-tertiary); margin-bottom: var(--space-sm);
+      padding-bottom: var(--space-xs); border-bottom: 1px solid var(--color-border-light);
+    }
+    .memo__section p, .memo__section li {
+      font-size: var(--text-sm); color: var(--color-text-secondary);
+      line-height: 1.7; max-width: none;
+    }
+    .memo__section ul { margin-left: var(--space-lg); }
+    .memo__section li { margin-bottom: var(--space-xs); }
+    .memo__section strong { color: var(--color-text); font-weight: 600; }
+
+    .print-row { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+
+    .methodology {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-md) var(--space-xl); margin-bottom: var(--space-lg);
+    }
+    .methodology summary { font-size: var(--text-sm); font-weight: 600; cursor: pointer; padding: var(--space-sm) 0; list-style: none; }
+    .methodology summary::-webkit-details-marker { display: none; }
+    .methodology summary::before { content: '▸ '; color: var(--color-text-tertiary); }
+    .methodology[open] summary::before { content: '▾ '; }
+    .methodology summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+    .methodology ul { margin: var(--space-sm) 0 var(--space-md) var(--space-lg); font-size: var(--text-xs); color: var(--color-text-secondary); line-height: 1.7; }
+
+    @media print {
+      @page { margin: 0.5in 0.55in; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer, .methodology, .cascade-controls { display: none !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+      .verdict, .kpi, .chart-card, .memo { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .chart-wrap { height: 400px !important; }
+      .chart-wrap--short { height: 180px !important; }
+      .kpi__value { font-size: 14px; }
+      .out-table { font-size: 10px; }
+      .out-table th { font-size: 8px; padding: 4px 6px; }
+      .out-table td { padding: 5px 6px; }
+    }
+
+    @media (max-width: 900px) {
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .settings-row { flex-direction: column; align-items: stretch; }
+      .chart-wrap { height: 520px; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-strip { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>Captive Operations &amp; Governance</h1>
+        <p>Is the operating year under control, and what breaks first when something slips? The annual obligation cycle as a dependency chain — critical path, slack, hard regulatory dates, and the cascade when one deliverable runs late.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <div class="input-section" id="inputSection">
+          <div class="settings-row">
+            <div class="form-group">
+              <label for="captiveName">Program name</label>
+              <input type="text" id="captiveName" value="Professional Liability Captive">
+            </div>
+            <div class="form-group">
+              <label for="fyEnd">Fiscal year end</label>
+              <input type="date" id="fyEnd" value="2025-12-31">
+            </div>
+            <div class="form-group">
+              <label for="renewalDate">Policy renewal</label>
+              <input type="date" id="renewalDate" value="2027-01-01">
+            </div>
+            <div class="form-group">
+              <label for="asOf">As of</label>
+              <input type="date" id="asOf" value="2026-07-30">
+            </div>
+            <div class="form-group">
+              <label for="domicile">Domicile</label>
+              <select id="domicile">
+                <option value="vt" selected>Vermont</option>
+                <option value="cayman">Cayman Islands</option>
+                <option value="generic">Other / generic</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-editor">
+            <div class="grid-editor__header">
+              <h3>Annual obligation calendar</h3>
+              <button class="btn" id="demoBtn" type="button">Reset demo data</button>
+            </div>
+            <p class="subtitle">Offsets are days from the anchor date. Lead time is how long the obligation takes once it can start. An obligation cannot start before everything it depends on has finished &mdash; that is what makes the calendar a chain rather than a list.</p>
+            <div class="table-scroll">
+              <table class="ob-grid" id="obGrid"></table>
+            </div>
+            <div class="grid-add-row">
+              <button class="btn" id="addRowBtn" type="button">+ Add obligation</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="print-row">
+          <button class="btn btn--primary" id="printBtn" type="button">Print / Save as PDF</button>
+        </div>
+
+        <div class="verdict" id="verdict"></div>
+        <div class="kpi-strip" id="kpiStrip"></div>
+
+        <div class="chart-card">
+          <h3>Operating calendar</h3>
+          <p class="chart-sub">Scheduled window for each obligation. Outlined bars are the binding chain &mdash; the items carrying the least float, where a day lost is a day lost at the regulatory deadline.</p>
+          <div class="chart-wrap"><canvas id="ganttCanvas" role="img" aria-label="Timeline chart of captive operating obligations across the year"></canvas></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Slip cascade</h3>
+          <p class="chart-sub">What happens downstream when one deliverable runs late.</p>
+          <div class="cascade-controls">
+            <div class="form-group">
+              <label for="slipTarget">If this runs late&hellip;</label>
+              <select id="slipTarget" aria-label="Obligation to delay"></select>
+            </div>
+            <div class="form-group">
+              <label for="slipDays">By <span class="slip-val" id="slipVal">14 days</span></label>
+              <input type="range" id="slipDays" min="0" max="90" step="1" value="14">
+            </div>
+          </div>
+          <div class="cascade-result" id="cascadeResult"></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Obligation detail</h3>
+          <p class="chart-sub">Scheduled dates, slack before a hard deadline breaches, and current status against the as-of date.</p>
+          <div class="table-scroll">
+            <table class="out-table" id="detailTable" aria-label="Obligation detail"></table>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Service provider dependency</h3>
+          <p class="chart-sub">How much of the calendar sits with each party, and how much of it is on the critical path.</p>
+          <div class="table-scroll">
+            <table class="out-table" id="providerTable" aria-label="Service provider dependency"></table>
+          </div>
+        </div>
+
+        <div class="memo" id="memo"></div>
+
+        <details class="methodology">
+          <summary>Methodology &amp; model simplifications</summary>
+          <ul>
+            <li>Each obligation has an earliest start driven by its anchor date and offset, and a finish driven by its lead time. Where an obligation depends on others it cannot start until the last of them finishes, so the schedule is resolved in dependency order rather than by calendar date alone.</li>
+            <li>Slack is computed empirically: the obligation is delayed a day at a time until a hard deadline breaches that was not already breaching, and the last delay that still cleared is its slack. The binding chain is the set of obligations sharing the minimum slack &mdash; on a real calendar almost nothing has literally zero float, so keying off the minimum is what identifies the chain that actually constrains the year. This is a forward pass, not a full critical-path method with distinct free and total float.</li>
+            <li>Hard obligations are ones with an external deadline &mdash; regulatory filings, premium tax, renewal binding. Soft obligations can move without a breach, which does not mean they can move without consequence.</li>
+            <li>Filing deadlines shift with the selected domicile, but only for the common annual items. Any real program should confirm dates against its own domicile's current requirements and its captive manager's calendar rather than these defaults.</li>
+            <li>Lead times are planning estimates, not commitments from the providers who owe the work. The point of the cascade view is to show which estimates the year actually depends on.</li>
+            <li>Excluded: multi-year regulatory examination cycles, board member availability, coverage-specific filings, intercompany funding mechanics, investment operations, and anything triggered by a large claim. A captive that is mid-crisis is not running this calendar.</li>
+            <li>A planning and governance instrument for seeing where the year is tight &mdash; not a project management system, and not a substitute for the captive manager's statutory calendar.</li>
+          </ul>
+        </details>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+    const FONT = 'Inter';
+    const DAY = 86400000;
+
+    // Hard filing deadlines vary by domicile; offsets are days after fiscal year end.
+    const DOMICILE = {
+      vt:      { name: 'Vermont',        annualReport: 60,  auditedFinancials: 181, premiumTax: 59 },
+      cayman:  { name: 'Cayman Islands', annualReport: 120, auditedFinancials: 180, premiumTax: 90 },
+      generic: { name: 'this domicile',  annualReport: 90,  auditedFinancials: 180, premiumTax: 75 },
+    };
+
+    // anchor: 'fye' = fiscal year end, 'ren' = policy renewal
+    // hardKey pulls the statutory due date from the domicile table
+    const DEMO = [
+      { id: 'losscut',   name: 'Year-end loss data cut & claims review', cat: 'Claims',     owner: 'Risk',            provider: 'TPA',              anchor: 'fye', offset: 8,   lead: 12, hard: false, deps: [],                         status: 'Complete' },
+      { id: 'reserve',   name: 'Actuarial reserve study',               cat: 'Actuarial',  owner: 'Risk',            provider: 'Actuary',          anchor: 'fye', offset: 18,  lead: 22, hard: false, deps: ['losscut'],                status: 'Complete' },
+      { id: 'audit',     name: 'Annual audit fieldwork',                cat: 'Financial',  owner: 'Finance',         provider: 'Auditor',          anchor: 'fye', offset: 45,  lead: 35, hard: false, deps: ['reserve'],                status: 'Complete' },
+      { id: 'financials',name: 'Audited financial statements issued',   cat: 'Financial',  owner: 'Finance',         provider: 'Auditor',          anchor: 'fye', offset: 90,  lead: 20, hard: true,  deps: ['audit'],                  status: 'Complete', hardKey: 'auditedFinancials' },
+      { id: 'annualrpt', name: 'Regulatory annual report filing',       cat: 'Regulatory', owner: 'Captive manager', provider: 'Captive manager',  anchor: 'fye', offset: 35,  lead: 12, hard: true,  deps: ['reserve'],                status: 'Complete', hardKey: 'annualReport' },
+      { id: 'premtax',   name: 'Premium tax filing & payment',          cat: 'Regulatory', owner: 'Captive manager', provider: 'Captive manager',  anchor: 'fye', offset: 30,  lead: 12, hard: true,  deps: [],                         status: 'Complete', hardKey: 'premiumTax' },
+      { id: 'boardq1',   name: 'Q1 board meeting — approve financials', cat: 'Governance', owner: 'Captive board',   provider: 'Internal',         anchor: 'fye', offset: 115, lead: 3,  hard: false, deps: ['financials'],             status: 'Complete' },
+      { id: 'invpolicy', name: 'Investment policy annual review',       cat: 'Governance', owner: 'Finance',         provider: 'Investment mgr',   anchor: 'fye', offset: 120, lead: 14, hard: false, deps: ['financials'],             status: 'Complete' },
+      { id: 'expreview', name: 'Experience & exposure data refresh',    cat: 'Actuarial',  owner: 'Risk',            provider: 'Internal',         anchor: 'ren', offset: -195, lead: 25, hard: false, deps: [],                        status: 'Complete' },
+      { id: 'pricing',   name: 'Prospective actuarial pricing study',   cat: 'Actuarial',  owner: 'Risk',            provider: 'Actuary',          anchor: 'ren', offset: -165, lead: 35, hard: false, deps: ['expreview'],             status: 'In progress' },
+      { id: 'capacity',  name: 'Capital adequacy & capacity review',    cat: 'Financial',  owner: 'Finance',         provider: 'Internal',         anchor: 'ren', offset: -125, lead: 21, hard: false, deps: ['pricing', 'financials'], status: 'Not started' },
+      { id: 'boardcap',  name: 'Board capacity & retention approval',   cat: 'Governance', owner: 'Captive board',   provider: 'Internal',         anchor: 'ren', offset: -100, lead: 5,  hard: false, deps: ['capacity'],              status: 'Not started' },
+      { id: 'submission',name: 'Renewal submission to fronting carrier',cat: 'Renewal',    owner: 'Risk',            provider: 'Broker',           anchor: 'ren', offset: -90,  lead: 20, hard: false, deps: ['boardcap'],              status: 'Not started' },
+      { id: 'terms',     name: 'Fronting terms & collateral negotiation',cat: 'Renewal',   owner: 'Risk',            provider: 'Broker',           anchor: 'ren', offset: -65,  lead: 25, hard: false, deps: ['submission'],            status: 'Not started' },
+      { id: 'loc',       name: 'Letter of credit true-up',              cat: 'Renewal',    owner: 'Finance',         provider: 'Bank',             anchor: 'ren', offset: -35,  lead: 14, hard: false, deps: ['terms'],                 status: 'Not started' },
+      { id: 'binding',   name: 'Renewal binding & policy issuance',     cat: 'Renewal',    owner: 'Risk',            provider: 'Fronting carrier', anchor: 'ren', offset: -14,  lead: 7,  hard: true,  deps: ['terms', 'loc'],          status: 'Not started', hardAt: 'renewal' },
+      { id: 'boardq4',   name: 'Q4 board meeting — approve renewal',    cat: 'Governance', owner: 'Captive board',   provider: 'Internal',         anchor: 'ren', offset: -30,  lead: 3,  hard: false, deps: ['terms'],                 status: 'Not started' },
+      { id: 'cmrenew',   name: 'Captive manager contract renewal',      cat: 'Vendors',    owner: 'Risk',            provider: 'Captive manager',  anchor: 'ren', offset: -60,  lead: 21, hard: false, deps: [],                        status: 'Not started' },
+    ];
+
+    const CAT_COLOR = {
+      'Claims':     'rgba(230,126,34,0.72)',
+      'Actuarial':  'rgba(108,52,131,0.68)',
+      'Financial':  'rgba(30,132,73,0.68)',
+      'Regulatory': 'rgba(192,57,43,0.7)',
+      'Governance': 'rgba(36,113,163,0.72)',
+      'Renewal':    'rgba(26,26,26,0.62)',
+      'Vendors':    'rgba(127,140,141,0.7)',
+    };
+
+    const CATEGORIES = Object.keys(CAT_COLOR);
+    const STATUSES = ['Not started', 'In progress', 'Complete'];
+    const PROVIDERS = ['Internal', 'Captive manager', 'Actuary', 'Auditor', 'Broker', 'TPA', 'Bank', 'Fronting carrier', 'Investment mgr'];
+    const OWNERS = ['Risk', 'Finance', 'Captive board', 'Legal', 'Captive manager'];
+
+    let obligations = DEMO.map(o => Object.assign({}, o, { deps: o.deps.slice() }));
+
+    // ==============================
+    // Date helpers — UTC throughout so day arithmetic never crosses a DST seam
+    // ==============================
+    function parseDate(v) {
+      const p = (v || '').split('-');
+      return Date.UTC(+p[0], +p[1] - 1, +p[2]);
+    }
+    function fmtDate(ms) {
+      const d = new Date(ms);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    }
+    function fmtShort(ms) {
+      const d = new Date(ms);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    }
+    function days(n) { return n * DAY; }
+
+    // ==============================
+    // Scheduling engine
+    // ==============================
+    function anchors() {
+      return {
+        fye: parseDate($('fyEnd').value),
+        ren: parseDate($('renewalDate').value),
+        asOf: parseDate($('asOf').value),
+        dom: DOMICILE[$('domicile').value] || DOMICILE.generic,
+      };
+    }
+
+    // Resolve schedule in dependency order. slip maps id -> extra days of delay.
+    function schedule(slip) {
+      const a = anchors();
+      const byId = {};
+      obligations.forEach(o => { byId[o.id] = o; });
+      const resolved = {};
+      const visiting = {};
+
+      function resolve(o) {
+        if (resolved[o.id]) return resolved[o.id];
+        if (visiting[o.id]) {
+          // Circular dependency — treat as unconstrained rather than hanging
+          return resolved[o.id] = { circular: true, start: 0, end: 0 };
+        }
+        visiting[o.id] = true;
+
+        const anchorMs = o.anchor === 'ren' ? a.ren : a.fye;
+        let earliest = anchorMs + days(o.offset);
+
+        (o.deps || []).forEach(d => {
+          const dep = byId[d];
+          if (!dep) return;
+          const r = resolve(dep);
+          if (r.end > earliest) earliest = r.end;
+        });
+
+        const extra = days((slip && slip[o.id]) || 0);
+        const start = earliest + extra;
+        const end = start + days(o.lead);
+
+        // Hard due date: statutory offset from FYE, or the renewal date itself
+        let due = null;
+        if (o.hard) {
+          if (o.hardAt === 'renewal') due = a.ren;
+          else if (o.hardKey) due = a.fye + days(a.dom[o.hardKey]);
+          else due = anchorMs + days(o.offset + o.lead);
+        }
+
+        visiting[o.id] = false;
+        return resolved[o.id] = { id: o.id, start, end, due, breach: due != null && end > due, ob: o };
+      }
+
+      obligations.forEach(resolve);
+      return { map: resolved, list: obligations.map(o => resolved[o.id]), anchors: a };
+    }
+
+    function breachesIn(sched) {
+      return sched.list.filter(r => r.breach);
+    }
+
+    // Slack: largest delay this obligation can absorb before a *new* hard date breaches.
+    // Measured against the baseline breach set rather than against zero, so the critical
+    // path stays meaningful on a calendar that is already missing a deadline.
+    const MAX_SLACK = 120;
+    function computeSlack(baselineBreaches) {
+      const base = baselineBreaches.length;
+      const slack = {};
+      obligations.forEach(o => {
+        let lo = 0;
+        for (let d = 1; d <= MAX_SLACK; d++) {
+          const s = {}; s[o.id] = d;
+          if (breachesIn(schedule(s)).length > base) break;
+          lo = d;
+        }
+        slack[o.id] = lo;
+      });
+      return slack;
+    }
+
+    function statusOf(r, asOf) {
+      const o = r.ob;
+      if (o.status === 'Complete') return 'complete';
+      if (r.end < asOf) return 'overdue';
+      if (o.status === 'In progress') return 'progress';
+      if (r.start <= asOf) return 'atrisk';   // should have started and has not
+      return 'notstarted';
+    }
+
+    // ==============================
+    // Rendering — grid editor
+    // ==============================
+    function opts(list, sel) {
+      return list.map(o => '<option value="' + o + '"' + (o === sel ? ' selected' : '') + '>' + o + '</option>').join('');
+    }
+
+    function renderGrid() {
+      let html = '<thead><tr><th>Obligation</th><th>Category</th><th>Anchor</th><th>Offset</th><th>Lead</th>' +
+        '<th>Depends on</th><th>Owner</th><th>Provider</th><th>Status</th><th>Hard</th><th></th></tr></thead><tbody>';
+      obligations.forEach((o, i) => {
+        const depOpts = obligations.filter(x => x.id !== o.id)
+          .map(x => '<option value="' + x.id + '"' + ((o.deps || []).indexOf(x.id) >= 0 ? ' selected' : '') + '>' + x.name + '</option>').join('');
+        html += '<tr>' +
+          '<td><input type="text" data-i="' + i + '" data-f="name" value="' + o.name.replace(/"/g, '&quot;') + '" aria-label="Obligation name"></td>' +
+          '<td><select data-i="' + i + '" data-f="cat" aria-label="Category">' + opts(CATEGORIES, o.cat) + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="anchor" aria-label="Anchor">' +
+            '<option value="fye"' + (o.anchor === 'fye' ? ' selected' : '') + '>Year end</option>' +
+            '<option value="ren"' + (o.anchor === 'ren' ? ' selected' : '') + '>Renewal</option></select></td>' +
+          '<td><input type="number" data-i="' + i + '" data-f="offset" value="' + o.offset + '" step="5" aria-label="Offset days"></td>' +
+          '<td><input type="number" data-i="' + i + '" data-f="lead" value="' + o.lead + '" min="0" step="1" aria-label="Lead time days"></td>' +
+          '<td><select multiple size="1" data-i="' + i + '" data-f="deps" aria-label="Depends on" style="width:150px;height:32px">' + depOpts + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="owner" aria-label="Owner">' + opts(OWNERS, o.owner) + '</select></td>' +
+          '<td><select data-i="' + i + '" data-f="provider" aria-label="Provider">' + opts(PROVIDERS, o.provider) + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="status" aria-label="Status">' + opts(STATUSES, o.status) + '</select></td>' +
+          '<td style="text-align:center"><input type="checkbox" data-i="' + i + '" data-f="hard"' + (o.hard ? ' checked' : '') + ' aria-label="Hard deadline"></td>' +
+          '<td class="row-actions"><button class="icon-btn" data-del="' + i + '" type="button" aria-label="Remove obligation">&times;</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody>';
+      $('obGrid').innerHTML = html;
+
+      $('obGrid').querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('change', onGridEdit);
+        if (el.tagName === 'INPUT' && el.type !== 'checkbox') el.addEventListener('input', onGridEdit);
+      });
+      $('obGrid').querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const idx = +e.target.dataset.del;
+          const removed = obligations[idx].id;
+          obligations.splice(idx, 1);
+          obligations.forEach(o => { o.deps = (o.deps || []).filter(d => d !== removed); });
+          renderGrid(); renderAll();
+        });
+      });
+    }
+
+    function onGridEdit(e) {
+      const i = +e.target.dataset.i, f = e.target.dataset.f;
+      if (f === 'deps') {
+        obligations[i].deps = [...e.target.selectedOptions].map(o => o.value);
+      } else if (f === 'hard') {
+        obligations[i].hard = e.target.checked;
+      } else if (f === 'offset' || f === 'lead') {
+        obligations[i][f] = +e.target.value || 0;
+      } else {
+        obligations[i][f] = e.target.value;
+      }
+      renderAll();
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    let ganttChart = null;
+
+    function tooltipCfg(labelCb, titleCb) {
+      return {
+        backgroundColor: '#1a1a1a',
+        titleFont: { family: FONT, size: 11 },
+        bodyFont: { family: FONT, size: 11 },
+        padding: 10, cornerRadius: 6,
+        callbacks: Object.assign({ label: labelCb }, titleCb ? { title: titleCb } : {}),
+      };
+    }
+
+    function renderGantt(sched, slack, stats) {
+      const rows = sched.list.slice().sort((a, b) => a.start - b.start);
+      const asOf = sched.anchors.asOf;
+
+      const data = {
+        labels: rows.map(r => r.ob.name),
+        datasets: [{
+          label: 'Scheduled window',
+          data: rows.map(r => [r.start, r.end]),
+          backgroundColor: rows.map(r => r.breach ? 'rgba(192,57,43,0.85)' : CAT_COLOR[r.ob.cat] || 'rgba(127,140,141,0.7)'),
+          borderColor: rows.map(r => (stats.isBinding(r.ob.id) ? '#1a1a1a' : 'transparent')),
+          borderWidth: rows.map(r => (stats.isBinding(r.ob.id) ? 2 : 0)),
+          borderSkipped: false,
+          borderRadius: 3,
+        }],
+      };
+
+      const minX = Math.min(...rows.map(r => r.start));
+      const maxX = Math.max(...rows.map(r => Math.max(r.end, r.due || 0)));
+
+      const asOfLine = {
+        id: 'asOfLine',
+        afterDatasetsDraw(chart) {
+          const x = chart.scales.x.getPixelForValue(asOf);
+          if (!isFinite(x)) return;
+          const { top, bottom } = chart.chartArea;
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.strokeStyle = 'rgba(26,26,26,0.55)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = 'rgba(26,26,26,0.75)';
+          ctx.font = '600 10px Inter';
+          ctx.textAlign = 'center';
+          ctx.fillText('as of', x, top - 4);
+          ctx.restore();
+        },
+      };
+
+      if (ganttChart) { ganttChart.destroy(); }
+      ganttChart = new Chart($('ganttCanvas'), {
+        type: 'bar',
+        data,
+        plugins: [asOfLine],
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false, animation: false,
+          layout: { padding: { top: 14 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: tooltipCfg(
+              i => {
+                const r = rows[i.dataIndex];
+                const s = slack[r.ob.id];
+                const lines = [fmtDate(r.start) + ' → ' + fmtDate(r.end), r.ob.provider + ' · ' + r.ob.cat];
+                if (r.due) lines.push((r.breach ? 'BREACH — due ' : 'Due ') + fmtDate(r.due));
+                lines.push('Slack: ' + s + ' day' + (s === 1 ? '' : 's') + (stats.isBinding(r.ob.id) ? ' — binding chain' : ''));
+                return lines;
+              },
+              items => items[0].label
+            ),
+          },
+          scales: {
+            x: {
+              min: minX - days(10), max: maxX + days(10),
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: FONT, size: 10 }, color: '#999',
+                maxTicksLimit: 10,
+                callback: v => fmtShort(v),
+              },
+            },
+            y: { grid: { display: false }, ticks: { font: { family: FONT, size: 10 }, color: '#666' } },
+          },
+        },
+      });
+    }
+
+    // ==============================
+    // Tables
+    // ==============================
+    const STATUS_PILL = {
+      complete:   '<span class="pill complete">Complete</span>',
+      progress:   '<span class="pill progress">In progress</span>',
+      notstarted: '<span class="pill notstarted">Not started</span>',
+      atrisk:     '<span class="pill atrisk">Should have started</span>',
+      overdue:    '<span class="pill overdue">Overdue</span>',
+    };
+
+    function renderDetail(sched, slack, stats) {
+      const rows = sched.list.slice().sort((a, b) => a.start - b.start);
+      const asOf = sched.anchors.asOf;
+      const head = '<thead><tr><th class="left">Obligation</th><th class="left">Category</th><th class="left">Provider</th>' +
+        '<th class="left">Start</th><th class="left">Finish</th><th class="left">Hard due</th><th>Slack</th><th class="left">Status</th></tr></thead>';
+      const body = rows.map(r => {
+        const s = slack[r.ob.id];
+        const st = statusOf(r, asOf);
+        const critical = stats.isBinding(r.ob.id);
+        const cls = [r.breach ? 'is-breach' : '', critical ? 'is-critical' : ''].filter(Boolean).join(' ');
+        return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' +
+          '<td>' + r.ob.name + (r.ob.hard ? ' <span class="pill hard">Hard</span>' : '') + '</td>' +
+          '<td class="left">' + r.ob.cat + '</td>' +
+          '<td class="left">' + r.ob.provider + '</td>' +
+          '<td class="left">' + fmtDate(r.start) + '</td>' +
+          '<td class="left">' + fmtDate(r.end) + '</td>' +
+          '<td class="left">' + (r.due ? fmtDate(r.due) : '—') + '</td>' +
+          '<td>' + s + 'd' + (critical ? ' <span class="pill hard">Binding</span>' : '') + '</td>' +
+          '<td class="left">' + STATUS_PILL[st] + '</td></tr>';
+      }).join('');
+      $('detailTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+    }
+
+    function renderProviders(sched, slack, stats) {
+      const groups = {};
+      sched.list.forEach(r => {
+        const p = r.ob.provider;
+        if (!groups[p]) groups[p] = { name: p, count: 0, critical: 0, hard: 0, leadDays: 0, breaches: 0 };
+        groups[p].count++;
+        groups[p].leadDays += r.ob.lead;
+        if (stats.isBinding(r.ob.id)) groups[p].critical++;
+        if (r.ob.hard) groups[p].hard++;
+        if (r.breach) groups[p].breaches++;
+      });
+      const list = Object.values(groups).sort((a, b) => (b.critical - a.critical) || (b.count - a.count));
+      const head = '<thead><tr><th class="left">Provider</th><th>Obligations</th><th>Lead days owed</th>' +
+        '<th>On binding chain</th><th>Hard deadlines</th><th class="left">Concentration</th></tr></thead>';
+      const total = sched.list.length || 1;
+      const body = list.map(g => {
+        const share = g.count / total;
+        let pill;
+        if (g.critical >= 3) pill = '<span class="pill overdue">Concentrated</span>';
+        else if (g.critical > 0) pill = '<span class="pill atrisk">On binding chain</span>';
+        else pill = '<span class="pill soft">Flexible</span>';
+        return '<tr><td>' + g.name + '</td>' +
+          '<td>' + g.count + ' (' + (share * 100).toFixed(0) + '%)</td>' +
+          '<td>' + g.leadDays + '</td>' +
+          '<td>' + g.critical + '</td>' +
+          '<td>' + g.hard + '</td>' +
+          '<td class="left">' + pill + '</td></tr>';
+      }).join('');
+      $('providerTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+    }
+
+    // ==============================
+    // KPIs, verdict, cascade, memo
+    // ==============================
+    function renderKPIs(sched, slack, stats) {
+      const items = [
+        ['Obligations tracked', String(sched.list.length), stats.hardCount + ' with hard deadlines', ''],
+        ['On the binding chain', String(stats.criticalCount), 'least float in the year', stats.criticalCount > 5 ? 'warn' : ''],
+        ['Tightest slack', stats.minSlack === null ? 'n/a' : stats.minSlack + ' days', stats.tightest ? stats.tightest.ob.name.slice(0, 30) : 'no constraint', stats.minSlack !== null && stats.minSlack <= 7 ? 'warn' : 'good'],
+        ['Overdue or slipping', String(stats.overdue + stats.shouldHaveStarted), stats.overdue + ' overdue, ' + stats.shouldHaveStarted + ' not started on time', (stats.overdue + stats.shouldHaveStarted) > 0 ? 'bad' : 'good'],
+        ['Hard-date breaches', String(stats.breaches.length), stats.breaches.length ? stats.breaches.map(b => b.ob.cat).join(', ') : 'all filings clear', stats.breaches.length ? 'bad' : 'good'],
+      ];
+      $('kpiStrip').innerHTML = items.map(([label, val, sub, tone]) =>
+        '<div class="kpi"><div class="kpi__label">' + label + '</div>' +
+        '<div class="kpi__value' + (tone ? ' ' + tone : '') + '">' + val + '</div>' +
+        '<div class="kpi__sub">' + sub + '</div></div>'
+      ).join('');
+    }
+
+    function renderVerdict(sched, slack, stats) {
+      const parts = [];
+      let state, headline;
+
+      if (stats.breaches.length) {
+        state = 'breach';
+        headline = 'The calendar does not close';
+        parts.push('As scheduled, <strong>' + stats.breaches.length + '</strong> hard deadline' +
+          (stats.breaches.length === 1 ? '' : 's') + ' cannot be met: <strong>' +
+          stats.breaches.map(b => b.ob.name).join(', ') + '</strong>. ' +
+          'The finish date runs past the statutory date, which means the year needs resequencing or a lead time has to come down before anything else is decided.');
+      } else if (stats.minSlack !== null && stats.minSlack <= 7) {
+        state = 'tight';
+        headline = 'Feasible, with no room';
+        parts.push('Every hard deadline is met, but the year is tight: the binding constraint is <strong>' +
+          stats.tightest.ob.name + '</strong>, which can absorb only <strong>' + stats.minSlack +
+          ' day' + (stats.minSlack === 1 ? '' : 's') + '</strong> of delay before a filing date breaches.');
+      } else {
+        state = 'clear';
+        headline = 'The year closes with margin';
+        parts.push('All hard deadlines are met. The tightest obligation is <strong>' + stats.tightest.ob.name +
+          '</strong>, which can absorb <strong>' + stats.minSlack + ' days</strong> of delay before anything breaches.');
+      }
+
+      if (stats.criticalCount) {
+        const crit = sched.list.filter(r => stats.isBinding(r.ob.id)).sort((x, y) => x.start - y.start);
+        parts.push('<strong>' + stats.criticalCount + ' obligation' + (stats.criticalCount === 1 ? ' sits' : 's sit') +
+          ' on the binding chain</strong> — ' + crit.slice(0, 4).map(r => r.ob.name).join(' → ') +
+          (crit.length > 4 ? ', and ' + (crit.length - 4) + ' more' : '') +
+          '. These carry the least float in the year, so a day lost on any of them is a day lost at the deadline; nothing downstream can start earlier to absorb it.');
+      }
+
+      const concentrated = stats.providerCritical.filter(p => p.critical >= 2);
+      if (concentrated.length) {
+        parts.push('Delivery risk concentrates with <strong>' + concentrated.map(p => p.name).join(' and ') +
+          '</strong> — ' + concentrated.map(p => p.name + ' owns ' + p.critical + ' binding-chain item' + (p.critical === 1 ? '' : 's')).join(', ') +
+          '. That is a single point of failure worth an explicit service-level commitment rather than an assumed turnaround.');
+      }
+
+      if (stats.overdue) {
+        parts.push('<strong>' + stats.overdue + ' obligation' + (stats.overdue === 1 ? ' is' : 's are') +
+          ' already past ' + (stats.overdue === 1 ? 'its' : 'their') + ' scheduled finish</strong> as of the reporting date and not marked complete. Those dates have already moved whether or not the calendar says so.');
+      } else if (stats.shouldHaveStarted) {
+        parts.push('<strong>' + stats.shouldHaveStarted + ' obligation' + (stats.shouldHaveStarted === 1 ? '' : 's') +
+          '</strong> should have started by now and remain unstarted. Nothing has breached yet, but the slack shown below is already being spent.');
+      }
+
+      $('verdict').className = 'verdict verdict--' + state;
+      $('verdict').innerHTML =
+        '<div class="verdict__label">Operating year assessment</div>' +
+        '<div class="verdict__headline">' + headline + '</div>' +
+        '<div class="verdict__body">' + parts.map(p => '<p>' + p + '</p>').join('') + '</div>';
+    }
+
+    function renderCascade(baseSched) {
+      const targetId = $('slipTarget').value;
+      const slipDays = +$('slipDays').value;
+      $('slipVal').textContent = slipDays + (slipDays === 1 ? ' day' : ' days');
+
+      const target = obligations.find(o => o.id === targetId);
+      if (!target) { $('cascadeResult').innerHTML = ''; return; }
+
+      const slip = {}; slip[targetId] = slipDays;
+      const after = schedule(slip);
+
+      const moved = [];
+      after.list.forEach(r => {
+        const before = baseSched.map[r.id];
+        if (!before) return;
+        const shift = Math.round((r.start - before.start) / DAY);
+        if (r.id !== targetId && shift > 0) moved.push({ r, shift });
+      });
+      moved.sort((a, b) => b.shift - a.shift);
+
+      const newBreaches = breachesIn(after).filter(b => !baseSched.map[b.id].breach);
+
+      let html = '';
+      if (slipDays === 0) {
+        html = '<p>Move the slider to delay <strong>' + target.name + '</strong> and see what follows.</p>';
+      } else if (!moved.length && !newBreaches.length) {
+        html = '<p>A <strong>' + slipDays + '-day</strong> delay on <strong>' + target.name +
+          '</strong> is absorbed entirely. Nothing downstream moves and no deadline is threatened — this obligation has genuine float.</p>';
+      } else {
+        html = '<p>A <strong>' + slipDays + '-day</strong> delay on <strong>' + target.name + '</strong> pushes <strong>' +
+          moved.length + ' downstream obligation' + (moved.length === 1 ? '' : 's') + '</strong>' +
+          (moved.length ? ': ' + moved.slice(0, 5).map(m => m.r.ob.name + ' (+' + m.shift + 'd)').join(', ') +
+            (moved.length > 5 ? ', and ' + (moved.length - 5) + ' more' : '') : '') + '.</p>';
+        if (newBreaches.length) {
+          html += '<p><span class="breach-text">This breaches ' + newBreaches.length + ' hard deadline' +
+            (newBreaches.length === 1 ? '' : 's') + ':</span> ' +
+            newBreaches.map(b => '<strong>' + b.ob.name + '</strong> finishes ' + fmtDate(b.end) +
+              ' against a due date of ' + fmtDate(b.due)).join('; ') + '.</p>';
+        } else {
+          html += '<p>No hard deadline breaches — the delay is absorbed by the slack downstream.</p>';
+        }
+      }
+      $('cascadeResult').innerHTML = html;
+    }
+
+    function renderMemo(sched, slack, stats) {
+      const a = sched.anchors;
+      const crit = sched.list.filter(r => stats.isBinding(r.ob.id)).sort((x, y) => x.start - y.start);
+      const upcoming = sched.list
+        .filter(r => r.ob.status !== 'Complete' && r.start >= a.asOf)
+        .sort((x, y) => x.start - y.start).slice(0, 5);
+
+      const actions = [];
+      if (stats.breaches.length) {
+        actions.push('Resequence or compress the chain feeding ' +
+          stats.breaches.map(b => '<strong>' + b.ob.name + '</strong>').join(' and ') +
+          ' — as scheduled the statutory date cannot be met.');
+      }
+      if (stats.overdue) {
+        actions.push('Reconcile the ' + stats.overdue + ' obligation' + (stats.overdue === 1 ? '' : 's') +
+          ' shown overdue: either the status is stale or the downstream dates in this calendar are already wrong.');
+      }
+      const conc = stats.providerCritical.filter(p => p.critical >= 2);
+      if (conc.length) {
+        actions.push('Put a written turnaround commitment in place with ' + conc.map(p => p.name).join(' and ') +
+          ' covering the critical-path deliverables, and confirm it before the engagement letter renews.');
+      }
+      if (stats.minSlack !== null && stats.minSlack <= 10 && !stats.breaches.length) {
+        actions.push('Build a buffer into <strong>' + stats.tightest.ob.name + '</strong>. At ' + stats.minSlack +
+          ' days of slack, one ordinary delay consumes the entire margin in the year.');
+      }
+      actions.push('Confirm the ' + a.dom.name + ' filing dates against the current statutory calendar before relying on this schedule — domicile requirements change and these are defaults.');
+
+      $('memo').innerHTML =
+        '<h3>Operating year memo</h3>' +
+        '<div class="memo__section"><div class="memo__heading">Cycle</div><p>' +
+          ($('captiveName').value || 'The captive') + ', ' + a.dom.name + ' domicile. Fiscal year ending ' +
+          fmtDate(a.fye) + ', policy renewal ' + fmtDate(a.ren) + '. Position as of ' + fmtDate(a.asOf) + ': ' +
+          stats.complete + ' of ' + sched.list.length + ' obligations complete, ' + stats.inProgress + ' in progress.</p></div>' +
+        '<div class="memo__section"><div class="memo__heading">Binding chain</div>' +
+          (crit.length
+            ? '<p>Least float in the year, at ' + stats.minSlack + ' day' + (stats.minSlack === 1 ? '' : 's') + ':</p><ul>' +
+              crit.map(r => '<li><strong>' + r.ob.name + '</strong> — ' + r.ob.provider + ', ' +
+                fmtDate(r.start) + ' to ' + fmtDate(r.end) + '.</li>').join('') + '</ul>'
+            : '<p>No binding chain identified.</p>') + '</div>' +
+        '<div class="memo__section"><div class="memo__heading">Next up</div>' +
+          (upcoming.length
+            ? '<ul>' + upcoming.map(r => '<li><strong>' + r.ob.name + '</strong> — starts ' + fmtDate(r.start) +
+                ', owned by ' + r.ob.owner + ' with ' + r.ob.provider + '.</li>').join('') + '</ul>'
+            : '<p>No further obligations scheduled to start after the reporting date.</p>') + '</div>' +
+        '<div class="memo__section"><div class="memo__heading">Actions</div><ul>' +
+          actions.map(x => '<li>' + x + '</li>').join('') + '</ul></div>';
+    }
+
+    // ==============================
+    // Orchestration
+    // ==============================
+    function refreshSlipTarget() {
+      const cur = $('slipTarget').value;
+      $('slipTarget').innerHTML = obligations
+        .map(o => '<option value="' + o.id + '"' + (o.id === cur ? ' selected' : '') + '>' + o.name + '</option>').join('');
+      if (!obligations.some(o => o.id === cur) && obligations.length) $('slipTarget').value = obligations[0].id;
+    }
+
+    function renderAll() {
+      const sched = schedule(null);
+      const baseBreaches = breachesIn(sched);
+      const slack = computeSlack(baseBreaches);
+      const asOf = sched.anchors.asOf;
+
+      // The binding chain is the set of obligations carrying the least float in the year.
+      // Zero-float items are rare on a real calendar, so keying off the minimum is what
+      // actually identifies the chain that constrains the deadline.
+      const slackVals = Object.values(slack).filter(v => v !== null);
+      const minSlack = slackVals.length ? Math.min.apply(null, slackVals) : null;
+      const isBinding = id => minSlack !== null && slack[id] === minSlack;
+
+      const providerGroups = {};
+      sched.list.forEach(r => {
+        const p = r.ob.provider;
+        if (!providerGroups[p]) providerGroups[p] = { name: p, critical: 0 };
+        if (isBinding(r.ob.id)) providerGroups[p].critical++;
+      });
+
+      const tightest = minSlack === null ? null
+        : sched.list.find(r => slack[r.ob.id] === minSlack);
+
+      const stats = {
+        isBinding,
+        hardCount: obligations.filter(o => o.hard).length,
+        criticalCount: Object.values(slack).filter(v => v === minSlack).length,
+        minSlack, tightest,
+        breaches: baseBreaches,
+        complete: obligations.filter(o => o.status === 'Complete').length,
+        inProgress: obligations.filter(o => o.status === 'In progress').length,
+        overdue: sched.list.filter(r => statusOf(r, asOf) === 'overdue').length,
+        shouldHaveStarted: sched.list.filter(r => statusOf(r, asOf) === 'atrisk').length,
+        providerCritical: Object.values(providerGroups).sort((x, y) => y.critical - x.critical),
+      };
+
+      renderVerdict(sched, slack, stats);
+      renderKPIs(sched, slack, stats);
+      renderGantt(sched, slack, stats);
+      renderDetail(sched, slack, stats);
+      renderProviders(sched, slack, stats);
+      renderMemo(sched, slack, stats);
+      refreshSlipTarget();
+      renderCascade(sched);
+    }
+
+    ['captiveName', 'fyEnd', 'renewalDate', 'asOf'].forEach(id => $(id).addEventListener('input', renderAll));
+    $('domicile').addEventListener('change', renderAll);
+    $('slipTarget').addEventListener('change', () => renderCascade(schedule(null)));
+    $('slipDays').addEventListener('input', () => renderCascade(schedule(null)));
+
+    $('addRowBtn').addEventListener('click', () => {
+      obligations.push({
+        id: 'ob' + Date.now().toString(36), name: 'New obligation', cat: 'Governance',
+        owner: 'Risk', provider: 'Internal', anchor: 'fye', offset: 60, lead: 10,
+        hard: false, deps: [], status: 'Not started',
+      });
+      renderGrid(); renderAll();
+    });
+    $('demoBtn').addEventListener('click', () => {
+      obligations = DEMO.map(o => Object.assign({}, o, { deps: o.deps.slice() }));
+      renderGrid(); renderAll();
+    });
+    $('printBtn').addEventListener('click', () => window.print());
+
+    renderGrid();
+    renderAll();
+  })();
+  </script>
+</body>
+</html>

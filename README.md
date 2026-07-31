@@ -16,6 +16,7 @@ Models that end in a recommendation, not just a chart.
 | Instrument | The decision |
 |---|---|
 | [Captive Feasibility Model](https://nealpathak.github.io/risk-analytics/captive-feasibility/) | Does a captive earn its frictional cost, or is the commercial market cheaper than it looks? |
+| [Captive Operations &amp; Governance](https://nealpathak.github.io/risk-analytics/captive-operations/) | Is the operating year under control, and what breaks first when something slips? |
 | [Risk Financing Optimizer](https://nealpathak.github.io/risk-analytics/risk-financing-optimizer/) | How much risk should be retained, and through which structure? |
 | [Legal Operating Model](https://nealpathak.github.io/legal-ops/legal-operating-model/) | What should the legal function cost, and which work belongs inside? |
 | [Board Risk Report](https://nealpathak.github.io/risk-analytics/board-risk-report/) | Which enterprise risks sit outside stated appetite? |

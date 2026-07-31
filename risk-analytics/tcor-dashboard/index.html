@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Total Cost of Risk Dashboard — Neal Pathak</title>
-  <meta name="description" content="Track total cost of risk across premium, retained losses, broker fees, loss control, and claims admin over time. Normalized per $1,000 of revenue with peer benchmark comparison.">
-  <meta property="og:title" content="Total Cost of Risk Dashboard — Neal Pathak">
-  <meta property="og:description" content="Multi-year TCOR trending, composition, and peer benchmark comparison for risk committees and CFOs.">
+  <title>TCOR Dashboard — Neal Pathak</title>
+  <meta name="description" content="What does risk actually cost this business? Premium, retained losses, fees, and administration tracked over time and normalized per $1,000 of revenue against a peer benchmark.">
+  <meta property="og:title" content="TCOR Dashboard — Neal Pathak">
+  <meta property="og:description" content="What does risk actually cost this business? Premium, retained losses, fees, and administration tracked over time and normalized per $1,000 of revenue against a peer benchmark.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/tcor-dashboard/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/tcor-dashboard/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -473,7 +477,7 @@
     /* Print styles */
     @media print {
       @page { margin: 0.5in 0.6in; }
-      .site-nav, .tool-header, .input-section, .print-row { display: none !important; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
       .report-output { display: block !important; margin-top: 0 !important; }
       .tool-body { padding: 0 !important; }
       .container { padding: 0 !important; max-width: none !important; }
@@ -549,6 +553,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -559,7 +564,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>Total Cost of Risk Dashboard</h1>
-        <p>Track total cost of risk across premium, retained losses, broker fees, loss control, and claims administration. Multi-year trending with revenue normalization and peer benchmarking for risk committees and CFOs.</p>
+        <p>What does risk actually cost this business, and which component is driving the change? Premium, retained losses, broker fees, loss control, and claims administration over multiple years, normalized per $1,000 of revenue against a peer benchmark.</p>
       </div>
     </section>
 
@@ -591,7 +596,7 @@
             </div>
             <div class="form-group">
               <label>Latest Year</label>
-              <input type="number" id="latestYear" value="2025" min="1990" max="2100">
+              <input type="number" id="latestYear" value="2026" min="1990" max="2100">
             </div>
             <div class="form-group">
               <label>Benchmark ($ per $1k Revenue)</label>
@@ -667,7 +672,7 @@
     // ==============================
     const DEMO_DATA = {
       company: 'Acme Industries',
-      years: [2021, 2022, 2023, 2024, 2025],
+      years: [2022, 2023, 2024, 2025, 2026],
       revenue: [450000000, 475000000, 500000000, 525000000, 550000000],
       benchmark: 7.50,
       values: {
@@ -921,7 +926,7 @@
     downloadTemplate.addEventListener('click', e => {
       e.preventDefault();
       const header = ['year', 'revenue', ...COMPONENTS.map(c => c.csv)].join(',');
-      const sampleRow = ['2025', '500000000', '3500000', '1200000', '235000', '140000', '125000', '60000'].join(',');
+      const sampleRow = ['2026', '500000000', '3500000', '1200000', '235000', '140000', '125000', '60000'].join(',');
       const blob = new Blob([header + '\n' + sampleRow + '\n'], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1348,11 +1353,25 @@
     // ==============================
     // Init — start with demo loaded so the tool is instantly useful
     // ==============================
-    initState(5, 2025);
+    initState(5, 2026);
     setStateFromDemo();
     renderGrid();
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

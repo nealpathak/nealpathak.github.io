@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IBNR Reserve Estimator — Neal Pathak</title>
-  <meta name="description" content="Estimate IBNR reserves using Chain-Ladder and Bornhuetter-Ferguson methods on loss development triangles.">
+  <meta name="description" content="How much still has to be paid on claims already incurred? Chain-ladder and Bornhuetter-Ferguson reserve estimates from a loss development triangle.">
   <meta property="og:title" content="IBNR Reserve Estimator — Neal Pathak">
-  <meta property="og:description" content="Estimate IBNR reserves using Chain-Ladder and Bornhuetter-Ferguson methods on loss development triangles.">
+  <meta property="og:description" content="How much still has to be paid on claims already incurred? Chain-ladder and Bornhuetter-Ferguson reserve estimates from a loss development triangle.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/ibnr-estimator/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/ibnr-estimator/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -374,6 +378,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -384,7 +389,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>IBNR Reserve Estimator</h1>
-        <p>Estimate Incurred But Not Reported reserves from loss development triangles using Chain-Ladder and Bornhuetter-Ferguson methods.</p>
+        <p>How much still has to be paid on claims that have already happened? Chain-ladder and Bornhuetter-Ferguson estimates from a development triangle, with the difference between the two methods shown rather than averaged away.</p>
       </div>
     </section>
 
@@ -483,7 +488,7 @@
     // Demo Data
     // ==============================
     const DEMO_DATA = {
-      years: [2018, 2019, 2020, 2021, 2022, 2023, 2024],
+      years: [2019, 2020, 2021, 2022, 2023, 2024, 2025],
       periods: [12, 24, 36, 48, 60, 72, 84],
       values: [
         [450000, 720000, 860000, 935000, 970000, 988000, 995000],
@@ -1074,5 +1079,19 @@
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

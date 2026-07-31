@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contract Lifecycle Pipeline — Neal Pathak</title>
-  <meta name="description" content="CLM pipeline dashboard for corporate legal ops — cycle time funnel, stage bottlenecks, contract type mix, and 90-day renewal watchlist.">
+  <meta name="description" content="Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time by stage with the bottleneck flagged, throughput, and a 90-day renewal watchlist.">
   <meta property="og:title" content="Contract Lifecycle Pipeline — Neal Pathak">
-  <meta property="og:description" content="Funnel, bottleneck, and renewal-watchlist views over a corporate contract pipeline.">
+  <meta property="og:description" content="Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time by stage with the bottleneck flagged, throughput, and a 90-day renewal watchlist.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/legal-ops/clm-pipeline/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/legal-ops/clm-pipeline/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -529,7 +533,7 @@
 
     @media print {
       @page { margin: 0.5in 0.6in; }
-      .site-nav, .tool-header, .input-section, .print-row { display: none !important; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
       .report-output { display: block !important; margin-top: 0 !important; }
       .tool-body { padding: 0 !important; }
       .container { padding: 0 !important; max-width: none !important; }
@@ -613,6 +617,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -623,7 +628,7 @@
       <div class="container">
         <span class="category-badge category-badge--legal">Legal</span>
         <h1>Contract Lifecycle Pipeline</h1>
-        <p>Cycle-time funnel, stage bottlenecks, contract type mix, and a rolling 90-day renewal watchlist. Built for corporate legal ops, contracts managers, and GCs who need to see where contracts get stuck and which ones are about to expire.</p>
+        <p>Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time through each stage with the bottleneck flagged, monthly throughput, and a rolling 90-day renewal watchlist with the annualized value at risk.</p>
       </div>
     </section>
 
@@ -1497,5 +1502,19 @@
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

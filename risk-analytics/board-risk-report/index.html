@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Board Risk Report — Neal Pathak</title>
+  <meta name="description" content="Which enterprise risks sit outside stated appetite, and what does the board need to hear? A risk register scored against quantified appetite and dollar tolerances, with a generated board narrative.">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/board-risk-report/">
+  <meta property="og:title" content="Board Risk Report — Neal Pathak">
+  <meta property="og:description" content="Which enterprise risks sit outside stated appetite, and what does the board need to hear? A risk register scored against quantified appetite and dollar tolerances, with a generated board narrative.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/board-risk-report/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .grid-editor__header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: var(--space-xs); flex-wrap: wrap; gap: var(--space-sm);
+    }
+
+    .grid-editor h3 { font-size: var(--text-base); font-weight: 600; }
+    .grid-editor .subtitle { font-size: var(--text-sm); color: var(--color-text-tertiary); max-width: none; margin-bottom: var(--space-md); }
+
+    .rr-grid { width: 100%; border-collapse: collapse; font-size: var(--text-sm); white-space: nowrap; }
+
+    .rr-grid th {
+      text-align: left; font-weight: 600; font-size: var(--text-xs);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm); border-bottom: 1px solid var(--color-border);
+    }
+
+    .rr-grid td { padding: var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-border-light); }
+    .rr-grid tr:last-child td { border-bottom: none; }
+
+    .rr-grid input, .rr-grid select {
+      font-family: var(--font-sans); font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+      background: var(--color-bg); min-height: 32px;
+    }
+
+    .rr-grid input[type="number"] { font-family: var(--font-mono); text-align: right; width: 92px; }
+    .rr-grid input[type="text"] { width: 195px; }
+    .rr-grid select { width: 128px; }
+    .rr-grid select.narrow { width: 96px; }
+
+    .row-actions { width: 30px; text-align: center; }
+
+    .icon-btn {
+      background: transparent; border: none; color: var(--color-text-tertiary);
+      cursor: pointer; font-size: var(--text-lg); padding: 0 6px; line-height: 1;
+    }
+    .icon-btn:hover { color: var(--color-risk); }
+    .icon-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+    .grid-add-row { margin-top: var(--space-md); display: flex; gap: var(--space-sm); }
+
+    /* appetite editor */
+    .appetite-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: var(--space-md); margin-top: var(--space-md);
+    }
+
+    .appetite-cell {
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+    }
+
+    .appetite-cell__name { font-size: var(--text-sm); font-weight: 600; margin-bottom: var(--space-sm); }
+    .appetite-cell label { font-size: 10px; color: var(--color-text-tertiary); display: block; margin-bottom: 2px; }
+    .appetite-cell select, .appetite-cell input {
+      width: 100%; font-family: var(--font-sans); font-size: var(--text-xs);
+      padding: var(--space-xs); border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); background: var(--color-bg); min-height: 30px;
+      margin-bottom: var(--space-sm);
+    }
+    .appetite-cell input { font-family: var(--font-mono); text-align: right; }
+
+    .band-row { display: flex; gap: var(--space-md); flex-wrap: wrap; align-items: end; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border-light); }
+    .band-row .form-group { flex: 0 0 auto; }
+    .band-row label { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+    .band-row input { width: 110px; font-family: var(--font-mono); text-align: right; font-size: var(--text-sm); padding: var(--space-xs); min-height: 32px; }
+
+    /* --- Report --- */
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-header {
+      background: var(--color-text);
+      color: #fff;
+      padding: var(--space-xl);
+    }
+
+    .report-header__title { font-size: var(--text-2xl); font-weight: 600; letter-spacing: -0.02em; }
+    .report-header__sub { font-size: var(--text-sm); color: rgba(255,255,255,0.75); margin-top: var(--space-xs); max-width: none; }
+    .report-header__period { font-size: var(--text-xs); color: rgba(255,255,255,0.55); margin-top: var(--space-sm); font-family: var(--font-mono); }
+
+    .report-body { padding: var(--space-xl); }
+
+    .report-section { margin-bottom: var(--space-2xl); }
+    .report-section:last-child { margin-bottom: 0; }
+
+    .report-section__heading {
+      font-size: var(--text-xs); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .report-section p { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: 1.75; max-width: none; margin-bottom: var(--space-md); }
+    .report-section p:last-child { margin-bottom: 0; }
+    .report-section strong { color: var(--color-text); font-weight: 600; }
+
+    .kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl); }
+
+    .kpi { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md); }
+
+    .kpi__label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 4px; line-height: 1.3;
+    }
+
+    .kpi__value { font-family: var(--font-mono); font-size: var(--text-xl); font-weight: 600; color: var(--color-text); }
+    .kpi__value.breach { color: var(--color-risk); }
+    .kpi__sub { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+    /* heat map */
+    .heat {
+      display: grid;
+      grid-template-columns: auto repeat(5, 1fr);
+      gap: 3px;
+      max-width: 560px;
+    }
+
+    .heat__cell {
+      aspect-ratio: 1.6 / 1;
+      border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600;
+      color: rgba(0,0,0,0.62);
+    }
+
+    .heat__axis {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: var(--color-text-tertiary); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+
+    .heat__axis--y { justify-content: flex-end; padding-right: var(--space-sm); }
+
+    .heat-legend { display: flex; gap: var(--space-lg); margin-top: var(--space-md); font-size: var(--text-xs); color: var(--color-text-tertiary); flex-wrap: wrap; }
+    .heat-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .heat-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+    .heat-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xl); align-items: start; }
+
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap--short { height: 260px; }
+
+    .table-scroll { overflow-x: auto; }
+
+    .rpt-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); white-space: nowrap; }
+
+    .rpt-table th {
+      text-align: right; font-weight: 600; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm); border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .rpt-table th:first-child, .rpt-table th.left { text-align: left; }
+
+    .rpt-table td {
+      font-family: var(--font-mono); font-size: var(--text-xs); text-align: right;
+      padding: 8px var(--space-sm); border-bottom: 1px solid var(--color-border-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rpt-table td.left, .rpt-table td:first-child { font-family: var(--font-sans); text-align: left; }
+    .rpt-table td:first-child { font-weight: 500; color: var(--color-text); }
+    .rpt-table tr:last-child td { border-bottom: none; }
+    .rpt-table tr.breach td { background: rgba(192,57,43,0.045); }
+    .rpt-table .total-row td { font-weight: 600; border-top: 2px solid var(--color-border); background: var(--color-bg); }
+
+    .pill {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--font-sans);
+    }
+
+    .pill.within { background: rgba(30,132,73,0.12); color: var(--color-data); }
+    .pill.watch  { background: rgba(230,126,34,0.16); color: #b9710e; }
+    .pill.breach { background: rgba(192,57,43,0.12); color: var(--color-risk); }
+
+    .trend { font-family: var(--font-sans); font-size: var(--text-xs); }
+    .trend.up { color: var(--color-risk); }
+    .trend.down { color: var(--color-data); }
+    .trend.flat { color: var(--color-text-tertiary); }
+
+    .risk-commentary { margin-bottom: var(--space-lg); }
+    .risk-commentary:last-child { margin-bottom: 0; }
+
+    .risk-commentary__head {
+      display: flex; align-items: baseline; gap: var(--space-sm);
+      margin-bottom: 2px; flex-wrap: wrap;
+    }
+
+    .risk-commentary__rank { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-tertiary); }
+    .risk-commentary__name { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
+    .risk-commentary__meta { font-size: var(--text-xs); color: var(--color-text-tertiary); font-family: var(--font-mono); }
+    .risk-commentary__body { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: 1.7; max-width: none; }
+
+    .print-row { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+
+    .methodology {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-md) var(--space-xl); margin-bottom: var(--space-lg);
+    }
+
+    .methodology summary { font-size: var(--text-sm); font-weight: 600; cursor: pointer; padding: var(--space-sm) 0; list-style: none; }
+    .methodology summary::-webkit-details-marker { display: none; }
+    .methodology summary::before { content: '▸ '; color: var(--color-text-tertiary); }
+    .methodology[open] summary::before { content: '▾ '; }
+    .methodology summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+    .methodology ul { margin: var(--space-sm) 0 var(--space-md) var(--space-lg); font-size: var(--text-xs); color: var(--color-text-secondary); line-height: 1.7; }
+
+    @media print {
+      @page { margin: 0.5in 0.55in; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer, .methodology { display: none !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+      .report { border: none; border-radius: 0; }
+      .report-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 16px 20px; }
+      .report-header__title { font-size: 20px; }
+      .report-body { padding: 16px 20px; }
+      .report-section { margin-bottom: 18px; break-inside: avoid; }
+      .kpi-strip, .heat, .chart-wrap, .risk-commentary { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .chart-wrap { height: 190px !important; }
+      .chart-wrap--short { height: 170px !important; }
+      .kpi__value { font-size: 15px; }
+      .rpt-table { font-size: 10px; }
+      .rpt-table th { font-size: 8px; padding: 4px 6px; }
+      .rpt-table td { padding: 5px 6px; }
+    }
+
+    @media (max-width: 900px) {
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .heat-wrap { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-strip { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>Board Risk Report</h1>
+        <p>Which enterprise risks sit outside stated appetite, and what does the board need to hear? A register scored for residual exposure after mitigation, measured against tolerances in dollars, and written up as a report a board can actually act on.</p>
+        <p class="tool-note-link">Related note: <a href="/notes/risk-appetite-with-numbers/">Risk appetite is a sentence with numbers in it</a></p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+
+        <div class="input-section" id="inputSection">
+          <div class="grid-editor">
+            <div class="grid-editor__header">
+              <h3>Risk register</h3>
+              <button class="btn" id="demoBtn" type="button">Reset demo data</button>
+            </div>
+            <p class="subtitle">Likelihood is a 1&ndash;5 scale. Exposure is the modeled annual loss if the risk materializes, which sets the impact band. Mitigation strength discounts inherent score to residual.</p>
+            <div class="table-scroll">
+              <table class="rr-grid" id="rrGrid"></table>
+            </div>
+            <div class="grid-add-row">
+              <button class="btn" id="addRowBtn" type="button">+ Add risk</button>
+            </div>
+
+            <div class="band-row">
+              <div class="form-group">
+                <label for="band1">Impact band 2 above</label>
+                <input type="number" id="band1" value="250000" min="0" step="50000">
+              </div>
+              <div class="form-group">
+                <label for="band2">Band 3 above</label>
+                <input type="number" id="band2" value="1000000" min="0" step="100000">
+              </div>
+              <div class="form-group">
+                <label for="band3">Band 4 above</label>
+                <input type="number" id="band3" value="5000000" min="0" step="500000">
+              </div>
+              <div class="form-group">
+                <label for="band4">Band 5 above</label>
+                <input type="number" id="band4" value="20000000" min="0" step="1000000">
+              </div>
+              <div class="form-group">
+                <label for="asOf">Report period</label>
+                <input type="text" id="asOf" value="Q3 2026" style="width:110px;font-family:var(--font-sans);text-align:left">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-editor">
+            <div class="grid-editor__header">
+              <h3>Risk appetite by category</h3>
+            </div>
+            <p class="subtitle">Stance sets the qualitative posture the board has agreed. Tolerance is the aggregate annual exposure the category may carry before it requires board attention.</p>
+            <div class="appetite-grid" id="appetiteGrid"></div>
+          </div>
+        </div>
+
+        <div class="print-row">
+          <button class="btn btn--primary" id="printBtn" type="button">Print / Save as PDF</button>
+        </div>
+
+        <div class="report" id="report">
+          <div class="report-header">
+            <div class="report-header__title">Enterprise Risk Report</div>
+            <p class="report-header__sub">Residual risk position against stated appetite</p>
+            <div class="report-header__period" id="reportPeriod"></div>
+          </div>
+          <div class="report-body">
+
+            <div class="report-section">
+              <div class="report-section__heading">Executive summary</div>
+              <div class="kpi-strip" id="kpiStrip"></div>
+              <div id="execSummary"></div>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section__heading">Residual risk profile</div>
+              <div class="heat-wrap">
+                <div>
+                  <div class="heat" id="heatMap"></div>
+                  <div class="heat-legend">
+                    <span><i style="background:rgba(30,132,73,0.28)"></i> Low (1&ndash;6)</span>
+                    <span><i style="background:rgba(230,126,34,0.32)"></i> Moderate (8&ndash;12)</span>
+                    <span><i style="background:rgba(192,57,43,0.34)"></i> High (15&ndash;25)</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="chart-wrap chart-wrap--short"><canvas id="bubbleCanvas" role="img" aria-label="Bubble chart of risks by likelihood and impact, sized by modeled exposure"></canvas></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section__heading">Position against appetite</div>
+              <div class="chart-wrap"><canvas id="appetiteCanvas" role="img" aria-label="Bar chart of aggregate exposure by category against tolerance"></canvas></div>
+              <div class="table-scroll" style="margin-top:var(--space-lg)">
+                <table class="rpt-table" id="categoryTable" aria-label="Category exposure against tolerance"></table>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section__heading">Principal risks</div>
+              <div id="topRisks"></div>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section__heading">Movement since last review</div>
+              <div class="table-scroll">
+                <table class="rpt-table" id="movementTable" aria-label="Risk movement since prior review"></table>
+              </div>
+            </div>
+
+            <div class="report-section">
+              <div class="report-section__heading">Recommended actions</div>
+              <div id="actions"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <details class="methodology">
+          <summary>Methodology &amp; model simplifications</summary>
+          <ul>
+            <li>Impact band is derived from modeled annual exposure against the editable dollar breakpoints, so the 1&ndash;5 impact scale stays anchored to money rather than to opinion. Inherent score is likelihood multiplied by impact band.</li>
+            <li>Residual score discounts the inherent score by mitigation strength — strong control halves it, partial control takes a quarter off, weak control leaves it unchanged. This is a rating convention, not a measured control-effectiveness test, and it is the softest number in the model.</li>
+            <li>A category breaches appetite when aggregate modeled exposure exceeds its tolerance, or when any single risk in it does. Aggregate exposure is a straight sum: it assumes risks are independent and could in principle land in the same year, which overstates aggregate loss where risks are mutually exclusive and understates it where a single event drives several at once.</li>
+            <li>Ranking is by residual score with velocity as the tiebreak, so two equally scored risks separate on how fast they would arrive.</li>
+            <li>Exposure figures are single-point estimates. There is no distribution, no correlation matrix, and no aggregation across categories to an enterprise-level figure — anyone presenting one of those to a board should build it from loss data, not from a register.</li>
+            <li>Commentary and recommended actions are generated from the trend, velocity, and mitigation fields by fixed rules. They are a drafting aid that gets the structure and the arithmetic right; the judgment in a real board report still has to be written by a person.</li>
+          </ul>
+        </details>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak — decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">·</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">·</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+    const FONT = 'Inter';
+
+    const CATEGORIES = ['Strategic', 'Operational', 'Financial', 'Legal & Compliance', 'Cyber & Technology', 'People'];
+    const STANCES = ['Averse', 'Minimal', 'Cautious', 'Open', 'Seeking'];
+    const MITIGATION = { Strong: 0.5, Partial: 0.75, Weak: 1.0 };
+
+    const CAT_COLOR = {
+      'Strategic':          'rgba(108,52,131,0.7)',
+      'Operational':        'rgba(127,140,141,0.75)',
+      'Financial':          'rgba(30,132,73,0.7)',
+      'Legal & Compliance': 'rgba(36,113,163,0.75)',
+      'Cyber & Technology': 'rgba(192,57,43,0.7)',
+      'People':             'rgba(230,126,34,0.7)',
+    };
+
+    const DEMO = [
+      { name: 'Customer concentration',        cat: 'Strategic',          like: 3, exp: 14000000, vel: 'Slow',   trend: 'Increasing', mit: 'Partial', owner: 'CEO',  prior: 9 },
+      { name: 'Supply chain disruption',       cat: 'Operational',        like: 4, exp: 6500000,  vel: 'Fast',   trend: 'Increasing', mit: 'Partial', owner: 'COO',  prior: 12 },
+      { name: 'Ransomware / data breach',      cat: 'Cyber & Technology', like: 3, exp: 22000000, vel: 'Fast',   trend: 'Increasing', mit: 'Partial', owner: 'CISO', prior: 9 },
+      { name: 'Key-person dependency',         cat: 'People',             like: 3, exp: 2800000,  vel: 'Medium', trend: 'Stable',     mit: 'Weak',    owner: 'CHRO', prior: 9 },
+      { name: 'Regulatory enforcement action', cat: 'Legal & Compliance', like: 2, exp: 8500000,  vel: 'Slow',   trend: 'Increasing', mit: 'Partial', owner: 'GC',   prior: 6 },
+      { name: 'Employment litigation',         cat: 'Legal & Compliance', like: 4, exp: 3200000,  vel: 'Medium', trend: 'Stable',     mit: 'Strong',  owner: 'GC',   prior: 8 },
+      { name: 'Interest rate exposure',        cat: 'Financial',          like: 3, exp: 4100000,  vel: 'Medium', trend: 'Decreasing', mit: 'Strong',  owner: 'CFO',  prior: 8 },
+      { name: 'Liquidity / covenant headroom', cat: 'Financial',          like: 2, exp: 11000000, vel: 'Fast',   trend: 'Stable',     mit: 'Strong',  owner: 'CFO',  prior: 8 },
+      { name: 'Product liability claim',       cat: 'Operational',        like: 2, exp: 18000000, vel: 'Medium', trend: 'Stable',     mit: 'Partial', owner: 'COO',  prior: 8 },
+      { name: 'Third-party vendor failure',    cat: 'Cyber & Technology', like: 3, exp: 3400000,  vel: 'Fast',   trend: 'Increasing', mit: 'Weak',    owner: 'CISO', prior: 6 },
+      { name: 'Talent attrition',              cat: 'People',             like: 4, exp: 1900000,  vel: 'Slow',   trend: 'Decreasing', mit: 'Partial', owner: 'CHRO', prior: 12 },
+      { name: 'Failed integration of acquisition', cat: 'Strategic',      like: 3, exp: 9200000,  vel: 'Medium', trend: 'Increasing', mit: 'Weak',    owner: 'CEO',  prior: 8 },
+    ];
+
+    // Tolerances set so the demo shows a realistic spread — two categories outside
+    // appetite, two running hot, two comfortable. A register where everything breaches
+    // is a sign the tolerances were never calibrated, not that the business is on fire.
+    const DEMO_APPETITE = {
+      'Strategic':          { stance: 'Open',     tol: 28000000 },
+      'Operational':        { stance: 'Cautious', tol: 22000000 },
+      'Financial':          { stance: 'Minimal',  tol: 20000000 },
+      'Legal & Compliance': { stance: 'Averse',   tol: 14000000 },
+      'Cyber & Technology': { stance: 'Averse',   tol: 18000000 },
+      'People':             { stance: 'Cautious', tol: 6000000 },
+    };
+
+    let risks = DEMO.map(r => Object.assign({}, r));
+    let appetite = JSON.parse(JSON.stringify(DEMO_APPETITE));
+
+    // ==============================
+    // Engine
+    // ==============================
+    function impactBand(exposure) {
+      const b = [+$('band1').value, +$('band2').value, +$('band3').value, +$('band4').value];
+      if (exposure >= b[3]) return 5;
+      if (exposure >= b[2]) return 4;
+      if (exposure >= b[1]) return 3;
+      if (exposure >= b[0]) return 2;
+      return 1;
+    }
+
+    const VELOCITY_RANK = { Fast: 3, Medium: 2, Slow: 1 };
+
+    function compute() {
+      const scored = risks.map(r => {
+        const impact = impactBand(r.exp);
+        const inherent = r.like * impact;
+        const residual = inherent * MITIGATION[r.mit];
+        return Object.assign({}, r, {
+          impact, inherent,
+          residual: Math.round(residual * 10) / 10,
+          delta: r.prior != null ? Math.round((residual - r.prior) * 10) / 10 : null,
+        });
+      });
+
+      scored.sort((a, b) => (b.residual - a.residual) || (VELOCITY_RANK[b.vel] - VELOCITY_RANK[a.vel]));
+
+      const byCategory = CATEGORIES.map(cat => {
+        const items = scored.filter(r => r.cat === cat);
+        const aggregate = items.reduce((s, r) => s + r.exp, 0);
+        const tol = appetite[cat] ? appetite[cat].tol : 0;
+        const largest = items.reduce((m, r) => Math.max(m, r.exp), 0);
+        const aggregateBreach = aggregate > tol;
+        const singleBreach = largest > tol;
+        return {
+          cat, items, aggregate, tol, largest,
+          stance: appetite[cat] ? appetite[cat].stance : '—',
+          breach: aggregateBreach || singleBreach,
+          aggregateBreach, singleBreach,
+          headroom: tol - aggregate,
+          utilisation: tol > 0 ? aggregate / tol : 0,
+        };
+      }).filter(c => c.items.length > 0);
+
+      const breaches = byCategory.filter(c => c.breach);
+      const totalExposure = scored.reduce((s, r) => s + r.exp, 0);
+      const totalTolerance = byCategory.reduce((s, c) => s + c.tol, 0);
+
+      const worsening = scored.filter(r => r.delta != null && r.delta > 0);
+      const improving = scored.filter(r => r.delta != null && r.delta < 0);
+
+      return { scored, byCategory, breaches, totalExposure, totalTolerance, worsening, improving };
+    }
+
+    // ==============================
+    // Formatting
+    // ==============================
+    function fmtM(v) {
+      const m = +(v / 1e6).toFixed(1);
+      return (m < 0 ? '−' : '') + '$' + Math.abs(m).toFixed(1) + 'M';
+    }
+    function fmtMoney(v) {
+      if (Math.abs(v) >= 1e6) return fmtM(v);
+      return '$' + Math.round(v / 1e3) + 'k';
+    }
+
+    function scoreColor(score, alpha) {
+      const a = alpha === undefined ? 1 : alpha;
+      if (score >= 15) return 'rgba(192,57,43,' + a + ')';
+      if (score >= 8) return 'rgba(230,126,34,' + a + ')';
+      return 'rgba(30,132,73,' + a + ')';
+    }
+
+    // ==============================
+    // Register editor
+    // ==============================
+    function opts(list, sel) {
+      return list.map(o => '<option value="' + o + '"' + (o === sel ? ' selected' : '') + '>' + o + '</option>').join('');
+    }
+
+    function renderGrid() {
+      let html = '<thead><tr><th>Risk</th><th>Category</th><th>Likelihood</th><th>Exposure</th>' +
+        '<th>Velocity</th><th>Trend</th><th>Mitigation</th><th>Owner</th><th>Prior</th><th></th></tr></thead><tbody>';
+      risks.forEach((r, i) => {
+        html += '<tr>' +
+          '<td><input type="text" data-i="' + i + '" data-f="name" value="' + r.name.replace(/"/g, '&quot;') + '" aria-label="Risk name"></td>' +
+          '<td><select data-i="' + i + '" data-f="cat" aria-label="Category">' + opts(CATEGORIES, r.cat) + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="like" aria-label="Likelihood">' + opts([1,2,3,4,5], r.like) + '</select></td>' +
+          '<td><input type="number" data-i="' + i + '" data-f="exp" value="' + r.exp + '" min="0" step="100000" aria-label="Modeled exposure"></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="vel" aria-label="Velocity">' + opts(['Fast','Medium','Slow'], r.vel) + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="trend" aria-label="Trend">' + opts(['Increasing','Stable','Decreasing'], r.trend) + '</select></td>' +
+          '<td><select class="narrow" data-i="' + i + '" data-f="mit" aria-label="Mitigation strength">' + opts(['Strong','Partial','Weak'], r.mit) + '</select></td>' +
+          '<td><input type="text" data-i="' + i + '" data-f="owner" value="' + r.owner + '" style="width:70px" aria-label="Owner function"></td>' +
+          '<td><input type="number" data-i="' + i + '" data-f="prior" value="' + (r.prior == null ? '' : r.prior) + '" min="0" max="25" step="0.5" style="width:64px" aria-label="Prior residual score"></td>' +
+          '<td class="row-actions"><button class="icon-btn" data-del="' + i + '" type="button" aria-label="Remove risk">&times;</button></td>' +
+          '</tr>';
+      });
+      html += '</tbody>';
+      $('rrGrid').innerHTML = html;
+
+      $('rrGrid').querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', e => {
+          const i = +e.target.dataset.i, f = e.target.dataset.f;
+          const numeric = ['like', 'exp', 'prior'];
+          if (numeric.indexOf(f) >= 0) {
+            risks[i][f] = e.target.value === '' ? null : +e.target.value;
+          } else {
+            risks[i][f] = e.target.value;
+          }
+          renderReport();
+        });
+      });
+      $('rrGrid').querySelectorAll('[data-del]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          risks.splice(+e.target.dataset.del, 1);
+          renderGrid(); renderReport();
+        });
+      });
+    }
+
+    function renderAppetite() {
+      $('appetiteGrid').innerHTML = CATEGORIES.map(cat => {
+        const a = appetite[cat] || { stance: 'Cautious', tol: 10000000 };
+        return '<div class="appetite-cell">' +
+          '<div class="appetite-cell__name">' + cat + '</div>' +
+          '<label for="stance-' + cat + '">Stance</label>' +
+          '<select id="stance-' + cat + '" data-cat="' + cat + '" data-f="stance">' + opts(STANCES, a.stance) + '</select>' +
+          '<label for="tol-' + cat + '">Tolerance ($ aggregate)</label>' +
+          '<input type="number" id="tol-' + cat + '" data-cat="' + cat + '" data-f="tol" value="' + a.tol + '" min="0" step="500000">' +
+          '</div>';
+      }).join('');
+
+      $('appetiteGrid').querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', e => {
+          const cat = e.target.dataset.cat, f = e.target.dataset.f;
+          if (!appetite[cat]) appetite[cat] = { stance: 'Cautious', tol: 0 };
+          appetite[cat][f] = f === 'tol' ? +e.target.value : e.target.value;
+          renderReport();
+        });
+      });
+    }
+
+    // ==============================
+    // Heat map
+    // ==============================
+    function renderHeat(m) {
+      const counts = {};
+      m.scored.forEach(r => {
+        // residual score maps back onto the grid via its mitigated likelihood position
+        const key = r.like + '-' + r.impact;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      let html = '<div class="heat__axis"></div>';
+      for (let i = 1; i <= 5; i++) html += '<div class="heat__axis">Impact ' + i + '</div>';
+
+      for (let l = 5; l >= 1; l--) {
+        html += '<div class="heat__axis heat__axis--y">Likelihood ' + l + '</div>';
+        for (let i = 1; i <= 5; i++) {
+          const score = l * i;
+          const n = counts[l + '-' + i] || 0;
+          html += '<div class="heat__cell" style="background:' + scoreColor(score, n ? 0.34 : 0.10) + '" ' +
+            'title="Likelihood ' + l + ' × impact ' + i + ' — inherent score ' + score + ', ' + n + ' risk' + (n === 1 ? '' : 's') + '">' +
+            (n || '') + '</div>';
+        }
+      }
+      $('heatMap').innerHTML = html;
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    let bubbleChart = null, appetiteChart = null;
+
+    function tooltipCfg(labelCb, titleCb) {
+      return {
+        backgroundColor: '#1a1a1a',
+        titleFont: { family: FONT, size: 11 },
+        bodyFont: { family: FONT, size: 11 },
+        padding: 10, cornerRadius: 6,
+        callbacks: Object.assign({ label: labelCb }, titleCb ? { title: titleCb } : {}),
+      };
+    }
+
+    function renderBubble(m) {
+      const maxExp = Math.max(...m.scored.map(r => r.exp), 1);
+      const datasets = CATEGORIES.map(cat => {
+        const items = m.scored.filter(r => r.cat === cat);
+        return {
+          label: cat,
+          data: items.map(r => ({ x: r.impact, y: r.like, r: 5 + 16 * Math.sqrt(r.exp / maxExp), name: r.name, exp: r.exp, residual: r.residual })),
+          backgroundColor: CAT_COLOR[cat],
+          borderColor: '#fff', borderWidth: 1,
+        };
+      }).filter(d => d.data.length);
+
+      const data = { datasets };
+      if (bubbleChart) { bubbleChart.data = data; bubbleChart.update(); return; }
+      bubbleChart = new Chart($('bubbleCanvas'), {
+        type: 'bubble', data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: FONT, size: 9 }, padding: 8, usePointStyle: true, pointStyleWidth: 8, boxHeight: 6 } },
+            tooltip: tooltipCfg(
+              i => [i.raw.name, 'Exposure ' + fmtMoney(i.raw.exp) + ' · residual ' + i.raw.residual],
+              () => ''
+            ),
+          },
+          scales: {
+            x: {
+              min: 0.5, max: 5.5, title: { display: true, text: 'Impact band', font: { family: FONT, size: 10 }, color: '#999' },
+              grid: { color: '#f0f0f0' }, ticks: { stepSize: 1, font: { family: FONT, size: 10 }, color: '#999' },
+            },
+            y: {
+              min: 0.5, max: 5.5, title: { display: true, text: 'Likelihood', font: { family: FONT, size: 10 }, color: '#999' },
+              grid: { color: '#f0f0f0' }, ticks: { stepSize: 1, font: { family: FONT, size: 10 }, color: '#999' },
+            },
+          },
+        },
+      });
+    }
+
+    function renderAppetiteChart(m) {
+      const data = {
+        labels: m.byCategory.map(c => c.cat),
+        datasets: [
+          {
+            label: 'Aggregate exposure',
+            data: m.byCategory.map(c => c.aggregate),
+            backgroundColor: m.byCategory.map(c => c.breach ? 'rgba(192,57,43,0.7)' : 'rgba(36,113,163,0.7)'),
+            borderRadius: 3,
+          },
+          {
+            label: 'Tolerance',
+            data: m.byCategory.map(c => c.tol),
+            backgroundColor: 'rgba(127,140,141,0.28)',
+            borderRadius: 3,
+          },
+        ],
+      };
+      if (appetiteChart) { appetiteChart.data = data; appetiteChart.update(); return; }
+      appetiteChart = new Chart($('appetiteCanvas'), {
+        type: 'bar', data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { font: { family: FONT, size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 } },
+            tooltip: tooltipCfg(i => i.dataset.label + ': ' + fmtM(i.parsed.y)),
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: FONT, size: 9 }, color: '#999', maxRotation: 25 } },
+            y: { grid: { color: '#f0f0f0' }, ticks: { font: { family: FONT, size: 10 }, color: '#999', callback: v => '$' + (v / 1e6).toFixed(0) + 'M' } },
+          },
+        },
+      });
+    }
+
+    // ==============================
+    // Narrative
+    // ==============================
+    function renderKPIs(m) {
+      const items = [
+        ['Risks on register', String(m.scored.length), CATEGORIES.filter(c => m.scored.some(r => r.cat === c)).length + ' categories', false],
+        ['Outside appetite', String(m.breaches.length), m.breaches.length ? m.breaches.map(b => b.cat).join(', ') : 'all categories within tolerance', m.breaches.length > 0],
+        ['Aggregate exposure', fmtM(m.totalExposure), 'against ' + fmtM(m.totalTolerance) + ' of tolerance', m.totalExposure > m.totalTolerance],
+        ['Deteriorating', String(m.worsening.length), m.improving.length + ' improving since last review', m.worsening.length > m.improving.length],
+      ];
+      $('kpiStrip').innerHTML = items.map(([label, val, sub, bad]) =>
+        '<div class="kpi"><div class="kpi__label">' + label + '</div>' +
+        '<div class="kpi__value' + (bad ? ' breach' : '') + '">' + val + '</div>' +
+        '<div class="kpi__sub">' + sub + '</div></div>'
+      ).join('');
+    }
+
+    function renderExecSummary(m) {
+      const parts = [];
+      const top = m.scored[0];
+
+      if (m.breaches.length) {
+        parts.push('Of <strong>' + m.scored.length + ' enterprise risks</strong> on the register, <strong>' +
+          m.breaches.length + '</strong> ' + (m.breaches.length === 1 ? 'category sits' : 'categories sit') +
+          ' outside stated appetite: <strong>' + m.breaches.map(b => b.cat).join(', ') + '</strong>. ' +
+          'Aggregate modeled exposure of ' + fmtM(m.totalExposure) + ' stands against ' + fmtM(m.totalTolerance) +
+          ' of board-approved tolerance.');
+      } else {
+        parts.push('All <strong>' + m.scored.length + ' enterprise risks</strong> sit within stated appetite. ' +
+          'Aggregate modeled exposure of ' + fmtM(m.totalExposure) + ' stands against ' + fmtM(m.totalTolerance) +
+          ' of board-approved tolerance, leaving ' + fmtM(m.totalTolerance - m.totalExposure) + ' of headroom.');
+      }
+
+      if (top) {
+        parts.push('The highest residual risk is <strong>' + top.name + '</strong> (' + top.cat.toLowerCase() +
+          ', residual score ' + top.residual + ' of 25) carrying ' + fmtMoney(top.exp) + ' of modeled exposure under ' +
+          top.mit.toLowerCase() + ' mitigation, owned by ' + top.owner + '.');
+      }
+
+      const fastWeak = m.scored.filter(r => r.vel === 'Fast' && r.mit === 'Weak');
+      if (fastWeak.length) {
+        parts.push('<strong>' + fastWeak.map(r => r.name).join(', ') + '</strong> ' +
+          (fastWeak.length === 1 ? 'combines' : 'combine') + ' fast velocity with weak mitigation — the profile where the ' +
+          'board has least time to intervene once the risk begins to materialize.');
+      }
+
+      if (m.worsening.length) {
+        parts.push(m.worsening.length + ' risk' + (m.worsening.length === 1 ? ' has' : 's have') + ' deteriorated since the last review and ' +
+          m.improving.length + ' improved. Net movement is ' +
+          (m.worsening.length > m.improving.length ? 'unfavourable' : m.worsening.length < m.improving.length ? 'favourable' : 'neutral') + '.');
+      }
+
+      $('execSummary').innerHTML = parts.map(p => '<p>' + p + '</p>').join('');
+    }
+
+    function renderCategoryTable(m) {
+      const head = '<thead><tr><th class="left">Category</th><th class="left">Stance</th><th>Risks</th>' +
+        '<th>Aggregate exposure</th><th>Tolerance</th><th>Utilisation</th><th>Headroom</th><th class="left">Position</th></tr></thead>';
+      const body = m.byCategory.map(c => {
+        let pill;
+        if (c.breach) pill = '<span class="pill breach">Outside appetite</span>';
+        else if (c.utilisation >= 0.8) pill = '<span class="pill watch">At tolerance</span>';
+        else pill = '<span class="pill within">Within appetite</span>';
+        return '<tr' + (c.breach ? ' class="breach"' : '') + '>' +
+          '<td>' + c.cat + '</td><td class="left">' + c.stance + '</td>' +
+          '<td>' + c.items.length + '</td>' +
+          '<td>' + fmtM(c.aggregate) + '</td>' +
+          '<td>' + fmtM(c.tol) + '</td>' +
+          '<td>' + (c.utilisation * 100).toFixed(0) + '%</td>' +
+          '<td>' + fmtM(c.headroom) + '</td>' +
+          '<td class="left">' + pill + '</td></tr>';
+      }).join('');
+      const totalRow = '<tr class="total-row"><td>Total</td><td class="left">—</td>' +
+        '<td>' + m.scored.length + '</td>' +
+        '<td>' + fmtM(m.totalExposure) + '</td>' +
+        '<td>' + fmtM(m.totalTolerance) + '</td>' +
+        '<td>' + (m.totalTolerance ? (m.totalExposure / m.totalTolerance * 100).toFixed(0) : 0) + '%</td>' +
+        '<td>' + fmtM(m.totalTolerance - m.totalExposure) + '</td><td class="left"></td></tr>';
+      $('categoryTable').innerHTML = head + '<tbody>' + body + totalRow + '</tbody>';
+    }
+
+    function commentaryFor(r) {
+      const s = [];
+      if (r.trend === 'Increasing' && r.vel === 'Fast' && r.mit === 'Weak') {
+        s.push('Deteriorating faster than current mitigation can absorb; recommend near-term board attention.');
+      } else if (r.trend === 'Increasing' && r.mit === 'Weak') {
+        s.push('Rising against weak controls — the control gap is the constraint, not the exposure estimate.');
+      } else if (r.trend === 'Increasing' && r.vel === 'Fast') {
+        s.push('Rising and fast-moving; mitigation is holding but the window to act is short.');
+      } else if (r.trend === 'Increasing') {
+        s.push('Trending up under ' + r.mit.toLowerCase() + ' mitigation; monitor for a step change rather than gradual drift.');
+      } else if (r.trend === 'Decreasing' && r.mit === 'Strong') {
+        s.push('Improving under strong control; current treatment appears effective and can be held steady.');
+      } else if (r.trend === 'Decreasing') {
+        s.push('Improving, though mitigation is only ' + r.mit.toLowerCase() + ' — the gain may not be durable.');
+      } else if (r.mit === 'Weak') {
+        s.push('Stable but weakly mitigated; exposure persists at ' + fmtMoney(r.exp) + ' with no reduction path in place.');
+      } else {
+        s.push('Stable under ' + r.mit.toLowerCase() + ' mitigation; no change to treatment recommended this period.');
+      }
+      if (r.vel === 'Fast' && r.mit !== 'Weak') s.push('Fast velocity means response time, not just control strength, determines the outcome.');
+      if (r.delta != null && r.delta > 0) s.push('Residual score up ' + r.delta.toFixed(1) + ' since last review.');
+      if (r.delta != null && r.delta < 0) s.push('Residual score down ' + Math.abs(r.delta).toFixed(1) + ' since last review.');
+      return s.join(' ');
+    }
+
+    function renderTopRisks(m) {
+      $('topRisks').innerHTML = m.scored.slice(0, 5).map((r, i) =>
+        '<div class="risk-commentary">' +
+          '<div class="risk-commentary__head">' +
+            '<span class="risk-commentary__rank">' + (i + 1) + '.</span>' +
+            '<span class="risk-commentary__name">' + r.name + '</span>' +
+            '<span class="risk-commentary__meta">' + r.cat + ' · residual ' + r.residual + ' · ' + fmtMoney(r.exp) +
+            ' · ' + r.vel.toLowerCase() + ' · ' + r.mit.toLowerCase() + ' mitigation · ' + r.owner + '</span>' +
+          '</div>' +
+          '<p class="risk-commentary__body">' + commentaryFor(r) + '</p>' +
+        '</div>'
+      ).join('');
+    }
+
+    function renderMovement(m) {
+      const withPrior = m.scored.filter(r => r.delta != null && r.delta !== 0);
+      if (!withPrior.length) {
+        $('movementTable').innerHTML = '<tbody><tr><td class="left">No prior-period scores entered — movement analysis unavailable.</td></tr></tbody>';
+        return;
+      }
+      const head = '<thead><tr><th class="left">Risk</th><th class="left">Category</th><th>Prior</th><th>Current</th><th>Change</th><th class="left">Direction</th></tr></thead>';
+      const body = withPrior.map(r => {
+        const cls = r.delta > 0 ? 'up' : 'down';
+        const arrow = r.delta > 0 ? '▲ Deteriorating' : '▼ Improving';
+        return '<tr><td>' + r.name + '</td><td class="left">' + r.cat + '</td>' +
+          '<td>' + r.prior.toFixed(1) + '</td><td>' + r.residual.toFixed(1) + '</td>' +
+          '<td>' + (r.delta > 0 ? '+' : '−') + Math.abs(r.delta).toFixed(1) + '</td>' +
+          '<td class="left"><span class="trend ' + cls + '">' + arrow + '</span></td></tr>';
+      }).join('');
+      $('movementTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+    }
+
+    function renderActions(m) {
+      const actions = [];
+
+      m.breaches.forEach(c => {
+        if (c.singleBreach) {
+          const worst = c.items.reduce((a, b) => b.exp > a.exp ? b : a);
+          actions.push('<strong>' + c.cat + '</strong> — a single risk (' + worst.name + ', ' + fmtMoney(worst.exp) +
+            ') exceeds the category tolerance of ' + fmtM(c.tol) + ' on its own. Either the tolerance is set below what the ' +
+            'business is actually willing to carry, or this risk needs a transfer or treatment plan before the next review.');
+        } else {
+          actions.push('<strong>' + c.cat + '</strong> — aggregate exposure of ' + fmtM(c.aggregate) + ' exceeds tolerance by ' +
+            fmtM(-c.headroom) + '. No single risk breaches alone, so the question for the board is whether the accumulation was ' +
+            'intended or arrived by drift.');
+        }
+      });
+
+      const weak = m.scored.filter(r => r.mit === 'Weak');
+      if (weak.length) {
+        actions.push('<strong>Control gaps</strong> — ' + weak.map(r => r.name + ' (' + r.owner + ')').join(', ') +
+          ' carry weak mitigation against ' + fmtM(weak.reduce((s, r) => s + r.exp, 0)) +
+          ' of combined exposure. Each needs a named treatment owner and a date, or an explicit board decision to accept.');
+      }
+
+      const stanceTension = m.byCategory.filter(c => (c.stance === 'Averse' || c.stance === 'Minimal') && c.utilisation >= 0.8);
+      if (stanceTension.length) {
+        actions.push('<strong>Stance versus position</strong> — ' + stanceTension.map(c => c.cat).join(', ') +
+          ' ' + (stanceTension.length === 1 ? 'is' : 'are') + ' stated as ' +
+          stanceTension.map(c => c.stance.toLowerCase()).join('/') + ' appetite but running at or above 80% of tolerance. ' +
+          'Either the stance or the tolerance is out of date; they should be reconciled at this meeting.');
+      }
+
+      const noPrior = m.scored.filter(r => r.prior == null);
+      if (noPrior.length) {
+        actions.push('<strong>Register hygiene</strong> — ' + noPrior.length + ' risk' + (noPrior.length === 1 ? '' : 's') +
+          ' lack a prior-period score, so movement cannot be assessed. Baseline them before the next cycle.');
+      }
+
+      if (!actions.length) {
+        actions.push('No categories are outside appetite and no material control gaps are flagged. Recommend the board note the position and confirm tolerances remain appropriate for the coming year.');
+      }
+
+      $('actions').innerHTML = '<ul style="margin-left:var(--space-lg)">' +
+        actions.map(a => '<li style="margin-bottom:var(--space-sm);font-size:var(--text-sm);color:var(--color-text-secondary);line-height:1.7">' + a + '</li>').join('') +
+        '</ul>';
+    }
+
+    // ==============================
+    // Orchestration
+    // ==============================
+    function renderReport() {
+      const m = compute();
+      $('reportPeriod').textContent = ($('asOf').value || '') + ' · ' + m.scored.length + ' risks · prepared for the board';
+      renderKPIs(m);
+      renderExecSummary(m);
+      renderHeat(m);
+      renderBubble(m);
+      renderAppetiteChart(m);
+      renderCategoryTable(m);
+      renderTopRisks(m);
+      renderMovement(m);
+      renderActions(m);
+    }
+
+    ['band1', 'band2', 'band3', 'band4', 'asOf'].forEach(id => $(id).addEventListener('input', renderReport));
+
+    $('addRowBtn').addEventListener('click', () => {
+      risks.push({ name: 'New risk', cat: 'Operational', like: 3, exp: 1000000, vel: 'Medium', trend: 'Stable', mit: 'Partial', owner: 'COO', prior: null });
+      renderGrid(); renderReport();
+    });
+    $('demoBtn').addEventListener('click', () => {
+      risks = DEMO.map(r => Object.assign({}, r));
+      appetite = JSON.parse(JSON.stringify(DEMO_APPETITE));
+      renderGrid(); renderAppetite(); renderReport();
+    });
+    $('printBtn').addEventListener('click', () => window.print());
+
+    renderGrid();
+    renderAppetite();
+    renderReport();
+  })();
+  </script>
+</body>
+</html>

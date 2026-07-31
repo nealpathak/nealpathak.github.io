@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Combined Ratio & Underwriting Dashboard — Neal Pathak</title>
-  <meta name="description" content="Underwriting dashboard for insurance companies — loss ratio, expense ratio, combined ratio, and underwriting result by line of business across multiple accident years.">
-  <meta property="og:title" content="Combined Ratio & Underwriting Dashboard — Neal Pathak">
-  <meta property="og:description" content="Loss ratio, expense ratio, combined ratio, and underwriting result by line of business, with year-over-year trending.">
+  <title>Combined Ratio &amp; Underwriting — Neal Pathak</title>
+  <meta name="description" content="Where is an underwriting book making or losing money, and which way is it moving? Loss, expense, and combined ratios by line and accident year, trended against a target.">
+  <meta property="og:title" content="Combined Ratio &amp; Underwriting — Neal Pathak">
+  <meta property="og:description" content="Where is an underwriting book making or losing money, and which way is it moving? Loss, expense, and combined ratios by line and accident year, trended against a target.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/combined-ratio/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/combined-ratio/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -478,7 +482,7 @@
 
     @media print {
       @page { margin: 0.5in 0.6in; }
-      .site-nav, .tool-header, .input-section, .print-row { display: none !important; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
       .report-output { display: block !important; margin-top: 0 !important; }
       .tool-body { padding: 0 !important; }
       .container { padding: 0 !important; max-width: none !important; }
@@ -554,6 +558,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -564,7 +569,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>Combined Ratio &amp; Underwriting Dashboard</h1>
-        <p>Loss ratio, expense ratio, combined ratio, and underwriting result by line of business across multiple accident years. Built for carrier CFOs, chief actuaries, and underwriting committees who need to see where a book is making or losing money at a glance.</p>
+        <p>Where is an underwriting book making or losing money &mdash; and which way is it moving? Loss, expense, and combined ratios by line of business and accident year, trended against a target combined ratio, with the underwriting result in dollars alongside the percentages.</p>
       </div>
     </section>
 
@@ -1483,5 +1488,19 @@
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

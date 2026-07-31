@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M&amp;A Risk Scorecard — Neal Pathak</title>
-  <meta name="description" content="Pre-acquisition risk profile with deal-protection recommendations and a board-ready memo.">
-  <meta property="og:title" content="M&amp;A Risk Scorecard — Neal Pathak">
-  <meta property="og:description" content="Pre-acquisition risk profile with deal-protection recommendations and a board-ready memo.">
+  <title>M&A Risk Scorecard — Neal Pathak</title>
+  <meta name="description" content="What is actually being acquired, and how much protection should the deal carry? Weighted diligence risk profile translated into escrow, indemnity, survival, and R&W insurance positions.">
+  <meta property="og:title" content="M&A Risk Scorecard — Neal Pathak">
+  <meta property="og:description" content="What is actually being acquired, and how much protection should the deal carry? Weighted diligence risk profile translated into escrow, indemnity, survival, and R&W insurance positions.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/ma-risk-scorecard/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/ma-risk-scorecard/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -481,7 +485,7 @@
     }
 
     @media print {
-      .site-nav, .input-section, .action-bar, .print-bar, .back-link {
+      .site-nav, .input-section, .action-bar, .print-bar, .back-link, .site-footer {
         display: none !important;
       }
       .panel, .chart-card, .rec-card, .hero { box-shadow: none !important; }
@@ -514,12 +518,10 @@
 <body>
   <nav class="site-nav">
     <div class="container">
-      <a href="../../" class="site-nav__logo">Neal Pathak</a>
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
-        <li><a href="../../#risk">Risk</a></li>
-        <li><a href="../../#finance">Finance</a></li>
-        <li><a href="../../#legal">Legal</a></li>
-        <li><a href="../../#fun">Fun</a></li>
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -530,7 +532,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>M&amp;A Risk Scorecard</h1>
-        <p>Pre-acquisition risk profile across financial, legal, operational, insurance, ESG, and integration dimensions. Generates a heatmap, deal-protection recommendations, and a board-ready memo.</p>
+        <p>What is actually being acquired, and how much protection should the deal carry? A weighted risk profile across six diligence dimensions, translated into escrow, indemnity cap, survival period, and R&amp;W insurance positions, with a board memo and the representations worth pushing for.</p>
       </div>
     </header>
 
@@ -1301,5 +1303,19 @@
     renderTargetForm();
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

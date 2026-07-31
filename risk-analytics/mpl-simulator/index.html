@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MPL Underwriting &amp; Float Simulator — Neal Pathak</title>
-  <meta name="description" content="10-year simulation of a medical professional liability book — premium, loss emergence, float, investment income, and consolidated P&L under adjustable assumptions.">
+  <meta name="description" content="On a long-tail book, does investment income cover what underwriting gives away? Ten-year simulation of premium, loss emergence, float generation, and investment income.">
   <meta property="og:title" content="MPL Underwriting &amp; Float Simulator — Neal Pathak">
-  <meta property="og:description" content="10-year simulation of premium, losses, float, and investment income for a medical professional liability book.">
+  <meta property="og:description" content="On a long-tail book, does investment income cover what underwriting gives away? Ten-year simulation of premium, loss emergence, float generation, and investment income.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/mpl-simulator/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/mpl-simulator/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -409,6 +413,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -419,7 +424,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>MPL Underwriting &amp; Float Simulator</h1>
-        <p>10-year simulation of premium, losses, float, and investment income for a medical professional liability book. All figures update live as assumptions change; nothing leaves the browser.</p>
+        <p>On a long-tail book, does investment income cover what underwriting gives away? Ten years of premium, loss emergence, float, and investment income &mdash; with deployment lag, tail length, and a large-loss event as the levers.</p>
       </div>
     </section>
 
@@ -1169,5 +1174,19 @@
     window.addEventListener('hashchange', applySharedState);
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

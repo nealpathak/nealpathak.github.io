@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Insurance Tower Visualizer — Neal Pathak</title>
-  <meta name="description" content="Visualize layered insurance programs. Render a vertical tower of primary and excess layers with carrier, attachment, limit, premium, and rate-on-line across the program.">
+  <meta name="description" content="Is the program structured efficiently, and where are the gaps? Layered attachment points, rate-on-line by layer, and gap or overlap detection across the tower.">
   <meta property="og:title" content="Insurance Tower Visualizer — Neal Pathak">
-  <meta property="og:description" content="Vertical insurance tower visualization with rate-on-line analytics, gap/overlap detection, and program-level metrics for broker and risk committee presentations.">
+  <meta property="og:description" content="Is the program structured efficiently, and where are the gaps? Layered attachment points, rate-on-line by layer, and gap or overlap detection across the tower.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/insurance-tower/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/insurance-tower/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -490,7 +494,7 @@
 
     /* Print */
     @media print {
-      .site-nav, .tool-header, .input-section, .print-row { display: none !important; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
 
       body { background: #fff; }
 
@@ -520,19 +524,18 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
   </nav>
 
   <main>
-    <section class="hero tool-header">
+    <section class="tool-header">
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>Insurance Tower Visualizer</h1>
-        <p class="hero__subtitle">
-          Render a layered insurance program as a vertical tower &mdash; primary through excess. See rate-on-line efficiency across layers, catch gaps or overlaps, and get a clean one-page visual for broker meetings and risk committees.
-        </p>
+        <p>Is the program structured efficiently, and does it hold together? Attachment points and limits rendered as a tower, rate-on-line compared layer by layer, and any gap or overlap between layers flagged before it becomes a coverage argument.</p>
       </div>
     </section>
 
@@ -1330,5 +1333,19 @@
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

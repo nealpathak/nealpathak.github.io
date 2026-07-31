@@ -4,11 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Loss Run Analyzer — Neal Pathak</title>
-  <meta name="description" content="Parse and visualize insurance loss run data. Analyze claim frequency, severity, and development patterns.">
+  <meta name="description" content="What is the loss history actually telling you? Claim frequency, severity distribution, development, and exposure by policy period from raw loss run data.">
   <meta property="og:title" content="Loss Run Analyzer — Neal Pathak">
-  <meta property="og:description" content="Parse and visualize insurance loss run data. Analyze claim frequency, severity, and development patterns.">
+  <meta property="og:description" content="What is the loss history actually telling you? Claim frequency, severity distribution, development, and exposure by policy period from raw loss run data.">
   <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/loss-run-analyzer/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/loss-run-analyzer/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -484,6 +488,7 @@
       <a href="/" class="site-nav__logo">Neal Pathak</a>
       <ul class="site-nav__links">
         <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
         <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
       </ul>
     </div>
@@ -494,7 +499,7 @@
       <div class="container">
         <span class="category-badge category-badge--risk">Risk</span>
         <h1>Loss Run Analyzer</h1>
-        <p>Parse insurance loss run data and surface the patterns that matter — claim frequency, severity distributions, development trends, and exposure by policy period.</p>
+        <p>What is the loss history actually telling you? Frequency and severity split by policy period, development patterns as claims mature, and the concentration that a total incurred figure hides.</p>
         <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
       </div>
     </section>
@@ -525,8 +530,8 @@
 
           <div id="paste-panel" style="display:none;">
             <textarea class="csv-input" id="csvInput" placeholder="date,claimant,type,status,incurred,paid,reserved,policy_number
-2022-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0,POL-2022-001
-2023-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000,POL-2023-001" aria-label="CSV claims data input"></textarea>
+2023-03-15,ABC Corp,Auto Liability,Closed,45000,45000,0,POL-2023-001
+2024-07-22,XYZ Inc,GL - Slip & Fall,Open,120000,35000,85000,POL-2024-001" aria-label="CSV claims data input"></textarea>
             <div class="input-actions">
               <button class="btn btn--primary" id="analyzeBtn">Analyze</button>
               <span class="input-hint" id="inputHint">CSV with columns: date, claimant, type, status, incurred, paid, reserved — optional: policy_number</span>
@@ -619,54 +624,54 @@
     // Demo Data
     // ==============================
     const DEMO_CSV = `date,claimant,type,status,incurred,paid,reserved,policy_number
-2020-02-14,Turner Construction,Auto Liability - BI,Closed,62000,62000,0,POL-2020-001
-2020-05-03,Riverside Logistics,GL - Slip & Fall,Closed,28000,28000,0,POL-2020-002
-2020-06-18,Greenfield Properties,Property Damage,Closed,155000,155000,0,POL-2020-003
-2020-08-22,Apex Manufacturing,Workers Comp,Closed,41000,41000,0,POL-2020-001
-2020-11-01,Turner Construction,Auto Liability - PD,Closed,18500,18500,0,POL-2020-001
-2020-12-09,Coastal Marine LLC,GL - Products,Closed,95000,95000,0,POL-2020-002
-2021-01-20,Summit Energy Corp,Property Damage,Closed,210000,210000,0,POL-2021-001
-2021-03-15,Riverside Logistics,Auto Liability - BI,Closed,87000,87000,0,POL-2021-001
-2021-04-28,Greenfield Properties,GL - Slip & Fall,Closed,33000,33000,0,POL-2021-002
-2021-06-11,Apex Manufacturing,Workers Comp,Closed,52000,52000,0,POL-2021-001
-2021-07-30,Delta Freight Inc,Auto Liability - BI,Closed,145000,145000,0,POL-2021-002
-2021-09-14,Coastal Marine LLC,Property Damage,Closed,72000,72000,0,POL-2021-001
-2021-10-05,Turner Construction,GL - Completed Ops,Closed,38000,38000,0,POL-2021-002
-2021-11-22,Summit Energy Corp,Workers Comp,Closed,66000,66000,0,POL-2021-001
-2022-01-08,Greenfield Properties,Auto Liability - PD,Closed,22000,22000,0,POL-2022-001
-2022-02-19,Apex Manufacturing,GL - Slip & Fall,Closed,48000,48000,0,POL-2022-001
-2022-04-03,Delta Freight Inc,Property Damage,Closed,185000,185000,0,POL-2022-002
-2022-05-17,Riverside Logistics,Workers Comp,Closed,29000,29000,0,POL-2022-001
-2022-07-21,Turner Construction,Auto Liability - BI,Closed,98000,92000,6000,POL-2022-002
-2022-08-30,Coastal Marine LLC,GL - Products,Closed,125000,118000,7000,POL-2022-001
-2022-10-12,Summit Energy Corp,Auto Liability - BI,Open,156000,89000,67000,POL-2022-002
-2022-11-25,Greenfield Properties,Property Damage,Closed,42000,42000,0,POL-2022-001
-2023-01-14,Delta Freight Inc,GL - Slip & Fall,Closed,55000,55000,0,POL-2023-001
-2023-02-28,Apex Manufacturing,Auto Liability - BI,Closed,73000,68000,5000,POL-2023-001
-2023-04-09,Turner Construction,Workers Comp,Open,88000,45000,43000,POL-2023-002
-2023-05-22,Riverside Logistics,Property Damage,Closed,130000,130000,0,POL-2023-001
-2023-06-15,Coastal Marine LLC,Auto Liability - PD,Closed,31000,31000,0,POL-2023-002
-2023-08-01,Summit Energy Corp,GL - Products,Open,220000,78000,142000,POL-2023-001
-2023-09-18,Greenfield Properties,Workers Comp,Closed,47000,47000,0,POL-2023-002
-2023-10-30,Delta Freight Inc,Auto Liability - BI,Open,165000,52000,113000,POL-2023-001
-2023-12-05,Apex Manufacturing,Property Damage,Closed,58000,58000,0,POL-2023-002
-2024-01-20,Turner Construction,GL - Slip & Fall,Open,92000,34000,58000,POL-2024-001
-2024-03-08,Riverside Logistics,Auto Liability - BI,Open,110000,28000,82000,POL-2024-001
-2024-04-15,Coastal Marine LLC,Workers Comp,Open,63000,19000,44000,POL-2024-001
-2024-05-29,Summit Energy Corp,Property Damage,Open,245000,67000,178000,POL-2024-002
-2024-07-11,Delta Freight Inc,GL - Completed Ops,Open,85000,15000,70000,POL-2024-001
-2024-08-23,Greenfield Properties,Auto Liability - BI,Open,138000,22000,116000,POL-2024-002
-2024-09-17,Apex Manufacturing,Auto Liability - PD,Open,27000,8000,19000,POL-2024-001
-2024-10-02,Turner Construction,GL - Products,Open,175000,30000,145000,POL-2024-002
-2024-11-14,Riverside Logistics,Property Damage,Open,92000,12000,80000,POL-2024-001`;
+2021-02-14,Turner Construction,Auto Liability - BI,Closed,62000,62000,0,POL-2021-001
+2021-05-03,Riverside Logistics,GL - Slip & Fall,Closed,28000,28000,0,POL-2021-002
+2021-06-18,Greenfield Properties,Property Damage,Closed,155000,155000,0,POL-2021-003
+2021-08-22,Apex Manufacturing,Workers Comp,Closed,41000,41000,0,POL-2021-001
+2021-11-01,Turner Construction,Auto Liability - PD,Closed,18500,18500,0,POL-2021-001
+2021-12-09,Coastal Marine LLC,GL - Products,Closed,95000,95000,0,POL-2021-002
+2022-01-20,Summit Energy Corp,Property Damage,Closed,210000,210000,0,POL-2022-001
+2022-03-15,Riverside Logistics,Auto Liability - BI,Closed,87000,87000,0,POL-2022-001
+2022-04-28,Greenfield Properties,GL - Slip & Fall,Closed,33000,33000,0,POL-2022-002
+2022-06-11,Apex Manufacturing,Workers Comp,Closed,52000,52000,0,POL-2022-001
+2022-07-30,Delta Freight Inc,Auto Liability - BI,Closed,145000,145000,0,POL-2022-002
+2022-09-14,Coastal Marine LLC,Property Damage,Closed,72000,72000,0,POL-2022-001
+2022-10-05,Turner Construction,GL - Completed Ops,Closed,38000,38000,0,POL-2022-002
+2022-11-22,Summit Energy Corp,Workers Comp,Closed,66000,66000,0,POL-2022-001
+2023-01-08,Greenfield Properties,Auto Liability - PD,Closed,22000,22000,0,POL-2023-001
+2023-02-19,Apex Manufacturing,GL - Slip & Fall,Closed,48000,48000,0,POL-2023-001
+2023-04-03,Delta Freight Inc,Property Damage,Closed,185000,185000,0,POL-2023-002
+2023-05-17,Riverside Logistics,Workers Comp,Closed,29000,29000,0,POL-2023-001
+2023-07-21,Turner Construction,Auto Liability - BI,Closed,98000,92000,6000,POL-2023-002
+2023-08-30,Coastal Marine LLC,GL - Products,Closed,125000,118000,7000,POL-2023-001
+2023-10-12,Summit Energy Corp,Auto Liability - BI,Open,156000,89000,67000,POL-2023-002
+2023-11-25,Greenfield Properties,Property Damage,Closed,42000,42000,0,POL-2023-001
+2024-01-14,Delta Freight Inc,GL - Slip & Fall,Closed,55000,55000,0,POL-2024-001
+2024-02-28,Apex Manufacturing,Auto Liability - BI,Closed,73000,68000,5000,POL-2024-001
+2024-04-09,Turner Construction,Workers Comp,Open,88000,45000,43000,POL-2024-002
+2024-05-22,Riverside Logistics,Property Damage,Closed,130000,130000,0,POL-2024-001
+2024-06-15,Coastal Marine LLC,Auto Liability - PD,Closed,31000,31000,0,POL-2024-002
+2024-08-01,Summit Energy Corp,GL - Products,Open,220000,78000,142000,POL-2024-001
+2024-09-18,Greenfield Properties,Workers Comp,Closed,47000,47000,0,POL-2024-002
+2024-10-30,Delta Freight Inc,Auto Liability - BI,Open,165000,52000,113000,POL-2024-001
+2024-12-05,Apex Manufacturing,Property Damage,Closed,58000,58000,0,POL-2024-002
+2025-01-20,Turner Construction,GL - Slip & Fall,Open,92000,34000,58000,POL-2025-001
+2025-03-08,Riverside Logistics,Auto Liability - BI,Open,110000,28000,82000,POL-2025-001
+2025-04-15,Coastal Marine LLC,Workers Comp,Open,63000,19000,44000,POL-2025-001
+2025-05-29,Summit Energy Corp,Property Damage,Open,245000,67000,178000,POL-2025-002
+2025-07-11,Delta Freight Inc,GL - Completed Ops,Open,85000,15000,70000,POL-2025-001
+2025-08-23,Greenfield Properties,Auto Liability - BI,Open,138000,22000,116000,POL-2025-002
+2025-09-17,Apex Manufacturing,Auto Liability - PD,Open,27000,8000,19000,POL-2025-001
+2025-10-02,Turner Construction,GL - Products,Open,175000,30000,145000,POL-2025-002
+2025-11-14,Riverside Logistics,Property Damage,Open,92000,12000,80000,POL-2025-001`;
 
     // Default aggregate limits for demo policies
     const DEMO_LIMITS = {
-      'POL-2020-001': 500000, 'POL-2020-002': 500000, 'POL-2020-003': 750000,
-      'POL-2021-001': 1000000, 'POL-2021-002': 750000,
-      'POL-2022-001': 1000000, 'POL-2022-002': 1500000,
-      'POL-2023-001': 1500000, 'POL-2023-002': 750000,
-      'POL-2024-001': 2000000, 'POL-2024-002': 1500000,
+      'POL-2021-001': 500000, 'POL-2021-002': 500000, 'POL-2021-003': 750000,
+      'POL-2022-001': 1000000, 'POL-2022-002': 750000,
+      'POL-2023-001': 1000000, 'POL-2023-002': 1500000,
+      'POL-2024-001': 1500000, 'POL-2024-002': 750000,
+      'POL-2025-001': 2000000, 'POL-2025-002': 1500000,
     };
 
     // ==============================
@@ -1415,5 +1420,19 @@
 
   })();
   </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
 </body>
 </html>

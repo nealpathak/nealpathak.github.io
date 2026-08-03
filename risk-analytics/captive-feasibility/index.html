@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Captive Feasibility Model — Neal Pathak</title>
+  <meta name="description" content="Does a captive earn its frictional cost? Five-year pro forma across capitalization, funding, and payout timing, with surplus growth set against a trended commercial premium.">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/captive-feasibility/">
+  <meta property="og:title" content="Captive Feasibility Model — Neal Pathak">
+  <meta property="og:description" content="Does a captive earn its frictional cost? Five-year pro forma across capitalization, funding, and payout timing, with surplus growth set against a trended commercial premium.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/captive-feasibility/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .sim-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: var(--space-xl);
+      align-items: start;
+    }
+
+    .assumptions {
+      position: sticky;
+      top: 80px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl) var(--space-xl);
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .assumptions h2 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-lg);
+    }
+
+    .preset-btn {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 11px;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .preset-btn:hover { border-color: var(--color-text-tertiary); color: var(--color-text); }
+    .preset-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+    .preset-btn.active { background: var(--color-risk); color: #fff; border-color: var(--color-risk); }
+
+    .ctrl-group { margin-bottom: var(--space-lg); }
+    .ctrl-group:last-of-type { margin-bottom: var(--space-md); }
+
+    .ctrl-group__title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .ctrl { margin-bottom: var(--space-md); }
+    .ctrl:last-child { margin-bottom: 0; }
+
+    .ctrl__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-sm);
+      margin-bottom: 3px;
+    }
+
+    .ctrl__top label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .ctrl__val {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .ctrl input[type="range"] {
+      width: 100%;
+      accent-color: var(--color-risk);
+      cursor: pointer;
+      min-height: 22px;
+    }
+
+    .ctrl input[type="range"]:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+
+    .ctrl select {
+      width: 100%;
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      min-height: 32px;
+    }
+
+    .ctrl--toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .ctrl--toggle label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+
+    .ctrl--toggle input[type="checkbox"] {
+      accent-color: var(--color-risk);
+      width: 16px; height: 16px;
+      cursor: pointer;
+    }
+
+    .ctrl--toggle input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+    .btn--reset { width: 100%; margin-top: var(--space-md); min-height: 34px; font-size: var(--text-xs); }
+
+    .implied-note {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      max-width: none;
+    }
+
+    .implied-note.warn { color: #b9710e; }
+
+    /* --- Verdict --- */
+    .verdict {
+      border: 1px solid var(--color-border);
+      border-left-width: 4px;
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+      padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .verdict--feasible { border-left-color: var(--color-data); }
+    .verdict--marginal { border-left-color: #b9710e; }
+    .verdict--no      { border-left-color: var(--color-risk); }
+
+    .verdict__label {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .verdict__headline {
+      font-size: var(--text-xl);
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: var(--space-sm);
+    }
+
+    .verdict--feasible .verdict__headline { color: var(--color-data); }
+    .verdict--marginal .verdict__headline { color: #b9710e; }
+    .verdict--no .verdict__headline { color: var(--color-risk); }
+
+    .verdict__body {
+      font-size: var(--text-sm);
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+      max-width: 70ch;
+    }
+
+    .verdict__body p { margin-bottom: var(--space-sm); max-width: none; }
+    .verdict__body p:last-child { margin-bottom: 0; }
+    .verdict__body strong { color: var(--color-text); font-weight: 600; }
+
+    /* --- KPIs --- */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .kpi {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+    }
+
+    .kpi__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .kpi__value {
+      font-family: var(--font-mono);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .kpi__value.neg { color: var(--color-risk); }
+    .kpi__value.pos { color: var(--color-data); }
+
+    .kpi__sub {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* --- Charts --- */
+    .chart-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-card h3 { font-size: var(--text-sm); font-weight: 600; margin-bottom: 2px; }
+
+    .chart-card .chart-sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+      margin-bottom: var(--space-md);
+    }
+
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap--short { height: 240px; }
+
+    .chart-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .chart-pair .chart-card { margin-bottom: 0; }
+
+    /* --- Pro forma table --- */
+    .table-scroll { overflow-x: auto; }
+
+    .pf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .pf-table th {
+      text-align: right;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .pf-table th:first-child { text-align: left; }
+
+    .pf-table td {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      text-align: right;
+      padding: 6px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pf-table td:first-child {
+      font-family: var(--font-sans);
+      text-align: left;
+      color: var(--color-text-secondary);
+    }
+
+    .pf-table tr.section-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: var(--font-sans);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pf-table tr.emphasis td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .pf-table tr.emphasis td:first-child { font-weight: 600; color: var(--color-text); }
+    .pf-table .neg { color: var(--color-risk); }
+
+    .print-row { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+
+    /* --- Methodology --- */
+    .methodology {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .methodology summary {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      padding: var(--space-sm) 0;
+      list-style: none;
+    }
+
+    .methodology summary::-webkit-details-marker { display: none; }
+    .methodology summary::before { content: '▸ '; color: var(--color-text-tertiary); }
+    .methodology[open] summary::before { content: '▾ '; }
+    .methodology summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+    .methodology ul {
+      margin: var(--space-sm) 0 var(--space-md) var(--space-lg);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+    }
+
+    @media print {
+      @page { margin: 0.5in 0.6in; }
+      .site-nav, .tool-header, .assumptions, .print-row, .site-footer, .methodology { display: none !important; }
+      .sim-layout { display: block !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+      .verdict, .kpi, .chart-card { break-inside: avoid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .chart-wrap { height: 200px !important; }
+      .chart-wrap--short { height: 170px !important; }
+      .kpi-strip { gap: 8px; }
+      .kpi__value { font-size: 14px; }
+    }
+
+    @media (max-width: 1024px) {
+      .sim-layout { grid-template-columns: 1fr; }
+      .assumptions { position: static; max-height: none; }
+      .assumptions__groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-xl); }
+      .ctrl-group { margin-bottom: 0; }
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .assumptions__groups { grid-template-columns: 1fr; gap: var(--space-lg); }
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .chart-pair { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-strip { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>Captive Feasibility Model</h1>
+        <p>Does a captive earn its frictional cost, or is the commercial market cheaper than it looks? Five years of funding, payout timing, and surplus growth set against a trended commercial premium — with the break-even year and the volume where the economics flip.</p>
+        <p class="tool-note-link">Related note: <a href="/notes/when-a-captive-makes-sense/">When a captive makes sense — and three ways the math lies</a></p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="sim-layout">
+
+          <aside class="assumptions" aria-label="Model assumptions">
+            <h2>Assumptions</h2>
+            <div class="preset-row" role="group" aria-label="Scenario presets">
+              <button class="preset-btn active" data-preset="mid" type="button">Mid-market</button>
+              <button class="preset-btn" data-preset="healthcare" type="button">Healthcare PL</button>
+              <button class="preset-btn" data-preset="small" type="button">Small program</button>
+            </div>
+            <form autocomplete="off">
+            <div class="assumptions__groups">
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Program</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pPremium">Funded premium (year 1)</label><span class="ctrl__val" id="vPremium"></span></div>
+                  <input type="range" id="pPremium" min="0.5" max="25" step="0.25" value="5">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pLR">Expected loss ratio</label><span class="ctrl__val" id="vLR"></span></div>
+                  <input type="range" id="pLR" min="40" max="95" step="1" value="65">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pLossTrend">Loss cost trend</label><span class="ctrl__val" id="vLossTrend"></span></div>
+                  <input type="range" id="pLossTrend" min="0" max="12" step="0.5" value="4">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pTail">Payout pattern</label></div>
+                  <select id="pTail" aria-label="Payout pattern">
+                    <option value="short">Short tail (3 yr)</option>
+                    <option value="medium" selected>Medium tail (4 yr)</option>
+                    <option value="long">Long tail (7 yr)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Commercial alternative</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pCommercial">Market premium (year 1)</label><span class="ctrl__val" id="vCommercial"></span></div>
+                  <input type="range" id="pCommercial" min="0.5" max="35" step="0.05" value="4.6">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pMktTrend">Market rate trend</label><span class="ctrl__val" id="vMktTrend"></span></div>
+                  <input type="range" id="pMktTrend" min="-5" max="20" step="0.5" value="7">
+                </div>
+                <p class="implied-note" id="impliedNote"></p>
+              </div>
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Captive economics</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pPS">Premium-to-surplus</label><span class="ctrl__val" id="vPS"></span></div>
+                  <input type="range" id="pPS" min="0.5" max="3" step="0.1" value="2">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pFormation">Formation cost</label><span class="ctrl__val" id="vFormation"></span></div>
+                  <input type="range" id="pFormation" min="0" max="500" step="25" value="150">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pOpex">Annual operating cost</label><span class="ctrl__val" id="vOpex"></span></div>
+                  <input type="range" id="pOpex" min="50" max="600" step="25" value="225">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pFronting">Fronting fee</label><span class="ctrl__val" id="vFronting"></span></div>
+                  <input type="range" id="pFronting" min="0" max="10" step="0.25" value="4">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pTax">Premium tax</label><span class="ctrl__val" id="vTax"></span></div>
+                  <input type="range" id="pTax" min="0" max="6" step="0.1" value="0.4">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pYield">Investment yield</label><span class="ctrl__val" id="vYield"></span></div>
+                  <input type="range" id="pYield" min="0" max="8" step="0.25" value="4.5">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pCoC">Opportunity cost of capital</label><span class="ctrl__val" id="vCoC"></span></div>
+                  <input type="range" id="pCoC" min="0" max="20" step="0.5" value="9">
+                </div>
+                <div class="ctrl ctrl--toggle">
+                  <label for="pAdverse">Show adverse scenario (+20 pts LR)</label>
+                  <input type="checkbox" id="pAdverse" checked>
+                </div>
+              </div>
+
+            </div>
+            <button class="btn btn--reset" id="resetBtn" type="button">Reset to preset</button>
+            </form>
+          </aside>
+
+          <div class="sim-main">
+
+            <div class="print-row">
+              <button class="btn btn--primary" id="printBtn" type="button">Print / Save as PDF</button>
+            </div>
+
+            <div class="verdict" id="verdict"></div>
+
+            <div class="kpi-strip" id="kpiStrip"></div>
+
+            <div class="chart-card">
+              <h3>Cumulative economic cost — captive versus commercial</h3>
+              <p class="chart-sub">Captive cost counts losses, frictional expenses, formation, and the opportunity cost of posted capital, net of investment income. Premium funded into a wholly owned captive is an intercompany transfer and nets out.</p>
+              <div class="chart-wrap"><canvas id="costCanvas" role="img" aria-label="Line chart comparing cumulative captive economic cost against cumulative commercial premium over five years"></canvas></div>
+            </div>
+
+            <div class="chart-pair">
+              <div class="chart-card">
+                <h3>Surplus and premium-to-surplus</h3>
+                <p class="chart-sub">Capital position at each year-end, with the leverage ratio regulators and fronting carriers watch.</p>
+                <div class="chart-wrap chart-wrap--short"><canvas id="surplusCanvas" role="img" aria-label="Bar and line chart of captive surplus and premium-to-surplus ratio by year"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h3>Annual cost composition</h3>
+                <p class="chart-sub">Where each year's captive cost goes, before investment income is credited back.</p>
+                <div class="chart-wrap chart-wrap--short"><canvas id="compCanvas" role="img" aria-label="Stacked bar chart of annual captive cost components"></canvas></div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Five-year pro forma</h3>
+              <p class="chart-sub">Underwriting, investment, and capital position by year. Figures in thousands.</p>
+              <div class="table-scroll">
+                <table class="pf-table" id="pfTable" aria-label="Five-year captive pro forma"></table>
+              </div>
+            </div>
+
+            <details class="methodology">
+              <summary>Methodology &amp; model simplifications</summary>
+              <ul>
+                <li>Funded premium is set to expected loss cost plus captive expense load and trends at the loss cost trend. Commercial premium trends separately at the market rate trend — set the two equal to neutralize any rate-cycle advantage.</li>
+                <li>The economic comparison counts the parent's actual cost: incurred losses, frictional expenses (fronting, premium tax, operating cost), formation cost, and the opportunity cost of capital posted to the captive, less investment income earned on capital and held funds. Premium paid into a wholly owned captive is an intercompany transfer and is excluded from both sides.</li>
+                <li>Losses are deterministic at the stated loss ratio — no stochastic frequency or severity, and no reserve development beyond the selected payout pattern. The adverse scenario is a flat 20-point loss ratio load, not a modeled tail.</li>
+                <li>Payout patterns are generic short, medium, and long-tail shapes, not company triangles. Reserves are cumulative incurred less cumulative paid.</li>
+                <li>Investment income is credited on average invested assets at a flat yield; no asset-liability matching, duration, or mark-to-market.</li>
+                <li>Excluded and left to diligence: domicile selection and its regulatory capital rules, tax treatment and risk-distribution qualification, reinsurance and stop-loss structuring, collateral negotiation with the fronting carrier, and audit, actuarial, and management fees beyond the single operating-cost line.</li>
+                <li>This is a screening instrument for whether a captive merits a formal feasibility study — it is not one.</li>
+              </ul>
+            </details>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak — decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">·</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">·</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+    const YEARS = 5;
+    const FONT = 'Inter';
+
+    // Incremental share of an accident year's ultimate losses paid in each development year
+    const PATTERNS = {
+      short:  [0.50, 0.35, 0.15],
+      medium: [0.25, 0.30, 0.25, 0.20],
+      long:   [0.10, 0.15, 0.18, 0.18, 0.15, 0.14, 0.10],
+    };
+
+    // Commercial premium is calibrated so the carrier's implied loss ratio lands in a
+    // defensible range (roughly 65–75%); the captive's edge is the expense and profit
+    // load it avoids, not an assumed mispricing of the market.
+    const PRESETS = {
+      mid:        { pPremium: 5,   pLR: 65, pLossTrend: 4, pTail: 'medium', pCommercial: 4.6,  pMktTrend: 7, pPS: 2,   pFormation: 150, pOpex: 225, pFronting: 4, pTax: 0.4, pYield: 4.5, pCoC: 9 },
+      healthcare: { pPremium: 12,  pLR: 72, pLossTrend: 6, pTail: 'long',   pCommercial: 13.5, pMktTrend: 9, pPS: 1.5, pFormation: 250, pOpex: 375, pFronting: 5, pTax: 0.4, pYield: 5,   pCoC: 9 },
+      small:      { pPremium: 1.5, pLR: 70, pLossTrend: 3, pTail: 'short',  pCommercial: 1.35, pMktTrend: 4, pPS: 2.5, pFormation: 125, pOpex: 200, pFronting: 6, pTax: 0.5, pYield: 4,   pCoC: 10 },
+    };
+
+    let activePreset = 'mid';
+
+    // ==============================
+    // Engine
+    // ==============================
+    function simulate(p, lossRatio) {
+      const pattern = PATTERNS[p.tail];
+      const capital = p.premium / p.ps;
+
+      const years = [];
+      let cumIncurred = 0, cumPaid = 0, investedAssets = capital, surplus = capital;
+      const incurredByYear = [];
+
+      for (let y = 0; y < YEARS; y++) {
+        const premium = p.premium * Math.pow(1 + p.lossTrend, y);
+        const incurred = premium * lossRatio;
+        incurredByYear.push(incurred);
+
+        const fronting = premium * p.fronting;
+        const tax = premium * p.premiumTax;
+        const opex = p.opex;
+        const formation = y === 0 ? p.formation : 0;
+        const expenses = fronting + tax + opex + formation;
+
+        // paid this calendar year = sum over prior accident years of their incremental payout
+        let paid = 0;
+        for (let a = 0; a <= y; a++) {
+          const dev = y - a;
+          if (dev < pattern.length) paid += incurredByYear[a] * pattern[dev];
+        }
+
+        // cash movement before investment income
+        const assetsStart = investedAssets;
+        const netFlow = premium - expenses - paid;
+        const assetsBeforeIncome = assetsStart + netFlow;
+        const investmentIncome = p.yield * (assetsStart + assetsBeforeIncome) / 2;
+        investedAssets = assetsBeforeIncome + investmentIncome;
+
+        cumIncurred += incurred;
+        cumPaid += paid;
+        const reserves = cumIncurred - cumPaid;
+
+        const uwResult = premium - incurred - expenses;
+        surplus += uwResult + investmentIncome;
+
+        years.push({
+          year: y + 1,
+          premium, incurred, paid, reserves,
+          fronting, tax, opex, formation, expenses,
+          investmentIncome, uwResult, surplus,
+          investedAssets,
+          psRatio: surplus > 0 ? premium / surplus : Infinity,
+          capitalCharge: p.coc * capital,
+          commercial: p.commercial * Math.pow(1 + p.mktTrend, y),
+        });
+      }
+
+      // Economic cost to the parent, per year and cumulative
+      let cumCaptive = 0, cumCommercial = 0;
+      years.forEach(y => {
+        y.economicCost = y.incurred + y.expenses + y.capitalCharge - y.investmentIncome;
+        cumCaptive += y.economicCost;
+        cumCommercial += y.commercial;
+        y.cumCaptive = cumCaptive;
+        y.cumCommercial = cumCommercial;
+      });
+
+      const breakEvenYear = years.findIndex(y => y.cumCaptive < y.cumCommercial);
+      const maxPS = Math.max(...years.map(y => y.psRatio));
+
+      return {
+        capital,
+        years,
+        totalCaptive: cumCaptive,
+        totalCommercial: cumCommercial,
+        advantage: cumCommercial - cumCaptive,
+        totalPremium: years.reduce((s, y) => s + y.premium, 0),
+        endingSurplus: years[YEARS - 1].surplus,
+        breakEvenYear: breakEvenYear === -1 ? null : breakEvenYear + 1,
+        maxPS,
+      };
+    }
+
+    // Scan for the funded premium at which the advantage turns positive, holding
+    // the premium-to-market ratio and every other assumption constant.
+    function minimumViablePremium(p, lossRatio) {
+      const ratio = p.commercial / p.premium;
+      let lo = 0.1e6, hi = 60e6;
+      if (simulate(Object.assign({}, p, { premium: hi, commercial: hi * ratio }), lossRatio).advantage <= 0) return null;
+      if (simulate(Object.assign({}, p, { premium: lo, commercial: lo * ratio }), lossRatio).advantage > 0) return lo;
+      for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        const r = simulate(Object.assign({}, p, { premium: mid, commercial: mid * ratio }), lossRatio);
+        if (r.advantage > 0) hi = mid; else lo = mid;
+      }
+      return hi;
+    }
+
+    // ==============================
+    // Inputs
+    // ==============================
+    function readInputs() {
+      return {
+        premium: +$('pPremium').value * 1e6,
+        lossRatio: +$('pLR').value / 100,
+        lossTrend: +$('pLossTrend').value / 100,
+        tail: $('pTail').value,
+        commercial: +$('pCommercial').value * 1e6,
+        mktTrend: +$('pMktTrend').value / 100,
+        ps: +$('pPS').value,
+        formation: +$('pFormation').value * 1e3,
+        opex: +$('pOpex').value * 1e3,
+        fronting: +$('pFronting').value / 100,
+        premiumTax: +$('pTax').value / 100,
+        yield: +$('pYield').value / 100,
+        coc: +$('pCoC').value / 100,
+        adverse: $('pAdverse').checked,
+      };
+    }
+
+    function updateLabels() {
+      $('vPremium').textContent = fmtMShort(+$('pPremium').value * 1e6);
+      $('vLR').textContent = $('pLR').value + '%';
+      $('vLossTrend').textContent = (+$('pLossTrend').value).toFixed(1) + '%';
+      $('vCommercial').textContent = fmtMShort(+$('pCommercial').value * 1e6);
+      $('vMktTrend').textContent = (+$('pMktTrend').value).toFixed(1) + '%';
+      $('vPS').textContent = (+$('pPS').value).toFixed(1) + ':1';
+      $('vFormation').textContent = '$' + $('pFormation').value + 'k';
+      $('vOpex').textContent = '$' + $('pOpex').value + 'k';
+      $('vFronting').textContent = (+$('pFronting').value).toFixed(2) + '%';
+      $('vTax').textContent = (+$('pTax').value).toFixed(1) + '%';
+      $('vYield').textContent = (+$('pYield').value).toFixed(2) + '%';
+      $('vCoC').textContent = (+$('pCoC').value).toFixed(1) + '%';
+
+      // Sanity check on the comparison basis: what loss ratio is the carrier pricing to?
+      // A market premium far above expected losses flatters the captive automatically.
+      const expectedLosses = (+$('pPremium').value) * (+$('pLR').value / 100);
+      const commercial = +$('pCommercial').value;
+      const impliedLR = commercial > 0 ? expectedLosses / commercial : 0;
+      const note = $('impliedNote');
+      note.textContent = 'Implied carrier loss ratio at this premium: ' + (impliedLR * 100).toFixed(0) +
+        '%. Commercial pricing typically implies 60–80%; well below that range means the comparison is doing the work, not the captive.';
+      note.classList.toggle('warn', impliedLR < 0.55 || impliedLR > 0.95);
+    }
+
+    // ==============================
+    // Formatting
+    // ==============================
+    function fmtMShort(v) {
+      const m = v / 1e6;
+      return '$' + (m >= 10 ? m.toFixed(1) : m.toFixed(2)) + 'M';
+    }
+    function fmtM(v) {
+      const m = +(v / 1e6).toFixed(2);
+      return (m < 0 ? '−' : '') + '$' + Math.abs(m).toFixed(2) + 'M';
+    }
+    function fmtK(v) {
+      const k = Math.round(v / 1e3);
+      return (k < 0 ? '−' : '') + Math.abs(k).toLocaleString('en-US');
+    }
+    function fmtPct(v, dp) { return (v * 100).toFixed(dp === undefined ? 1 : dp) + '%'; }
+
+    // ==============================
+    // Charts
+    // ==============================
+    let costChart = null, surplusChart = null, compChart = null;
+
+    const baseLegend = {
+      position: 'top', align: 'end',
+      labels: { font: { family: FONT, size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 },
+    };
+
+    function tooltipCfg(labelCb) {
+      return {
+        backgroundColor: '#1a1a1a',
+        titleFont: { family: FONT, size: 11 },
+        bodyFont: { family: FONT, size: 11 },
+        padding: 10, cornerRadius: 6,
+        callbacks: { label: labelCb },
+      };
+    }
+
+    const yearLabels = Array.from({ length: YEARS }, (_, i) => 'Year ' + (i + 1));
+
+    function dollarAxis(stacked) {
+      return {
+        stacked: !!stacked,
+        grid: { color: '#f0f0f0' },
+        ticks: { font: { family: FONT, size: 10 }, color: '#999', callback: v => '$' + (v / 1e6).toFixed(1) + 'M' },
+      };
+    }
+
+    function catAxis(stacked) {
+      return { stacked: !!stacked, grid: { display: false }, ticks: { font: { family: FONT, size: 11 }, color: '#999' } };
+    }
+
+    function renderCostChart(base, adverse) {
+      const datasets = [
+        {
+          label: 'Commercial market', data: base.years.map(y => y.cumCommercial),
+          borderColor: 'rgba(127,140,141,0.95)', backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fff', tension: 0.15,
+        },
+        {
+          label: 'Captive', data: base.years.map(y => y.cumCaptive),
+          borderColor: 'rgba(36,113,163,1)', backgroundColor: 'rgba(36,113,163,0.06)',
+          borderWidth: 2.5, pointRadius: 3, pointBackgroundColor: '#fff', tension: 0.15, fill: true,
+        },
+      ];
+      if (adverse) datasets.push({
+        label: 'Captive — adverse (+20 pts LR)', data: adverse.years.map(y => y.cumCaptive),
+        borderColor: 'rgba(192,57,43,0.8)', backgroundColor: 'transparent',
+        borderWidth: 1.75, borderDash: [5, 4], pointRadius: 0, tension: 0.15,
+      });
+
+      const data = { labels: yearLabels, datasets };
+      if (costChart) { costChart.data = data; costChart.update(); return; }
+      costChart = new Chart($('costCanvas'), {
+        type: 'line', data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: { legend: baseLegend, tooltip: tooltipCfg(i => i.dataset.label + ': ' + fmtM(i.parsed.y)) },
+          scales: { x: catAxis(false), y: dollarAxis(false) },
+        },
+      });
+    }
+
+    function renderSurplusChart(base) {
+      const data = {
+        labels: yearLabels,
+        datasets: [
+          {
+            type: 'bar', label: 'Surplus', data: base.years.map(y => y.surplus),
+            backgroundColor: 'rgba(36,113,163,0.65)', borderRadius: 3, order: 2, yAxisID: 'y',
+          },
+          {
+            type: 'line', label: 'Premium-to-surplus', data: base.years.map(y => +y.psRatio.toFixed(2)),
+            borderColor: 'rgba(26,26,26,0.85)', backgroundColor: 'transparent',
+            borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#fff', tension: 0.2, order: 1, yAxisID: 'y1',
+          },
+        ],
+      };
+      if (surplusChart) { surplusChart.data = data; surplusChart.update(); return; }
+      surplusChart = new Chart($('surplusCanvas'), {
+        data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: baseLegend,
+            tooltip: tooltipCfg(i => i.dataset.label + ': ' + (i.dataset.yAxisID === 'y1' ? i.parsed.y.toFixed(2) + ':1' : fmtM(i.parsed.y))),
+          },
+          scales: {
+            x: catAxis(false),
+            y: dollarAxis(false),
+            y1: {
+              position: 'right', grid: { display: false },
+              ticks: { font: { family: FONT, size: 10 }, color: '#999', callback: v => v.toFixed(1) + ':1' },
+            },
+          },
+        },
+      });
+    }
+
+    function renderCompChart(base) {
+      const mk = (label, key, color) => ({
+        label, data: base.years.map(y => y[key]), backgroundColor: color, borderRadius: 2,
+      });
+      const data = {
+        labels: yearLabels,
+        datasets: [
+          mk('Incurred losses', 'incurred', 'rgba(36,113,163,0.7)'),
+          mk('Fronting fee', 'fronting', 'rgba(127,140,141,0.7)'),
+          mk('Premium tax', 'tax', 'rgba(180,180,180,0.8)'),
+          mk('Operating cost', 'opex', 'rgba(108,52,131,0.55)'),
+          mk('Formation', 'formation', 'rgba(192,57,43,0.5)'),
+          mk('Capital charge', 'capitalCharge', 'rgba(26,26,26,0.55)'),
+        ],
+      };
+      if (compChart) { compChart.data = data; compChart.update(); return; }
+      compChart = new Chart($('compCanvas'), {
+        type: 'bar', data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: Object.assign({}, baseLegend, { labels: Object.assign({}, baseLegend.labels, { boxHeight: 7, font: { family: FONT, size: 10 } }) }),
+            tooltip: tooltipCfg(i => i.dataset.label + ': ' + fmtM(i.parsed.y)),
+          },
+          scales: { x: catAxis(true), y: dollarAxis(true) },
+        },
+      });
+    }
+
+    // ==============================
+    // Table
+    // ==============================
+    function renderTable(base) {
+      const rows = [
+        ['section', 'Underwriting'],
+        ['Premium funded', y => y.premium],
+        ['Incurred losses', y => -y.incurred],
+        ['Fronting fee', y => -y.fronting],
+        ['Premium tax', y => -y.tax],
+        ['Operating cost', y => -y.opex],
+        ['Formation cost', y => -y.formation],
+        ['emphasis', 'Underwriting result', y => y.uwResult],
+        ['section', 'Loss position'],
+        ['Paid losses', y => y.paid],
+        ['Loss reserves (year-end)', y => y.reserves],
+        ['section', 'Capital &amp; investment'],
+        ['Invested assets', y => y.investedAssets],
+        ['Investment income', y => y.investmentIncome],
+        ['emphasis', 'Surplus (year-end)', y => y.surplus],
+        ['Premium-to-surplus', y => y.psRatio, 'ratio'],
+        ['section', 'Economic comparison'],
+        ['Captive economic cost', y => y.economicCost],
+        ['Commercial premium', y => y.commercial],
+        ['emphasis', 'Annual advantage', y => y.commercial - y.economicCost],
+      ];
+
+      let html = '<thead><tr><th>$000s</th>' + base.years.map(y => '<th>Year ' + y.year + '</th>').join('') + '</tr></thead><tbody>';
+      rows.forEach(r => {
+        if (r[0] === 'section') {
+          html += '<tr class="section-row"><td colspan="' + (YEARS + 1) + '">' + r[1] + '</td></tr>';
+          return;
+        }
+        const isEmph = r[0] === 'emphasis';
+        const label = isEmph ? r[1] : r[0];
+        const fn = isEmph ? r[2] : r[1];
+        const kind = isEmph ? r[3] : r[2];
+        html += '<tr' + (isEmph ? ' class="emphasis"' : '') + '><td>' + label + '</td>';
+        base.years.forEach(y => {
+          const v = fn(y);
+          if (kind === 'ratio') {
+            html += '<td>' + (isFinite(v) ? v.toFixed(2) + ':1' : '—') + '</td>';
+          } else {
+            html += '<td' + (v < 0 ? ' class="neg"' : '') + '>' + fmtK(v) + '</td>';
+          }
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      $('pfTable').innerHTML = html;
+    }
+
+    // ==============================
+    // KPIs + verdict
+    // ==============================
+    function renderKPIs(base, p) {
+      const advPct = base.totalCommercial > 0 ? base.advantage / base.totalCommercial : 0;
+      const items = [
+        ['5-yr captive cost', fmtM(base.totalCaptive), '', 0],
+        ['5-yr commercial cost', fmtM(base.totalCommercial), '', 0],
+        ['Advantage', fmtM(base.advantage), fmtPct(advPct) + ' of market spend', base.advantage],
+        ['Break-even', base.breakEvenYear ? 'Year ' + base.breakEvenYear : 'None in 5 yr', base.breakEvenYear ? 'cumulative basis' : 'never crosses', base.breakEvenYear ? 1 : -1],
+        ['Capital required', fmtM(base.capital), 'at ' + p.ps.toFixed(1) + ':1 premium-to-surplus', 0],
+      ];
+      $('kpiStrip').innerHTML = items.map(([label, val, sub, sign]) =>
+        '<div class="kpi"><div class="kpi__label">' + label + '</div>' +
+        '<div class="kpi__value' + (sign < 0 ? ' neg' : sign > 0 ? ' pos' : '') + '">' + val + '</div>' +
+        (sub ? '<div class="kpi__sub">' + sub + '</div>' : '') + '</div>'
+      ).join('');
+    }
+
+    function renderVerdict(base, adverse, p) {
+      const advPct = base.totalPremium > 0 ? base.advantage / base.totalPremium : 0;
+      const psOK = base.maxPS <= 3.0;
+      const adverseOK = adverse ? adverse.advantage > 0 : true;
+      const marginOK = advPct > 0.10;
+
+      let state, headline;
+      if (base.advantage <= 0) {
+        state = 'no';
+        headline = 'Not feasible at these assumptions';
+      } else if (marginOK && psOK && adverseOK) {
+        state = 'feasible';
+        headline = 'Feasible';
+      } else {
+        state = 'marginal';
+        headline = 'Marginal';
+      }
+
+      const parts = [];
+
+      if (base.advantage > 0) {
+        parts.push('Over five years the captive costs <strong>' + fmtM(base.totalCaptive) + '</strong> against <strong>' +
+          fmtM(base.totalCommercial) + '</strong> in trended commercial premium — an advantage of <strong>' + fmtM(base.advantage) +
+          '</strong>, or ' + fmtPct(advPct) + ' of premium funded. ' +
+          (base.breakEvenYear ? 'Cumulative cost crosses in <strong>year ' + base.breakEvenYear + '</strong>.'
+                              : 'Cumulative cost does not cross within the five-year window.'));
+      } else {
+        parts.push('Over five years the captive costs <strong>' + fmtM(base.totalCaptive) + '</strong> against <strong>' +
+          fmtM(base.totalCommercial) + '</strong> in trended commercial premium — the captive is <strong>' +
+          fmtM(-base.advantage) + '</strong> more expensive.');
+      }
+
+      // Name the binding constraint
+      const constraints = [];
+      if (!marginOK && base.advantage > 0) {
+        constraints.push('the margin over the commercial market is ' + fmtPct(advPct) + ' of funded premium, inside the 10% buffer that makes a captive worth the administrative commitment');
+      }
+      if (!psOK) {
+        constraints.push('premium-to-surplus peaks at ' + base.maxPS.toFixed(2) + ':1, above the 3:1 leverage most domiciles and fronting carriers will accept — the program needs more capital than ' + fmtM(base.capital));
+      }
+      if (!adverseOK && adverse) {
+        constraints.push('a 20-point loss ratio deterioration erases the advantage entirely, turning it into a ' + fmtM(-adverse.advantage) + ' shortfall');
+      }
+
+      if (constraints.length) {
+        parts.push('Binding constraint: ' + constraints.join('; ') + '.');
+      } else if (state === 'feasible') {
+        parts.push('The advantage survives a 20-point loss ratio deterioration' +
+          (adverse ? ' (' + fmtM(adverse.advantage) + ' remaining)' : '') +
+          ', and premium-to-surplus peaks at ' + base.maxPS.toFixed(2) + ':1, inside conventional leverage limits.');
+      }
+
+      // Flip point
+      const minPrem = minimumViablePremium(p, p.lossRatio);
+      if (minPrem && Math.abs(minPrem - p.premium) / p.premium > 0.02) {
+        parts.push(p.premium < minPrem
+          ? 'Feasibility turns on volume: at this cost structure the economics flip at roughly <strong>' + fmtM(minPrem) + '</strong> of funded premium, against ' + fmtM(p.premium) + ' modeled here.'
+          : 'The fixed cost base is carried at this volume — the economics would flip below roughly <strong>' + fmtM(minPrem) + '</strong> of funded premium.');
+      } else if (!minPrem) {
+        parts.push('No funded premium volume makes these economics work: the frictional load and capital charge exceed the commercial premium at every scale tested.');
+      }
+
+      $('verdict').className = 'verdict verdict--' + state;
+      $('verdict').innerHTML =
+        '<div class="verdict__label">Feasibility assessment</div>' +
+        '<div class="verdict__headline">' + headline + '</div>' +
+        '<div class="verdict__body">' + parts.map(t => '<p>' + t + '</p>').join('') + '</div>';
+    }
+
+    // ==============================
+    // Orchestration
+    // ==============================
+    function renderAll() {
+      updateLabels();
+      const p = readInputs();
+      const base = simulate(p, p.lossRatio);
+      const adverse = p.adverse ? simulate(p, p.lossRatio + 0.20) : null;
+
+      renderVerdict(base, adverse, p);
+      renderKPIs(base, p);
+      renderCostChart(base, adverse);
+      renderSurplusChart(base);
+      renderCompChart(base);
+      renderTable(base);
+    }
+
+    function applyPreset(name) {
+      const preset = PRESETS[name];
+      if (!preset) return;
+      Object.keys(preset).forEach(id => { $(id).value = preset[id]; });
+      activePreset = name;
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === name));
+      renderAll();
+    }
+
+    // wiring
+    ['pPremium', 'pLR', 'pLossTrend', 'pCommercial', 'pMktTrend', 'pPS', 'pFormation', 'pOpex', 'pFronting', 'pTax', 'pYield', 'pCoC']
+      .forEach(id => $(id).addEventListener('input', renderAll));
+    $('pTail').addEventListener('change', renderAll);
+    $('pAdverse').addEventListener('change', renderAll);
+    document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+    $('resetBtn').addEventListener('click', () => applyPreset(activePreset));
+    $('printBtn').addEventListener('click', () => window.print());
+
+    renderAll();
+  })();
+  </script>
+</body>
+</html>

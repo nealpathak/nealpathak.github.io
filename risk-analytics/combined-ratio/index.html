@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Combined Ratio &amp; Underwriting — Neal Pathak</title>
+  <meta name="description" content="Where is an underwriting book making or losing money, and which way is it moving? Loss, expense, and combined ratios by line and accident year, trended against a target.">
+  <meta property="og:title" content="Combined Ratio &amp; Underwriting — Neal Pathak">
+  <meta property="og:description" content="Where is an underwriting book making or losing money, and which way is it moving? Loss, expense, and combined ratios by line and accident year, trended against a target.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/combined-ratio/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/combined-ratio/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-text-tertiary);
+      color: var(--color-text);
+    }
+
+    .mode-btn.active {
+      background: var(--color-risk);
+      color: #fff;
+      border-color: var(--color-risk);
+    }
+
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 200px; }
+
+    .settings-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input,
+    .settings-row select {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .grid-editor__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .grid-editor h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .grid-editor .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .uw-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .uw-grid th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .uw-grid th.num { text-align: right; }
+
+    .uw-grid td {
+      padding: var(--space-xs) var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .uw-grid tr:last-child td { border-bottom: none; }
+
+    .uw-grid input[type="text"],
+    .uw-grid input[type="number"],
+    .uw-grid select {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      min-height: 32px;
+    }
+
+    .uw-grid input[type="number"] {
+      font-family: var(--font-mono);
+      text-align: right;
+      width: 130px;
+    }
+
+    .uw-grid input[type="text"] { width: 170px; }
+    .uw-grid select { width: 110px; }
+
+    .row-actions { width: 30px; text-align: center; }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: var(--text-lg);
+      padding: 0 6px;
+      line-height: 1;
+    }
+
+    .icon-btn:hover { color: var(--color-risk); }
+
+    .grid-add-row {
+      margin-top: var(--space-md);
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .csv-section { display: none; }
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-risk);
+      background: rgba(192, 57, 43, 0.02);
+    }
+
+    .csv-upload-zone p { max-width: none; }
+
+    .csv-upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .csv-upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .csv-upload-zone__status.success { color: var(--color-data); }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .template-link {
+      display: inline-block;
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+    }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+      max-width: none;
+    }
+
+    .generate-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .report-output { display: none; }
+    .report-output.visible { display: block; margin-top: var(--space-2xl); }
+
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .report-header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: var(--space-xl) var(--space-2xl);
+    }
+
+    .report-header__company {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .report-header__subtitle {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-header__period {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-body { padding: var(--space-xl) var(--space-2xl) var(--space-2xl); }
+
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: var(--space-lg) var(--space-md);
+      border-right: 1px solid var(--color-border-light);
+      background: var(--color-bg);
+    }
+
+    .report-stat:last-child { border-right: none; }
+
+    .report-stat__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-stat__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-top: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .report-stat__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    .report-stat__change {
+      font-size: var(--text-xs);
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    .report-stat__change.up { color: var(--color-risk); }
+    .report-stat__change.down { color: var(--color-data); }
+    .report-stat__change.flat { color: var(--color-text-tertiary); }
+
+    .report-chart-full {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-chart-full h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-full__wrapper {
+      position: relative;
+      height: 320px;
+    }
+
+    .report-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-chart-box {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .report-chart-box h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-wrapper {
+      position: relative;
+      height: 280px;
+    }
+
+    .report-section-header {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-detail { margin-bottom: var(--space-xl); }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .report-table th.num { text-align: right; }
+
+    .report-table td {
+      padding: 10px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+      font-size: var(--text-xs);
+    }
+
+    .report-table .row-name {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .report-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .change-pill {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+    }
+
+    .change-pill.up { color: var(--color-risk); }
+    .change-pill.down { color: var(--color-data); }
+    .change-pill.flat { color: var(--color-text-tertiary); }
+
+    .cr-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cr-pill.profit { background: rgba(30, 132, 73, 0.12); color: var(--color-data); }
+    .cr-pill.tight  { background: rgba(36, 113, 163, 0.12); color: var(--color-legal); }
+    .cr-pill.loss   { background: rgba(230, 126, 34, 0.14); color: #b9710e; }
+    .cr-pill.heavy  { background: rgba(192, 57, 43, 0.12); color: var(--color-risk); }
+
+    .report-footer {
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    @media print {
+      @page { margin: 0.5in 0.6in; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
+      .report-output { display: block !important; margin-top: 0 !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+
+      .report { border: none; border-radius: 0; box-shadow: none; }
+
+      .report-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 16px 20px;
+      }
+      .report-header__company { font-size: 20px; }
+      .report-header__subtitle { font-size: 11px; }
+      .report-header__period { font-size: 9px; }
+
+      .report-body { padding: 16px 20px 20px; }
+
+      .report-stats {
+        margin-bottom: 14px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        break-inside: avoid;
+      }
+      .report-stat { padding: 10px 6px; }
+      .report-stat__label { font-size: 8px; }
+      .report-stat__value { font-size: 18px; }
+      .report-stat__sub, .report-stat__change { font-size: 9px; }
+
+      .report-chart-full {
+        padding: 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+      }
+      .report-chart-full h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-full__wrapper { height: 200px !important; }
+
+      .report-charts {
+        gap: 12px;
+        margin-bottom: 14px;
+        break-inside: avoid;
+      }
+      .report-chart-box { padding: 10px; }
+      .report-chart-box h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-wrapper { height: 170px !important; }
+
+      .report-detail { margin-bottom: 12px; break-inside: avoid; }
+      .report-section-header { font-size: 9px; margin-bottom: 6px; }
+
+      .report-table { font-size: 10px; }
+      .report-table th { font-size: 8px; padding: 4px 6px; }
+      .report-table td { padding: 5px 6px; }
+
+      .report-footer { font-size: 8px; padding-top: 8px; }
+    }
+
+    @media (max-width: 900px) {
+      .report-stats { grid-template-columns: repeat(2, 1fr); }
+      .report-charts { grid-template-columns: 1fr; }
+      .settings-row { flex-direction: column; align-items: stretch; }
+    }
+
+    @media (max-width: 480px) {
+      .report-stats { grid-template-columns: 1fr; }
+      .report-chart-wrapper,
+      .report-chart-full__wrapper { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>Combined Ratio &amp; Underwriting Dashboard</h1>
+        <p>Where is an underwriting book making or losing money &mdash; and which way is it moving? Loss, expense, and combined ratios by line of business and accident year, trended against a target combined ratio, with the underwriting result in dollars alongside the percentages.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="input-section" id="inputSection">
+
+          <div class="input-modes">
+            <span class="mode-label">Input:</span>
+            <button class="mode-btn active" data-mode="form">Form</button>
+            <button class="mode-btn" data-mode="csv">CSV Upload</button>
+            <button class="mode-btn" data-mode="demo">Demo Data</button>
+          </div>
+
+          <div class="settings-row">
+            <div class="form-group">
+              <label>Carrier Name</label>
+              <input type="text" id="carrierName" placeholder="e.g. Meridian Specialty Insurance Co.">
+            </div>
+            <div class="form-group">
+              <label>Reporting Currency</label>
+              <select id="currency">
+                <option value="USD" selected>USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Combined Ratio (%)</label>
+              <input type="number" id="targetCR" value="95" min="0" max="200" step="0.5">
+            </div>
+            <div class="form-group">
+              <label>Prepared By</label>
+              <input type="text" id="preparedBy" placeholder="Optional">
+            </div>
+          </div>
+
+          <div class="grid-editor" id="formEditor">
+            <div class="grid-editor__header">
+              <h3>Premium &amp; Losses by Line / Year</h3>
+            </div>
+            <p class="subtitle">One row per accident year &times; line. Loss ratio = losses incurred &divide; premium earned. Expense ratio = expenses &divide; premium written (trade basis). Combined ratio = loss + expense ratios.</p>
+            <div style="overflow-x:auto; margin-top: var(--space-md);">
+              <table class="uw-grid" id="uwGrid"></table>
+            </div>
+            <div class="grid-add-row">
+              <button class="btn" id="addRowBtn" type="button">+ Add Row</button>
+            </div>
+          </div>
+
+          <div class="csv-section" id="csvSection">
+            <div class="csv-upload-zone" id="csvUploadZone">
+              <p class="csv-upload-zone__title">Drop a CSV file here or click to upload</p>
+              <p class="csv-upload-zone__hint">Columns: year, line, premium_written, premium_earned, losses_incurred, expenses_incurred</p>
+              <p class="csv-upload-zone__status" id="csvStatus"></p>
+              <input type="file" id="csvFileInput" accept=".csv" hidden aria-label="Upload underwriting CSV">
+            </div>
+            <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+            <a class="template-link" id="downloadTemplate">Download CSV template</a>
+          </div>
+
+          <div class="generate-row">
+            <button class="btn btn--primary" id="generateBtn">Generate Dashboard</button>
+          </div>
+        </div>
+
+        <div class="report-output" id="reportOutput">
+          <div class="print-row">
+            <button class="btn btn--primary" id="printBtn">Print / Save as PDF</button>
+            <button class="btn" id="editBtn">Edit Data</button>
+          </div>
+          <div class="report" id="report"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Demo Data — mid-size P&C carrier, 4 years, 5 LOBs
+    // ==============================
+    const LINES = ['Commercial Auto', 'General Liability', 'Workers Comp', 'Property', 'Cyber'];
+
+    // Stable color palette by line
+    const LINE_COLORS = {
+      'Commercial Auto':   'rgba(36, 113, 163, 0.85)',
+      'General Liability': 'rgba(192, 57, 43, 0.85)',
+      'Workers Comp':      'rgba(30, 132, 73, 0.85)',
+      'Property':          'rgba(230, 126, 34, 0.85)',
+      'Cyber':             'rgba(136, 78, 160, 0.85)',
+      'Other':             'rgba(127, 140, 141, 0.85)',
+    };
+
+    const DEMO_ROWS = [
+      // 2022
+      { year: 2022, line: 'Commercial Auto',   pw: 142000000, pe: 138000000, li: 109200000, ei: 41400000 },
+      { year: 2022, line: 'General Liability', pw:  95000000, pe:  92000000, li:  62100000, ei: 26600000 },
+      { year: 2022, line: 'Workers Comp',      pw: 188000000, pe: 185000000, li: 122100000, ei: 50800000 },
+      { year: 2022, line: 'Property',          pw: 124000000, pe: 121000000, li:  87100000, ei: 33500000 },
+      { year: 2022, line: 'Cyber',             pw:  42000000, pe:  39000000, li:  35100000, ei: 13700000 },
+      // 2023
+      { year: 2023, line: 'Commercial Auto',   pw: 158000000, pe: 152000000, li: 124600000, ei: 45100000 },
+      { year: 2023, line: 'General Liability', pw: 102000000, pe:  99000000, li:  71300000, ei: 28800000 },
+      { year: 2023, line: 'Workers Comp',      pw: 195000000, pe: 192000000, li: 119000000, ei: 52600000 },
+      { year: 2023, line: 'Property',          pw: 138000000, pe: 134000000, li: 108500000, ei: 37200000 },
+      { year: 2023, line: 'Cyber',             pw:  56000000, pe:  52000000, li:  41600000, ei: 17600000 },
+      // 2024
+      { year: 2024, line: 'Commercial Auto',   pw: 174000000, pe: 168000000, li: 142000000, ei: 49600000 },
+      { year: 2024, line: 'General Liability', pw: 115000000, pe: 112000000, li:  79500000, ei: 32500000 },
+      { year: 2024, line: 'Workers Comp',      pw: 199000000, pe: 198000000, li: 117800000, ei: 53700000 },
+      { year: 2024, line: 'Property',          pw: 152000000, pe: 148000000, li: 144000000, ei: 41100000 },
+      { year: 2024, line: 'Cyber',             pw:  72000000, pe:  68000000, li:  44200000, ei: 22600000 },
+      // 2025
+      { year: 2025, line: 'Commercial Auto',   pw: 188000000, pe: 184000000, li: 145400000, ei: 53700000 },
+      { year: 2025, line: 'General Liability', pw: 124000000, pe: 121000000, li:  82900000, ei: 35100000 },
+      { year: 2025, line: 'Workers Comp',      pw: 204000000, pe: 202000000, li: 119200000, ei: 55100000 },
+      { year: 2025, line: 'Property',          pw: 168000000, pe: 162000000, li: 121500000, ei: 45400000 },
+      { year: 2025, line: 'Cyber',             pw:  88000000, pe:  84000000, li:  46200000, ei: 27700000 },
+    ];
+
+    const DEMO_DATA = {
+      carrier: 'Meridian Specialty Insurance Co.',
+      currency: 'USD',
+      targetCR: 95,
+      rows: DEMO_ROWS,
+    };
+
+    const EMPTY_ROW = () => ({
+      year: new Date().getFullYear(),
+      line: LINES[0],
+      pw: 0, pe: 0, li: 0, ei: 0,
+    });
+
+    // ==============================
+    // State
+    // ==============================
+    let state = {
+      carrier: '',
+      currency: 'USD',
+      targetCR: 95,
+      preparedBy: '',
+      rows: [],
+      mode: 'form',
+    };
+
+    let trendChart = null;
+    let bookChart = null;
+    let mixChart = null;
+
+    // Elements
+    const carrierEl = document.getElementById('carrierName');
+    const currencyEl = document.getElementById('currency');
+    const targetCREl = document.getElementById('targetCR');
+    const preparedByEl = document.getElementById('preparedBy');
+    const uwGridEl = document.getElementById('uwGrid');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+    const downloadTemplate = document.getElementById('downloadTemplate');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    function setStateFromDemo() {
+      const d = DEMO_DATA;
+      state.carrier = d.carrier;
+      state.currency = d.currency;
+      state.targetCR = d.targetCR;
+      state.rows = d.rows.map(r => ({ ...r }));
+      carrierEl.value = state.carrier;
+      currencyEl.value = state.currency;
+      targetCREl.value = state.targetCR;
+    }
+
+    function renderGrid() {
+      // Build LOB option list from current rows + defaults to ensure consistency
+      const distinctLines = Array.from(new Set([...LINES, ...state.rows.map(r => r.line).filter(Boolean)]));
+
+      let html = '<thead><tr>';
+      html += '<th>Year</th><th>Line of Business</th>';
+      html += '<th class="num">Premium Written</th>';
+      html += '<th class="num">Premium Earned</th>';
+      html += '<th class="num">Losses Incurred</th>';
+      html += '<th class="num">Expenses Incurred</th>';
+      html += '<th class="row-actions"></th>';
+      html += '</tr></thead><tbody>';
+
+      state.rows.forEach((r, i) => {
+        html += '<tr>';
+        html += '<td><input type="number" data-i="' + i + '" data-f="year" value="' + (r.year || '') + '" step="1" min="1990" max="2100" style="width:90px"></td>';
+        html += '<td><select data-i="' + i + '" data-f="line">';
+        distinctLines.forEach(l => {
+          html += '<option value="' + escapeAttr(l) + '"' + (r.line === l ? ' selected' : '') + '>' + escapeHtml(l) + '</option>';
+        });
+        html += '</select></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="pw" value="' + (r.pw || '') + '" step="1000" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="pe" value="' + (r.pe || '') + '" step="1000" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="li" value="' + (r.li || '') + '" step="1000" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="ei" value="' + (r.ei || '') + '" step="1000" placeholder="0"></td>';
+        html += '<td class="row-actions"><button type="button" class="icon-btn" data-del="' + i + '" title="Remove">&times;</button></td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      uwGridEl.innerHTML = html;
+
+      uwGridEl.oninput = function(e) {
+        const t = e.target;
+        if (t.tagName !== 'INPUT' && t.tagName !== 'SELECT') return;
+        const i = parseInt(t.dataset.i, 10);
+        const f = t.dataset.f;
+        if (isNaN(i) || !f) return;
+        if (['year','pw','pe','li','ei'].includes(f)) {
+          state.rows[i][f] = parseFloat(t.value) || 0;
+        } else {
+          state.rows[i][f] = t.value;
+        }
+      };
+
+      uwGridEl.onclick = function(e) {
+        const t = e.target;
+        if (t.classList.contains('icon-btn') && t.dataset.del != null) {
+          const idx = parseInt(t.dataset.del, 10);
+          state.rows.splice(idx, 1);
+          if (state.rows.length === 0) state.rows.push(EMPTY_ROW());
+          renderGrid();
+        }
+      };
+    }
+
+    addRowBtn.addEventListener('click', () => {
+      state.rows.push(EMPTY_ROW());
+      renderGrid();
+    });
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = mode;
+
+        if (mode === 'form') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+        } else if (mode === 'csv') {
+          formEditor.style.display = 'none';
+          csvSection.classList.add('visible');
+        } else if (mode === 'demo') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+          setStateFromDemo();
+          renderGrid();
+        }
+      });
+    });
+
+    carrierEl.addEventListener('input', () => { state.carrier = carrierEl.value; });
+    currencyEl.addEventListener('change', () => { state.currency = currencyEl.value; });
+    targetCREl.addEventListener('input', () => { state.targetCR = parseFloat(targetCREl.value) || 0; });
+    preparedByEl.addEventListener('input', () => { state.preparedBy = preparedByEl.value; });
+
+    // ==============================
+    // CSV
+    // ==============================
+    function parseCSVLine(line) {
+      const out = [];
+      let cur = '';
+      let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQ) {
+          if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+          else if (c === '"') { inQ = false; }
+          else cur += c;
+        } else {
+          if (c === '"') inQ = true;
+          else if (c === ',') { out.push(cur); cur = ''; }
+          else cur += c;
+        }
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+      const required = ['year','line','premium_written','premium_earned','losses_incurred','expenses_incurred'];
+      const missing = required.filter(h => headers.indexOf(h) === -1);
+      if (missing.length) throw new Error('Missing columns: ' + missing.join(', '));
+
+      const idx = {};
+      required.forEach(r => { idx[r] = headers.indexOf(r); });
+
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCSVLine(lines[i]);
+        const y = parseInt(cells[idx['year']], 10);
+        if (isNaN(y)) continue;
+        rows.push({
+          year: y,
+          line: cells[idx['line']] || 'Other',
+          pw: parseFloat(cells[idx['premium_written']]) || 0,
+          pe: parseFloat(cells[idx['premium_earned']]) || 0,
+          li: parseFloat(cells[idx['losses_incurred']]) || 0,
+          ei: parseFloat(cells[idx['expenses_incurred']]) || 0,
+        });
+      }
+      if (!rows.length) throw new Error('No valid data rows found.');
+      return rows;
+    }
+
+    function loadCSV(text) {
+      try {
+        const rows = parseCSV(text);
+        state.rows = rows;
+        csvStatus.textContent = 'Loaded ' + rows.length + ' rows.';
+        csvStatus.className = 'csv-upload-zone__status success';
+        renderGrid();
+      } catch (err) {
+        csvStatus.textContent = err.message;
+        csvStatus.className = 'csv-upload-zone__status error';
+      }
+    }
+
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    csvFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleCSVFile(e.target.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => loadCSV(e.target.result);
+      reader.readAsText(file);
+    }
+
+    downloadTemplate.addEventListener('click', e => {
+      e.preventDefault();
+      const header = 'year,line,premium_written,premium_earned,losses_incurred,expenses_incurred';
+      const sample = '2025,Commercial Auto,188000000,184000000,145400000,53700000';
+      const blob = new Blob([header + '\n' + sample + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'underwriting-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ==============================
+    // Formatters
+    // ==============================
+    function currencySymbol() {
+      return state.currency === 'EUR' ? '€' : state.currency === 'GBP' ? '£' : '$';
+    }
+
+    function fmtCurShort(v) {
+      const abs = Math.abs(v);
+      const sign = v < 0 ? '-' : '';
+      const sym = currencySymbol();
+      if (abs >= 1e9) return sign + sym + (abs / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return sign + sym + (abs / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return sign + sym + (abs / 1e3).toFixed(0) + 'K';
+      return sign + sym + Math.round(abs).toLocaleString();
+    }
+
+    function fmtCurFull(v) {
+      const sign = v < 0 ? '-' : '';
+      return sign + currencySymbol() + Math.round(Math.abs(v)).toLocaleString();
+    }
+
+    function fmtPct(v) { return v.toFixed(1) + '%'; }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    function yoyPill(curr, prior) {
+      if (prior === 0 || prior == null) return { text: '—', cls: 'flat' };
+      const diff = ((curr - prior) / prior) * 100;
+      let cls = 'flat';
+      if (diff > 1) cls = 'up';
+      else if (diff < -1) cls = 'down';
+      const sign = diff > 0 ? '+' : '';
+      return { text: sign + diff.toFixed(1) + '%', cls };
+    }
+
+    function crPill(cr) {
+      if (cr === 0) return { cls: 'tight', text: '—' };
+      if (cr < 90)  return { cls: 'profit', text: 'Profitable' };
+      if (cr <= 100) return { cls: 'tight', text: 'Tight' };
+      if (cr <= 110) return { cls: 'loss', text: 'UW Loss' };
+      return { cls: 'heavy', text: 'Heavy Loss' };
+    }
+
+    // ==============================
+    // Aggregation helpers
+    // ==============================
+    function aggregateByYear(rows) {
+      const map = {};
+      rows.forEach(r => {
+        if (!map[r.year]) map[r.year] = { pw: 0, pe: 0, li: 0, ei: 0 };
+        const a = map[r.year];
+        a.pw += r.pw; a.pe += r.pe; a.li += r.li; a.ei += r.ei;
+      });
+      const years = Object.keys(map).map(Number).sort((a,b)=>a-b);
+      return years.map(y => {
+        const a = map[y];
+        const lr = a.pe > 0 ? (a.li / a.pe) * 100 : 0;
+        const er = a.pw > 0 ? (a.ei / a.pw) * 100 : 0;
+        const cr = lr + er;
+        const uw = a.pe - a.li - a.ei;
+        return { year: y, ...a, lr, er, cr, uw };
+      });
+    }
+
+    function aggregateByLineYear(rows) {
+      // Map[line][year] = totals
+      const map = {};
+      rows.forEach(r => {
+        if (!map[r.line]) map[r.line] = {};
+        if (!map[r.line][r.year]) map[r.line][r.year] = { pw: 0, pe: 0, li: 0, ei: 0 };
+        const a = map[r.line][r.year];
+        a.pw += r.pw; a.pe += r.pe; a.li += r.li; a.ei += r.ei;
+      });
+      return map;
+    }
+
+    function aggregateByLine(rows) {
+      const map = {};
+      rows.forEach(r => {
+        if (!map[r.line]) map[r.line] = { pw: 0, pe: 0, li: 0, ei: 0 };
+        const a = map[r.line];
+        a.pw += r.pw; a.pe += r.pe; a.li += r.li; a.ei += r.ei;
+      });
+      const lines = Object.keys(map);
+      return lines.map(l => {
+        const a = map[l];
+        const lr = a.pe > 0 ? (a.li / a.pe) * 100 : 0;
+        const er = a.pw > 0 ? (a.ei / a.pw) * 100 : 0;
+        const cr = lr + er;
+        const uw = a.pe - a.li - a.ei;
+        return { line: l, ...a, lr, er, cr, uw };
+      });
+    }
+
+    // ==============================
+    // Report generation
+    // ==============================
+    function generate() {
+      const rows = state.rows.filter(r => r.year && r.line);
+      if (!rows.length) return;
+
+      const byYear = aggregateByYear(rows);
+      const byLine = aggregateByLine(rows).sort((a,b)=>b.pe - a.pe);
+      const byLineYear = aggregateByLineYear(rows);
+
+      const n = byYear.length;
+      const curr = byYear[n-1];
+      const prior = n > 1 ? byYear[n-2] : null;
+
+      const html = buildReport({
+        rows, byYear, byLine, byLineYear, curr, prior,
+      });
+
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      setTimeout(() => {
+        renderTrendChart(byYear, byLineYear);
+        renderBookChart(byLine);
+        renderMixChart(byLine, byYear[n-1].year);
+      }, 30);
+    }
+
+    function buildReport(r) {
+      const { rows, byYear, byLine, byLineYear, curr, prior } = r;
+      const carrier = state.carrier.trim() || 'Carrier';
+      const preparedBy = state.preparedBy.trim();
+      const target = state.targetCR || 0;
+      const sym = currencySymbol();
+
+      const yearsLabel = byYear[0].year + '–' + curr.year;
+
+      let html = '';
+
+      html += '<div class="report-header">';
+      html += '<div class="report-header__company">' + escapeHtml(carrier) + '</div>';
+      html += '<p class="report-header__subtitle">Combined Ratio &amp; Underwriting Dashboard &mdash; ' + yearsLabel + '</p>';
+      html += '<p class="report-header__period">Latest accident year: ' + curr.year + ' &middot; ' + rows.length + ' rows';
+      if (preparedBy) html += ' &middot; Prepared by ' + escapeHtml(preparedBy);
+      html += '</p>';
+      html += '</div>';
+
+      html += '<div class="report-body">';
+
+      // KPIs
+      const crPillCurr = crPill(curr.cr);
+      const yoyCR = prior ? (curr.cr - prior.cr) : 0;
+      const yoyCRTxt = prior ? ((yoyCR > 0 ? '+' : '') + yoyCR.toFixed(1) + ' pts vs ' + prior.year) : 'No prior year';
+      const yoyCRCls = !prior ? 'flat' : (yoyCR > 0.5 ? 'up' : yoyCR < -0.5 ? 'down' : 'flat');
+      const targetGap = target > 0 ? curr.cr - target : 0;
+      const targetTxt = target > 0
+        ? ((targetGap > 0 ? '+' : '') + targetGap.toFixed(1) + ' pts vs ' + target + '%')
+        : 'No target set';
+      const targetCls = target === 0 ? 'flat' : (targetGap > 0.5 ? 'up' : targetGap < -0.5 ? 'down' : 'flat');
+
+      html += '<div class="report-stats">';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">Combined Ratio</div>';
+      html += '<div class="report-stat__value">' + curr.cr.toFixed(1) + '%</div>';
+      html += '<div class="report-stat__change ' + yoyCRCls + '">' + yoyCRTxt + '</div>';
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">Loss Ratio</div>';
+      html += '<div class="report-stat__value">' + curr.lr.toFixed(1) + '%</div>';
+      html += '<div class="report-stat__sub">Expense ratio ' + curr.er.toFixed(1) + '%</div>';
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">UW Result</div>';
+      html += '<div class="report-stat__value">' + fmtCurShort(curr.uw) + '</div>';
+      html += '<div class="report-stat__sub">' + curr.year + ' premium earned ' + fmtCurShort(curr.pe) + '</div>';
+      html += '</div>';
+
+      html += '<div class="report-stat">';
+      html += '<div class="report-stat__label">vs Target</div>';
+      html += '<div class="report-stat__value"><span class="cr-pill ' + crPillCurr.cls + '">' + crPillCurr.text + '</span></div>';
+      html += '<div class="report-stat__change ' + targetCls + '">' + targetTxt + '</div>';
+      html += '</div>';
+
+      html += '</div>';
+
+      // Trend (full width)
+      html += '<div class="report-chart-full">';
+      html += '<h4>Combined Ratio Trend by Line';
+      if (target > 0) html += ' &middot; target ' + target + '%';
+      html += '</h4>';
+      html += '<div class="report-chart-full__wrapper"><canvas id="trendCanvas"></canvas></div>';
+      html += '</div>';
+
+      // Two charts
+      html += '<div class="report-charts">';
+      html += '<div class="report-chart-box">';
+      html += '<h4>Book of Business &mdash; Loss vs Expense Ratio</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="bookCanvas"></canvas></div>';
+      html += '</div>';
+      html += '<div class="report-chart-box">';
+      html += '<h4>' + curr.year + ' Premium Mix</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="mixCanvas"></canvas></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Detail by line, latest year
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">By Line &mdash; ' + curr.year + '</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Line of Business</th>';
+      html += '<th class="num">Premium Written</th><th class="num">Premium Earned</th>';
+      html += '<th class="num">Losses Incurred</th><th class="num">Expenses</th>';
+      html += '<th class="num">Loss Ratio</th><th class="num">Expense Ratio</th>';
+      html += '<th class="num">Combined</th><th class="num">UW Result</th><th>Health</th>';
+      html += '</tr></thead><tbody>';
+
+      // Build per-line for latest year
+      const linesCurrYear = [];
+      Object.keys(byLineYear).forEach(line => {
+        const a = byLineYear[line][curr.year];
+        if (!a) return;
+        const lr = a.pe > 0 ? (a.li / a.pe) * 100 : 0;
+        const er = a.pw > 0 ? (a.ei / a.pw) * 100 : 0;
+        const cr = lr + er;
+        const uw = a.pe - a.li - a.ei;
+        linesCurrYear.push({ line, ...a, lr, er, cr, uw });
+      });
+      linesCurrYear.sort((a,b) => b.pe - a.pe);
+
+      // Totals for current year
+      let tPW = 0, tPE = 0, tLI = 0, tEI = 0;
+      linesCurrYear.forEach(l => { tPW += l.pw; tPE += l.pe; tLI += l.li; tEI += l.ei; });
+      const tLR = tPE > 0 ? (tLI / tPE) * 100 : 0;
+      const tER = tPW > 0 ? (tEI / tPW) * 100 : 0;
+      const tCR = tLR + tER;
+      const tUW = tPE - tLI - tEI;
+
+      linesCurrYear.forEach(l => {
+        const p = crPill(l.cr);
+        html += '<tr>';
+        html += '<td class="row-name">' + escapeHtml(l.line) + '</td>';
+        html += '<td class="num">' + fmtCurFull(l.pw) + '</td>';
+        html += '<td class="num">' + fmtCurFull(l.pe) + '</td>';
+        html += '<td class="num">' + fmtCurFull(l.li) + '</td>';
+        html += '<td class="num">' + fmtCurFull(l.ei) + '</td>';
+        html += '<td class="num">' + l.lr.toFixed(1) + '%</td>';
+        html += '<td class="num">' + l.er.toFixed(1) + '%</td>';
+        html += '<td class="num">' + l.cr.toFixed(1) + '%</td>';
+        html += '<td class="num">' + fmtCurFull(l.uw) + '</td>';
+        html += '<td><span class="cr-pill ' + p.cls + '">' + p.text + '</span></td>';
+        html += '</tr>';
+      });
+
+      html += '<tr class="total-row">';
+      html += '<td>Book Total</td>';
+      html += '<td class="num">' + fmtCurFull(tPW) + '</td>';
+      html += '<td class="num">' + fmtCurFull(tPE) + '</td>';
+      html += '<td class="num">' + fmtCurFull(tLI) + '</td>';
+      html += '<td class="num">' + fmtCurFull(tEI) + '</td>';
+      html += '<td class="num">' + tLR.toFixed(1) + '%</td>';
+      html += '<td class="num">' + tER.toFixed(1) + '%</td>';
+      html += '<td class="num">' + tCR.toFixed(1) + '%</td>';
+      html += '<td class="num">' + fmtCurFull(tUW) + '</td>';
+      html += '<td></td>';
+      html += '</tr>';
+      html += '</tbody></table></div>';
+
+      // YoY by year
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Year-Over-Year Summary</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Accident Year</th>';
+      html += '<th class="num">Premium Earned</th><th class="num">Losses</th>';
+      html += '<th class="num">Loss Ratio</th><th class="num">Expense Ratio</th>';
+      html += '<th class="num">Combined</th><th class="num">CR Change</th>';
+      html += '<th class="num">UW Result</th>';
+      html += '</tr></thead><tbody>';
+
+      byYear.forEach((y, i) => {
+        const prevCR = i > 0 ? byYear[i-1].cr : null;
+        const change = prevCR != null ? (y.cr - prevCR) : null;
+        const cls = change == null ? 'flat' : (change > 0.5 ? 'up' : change < -0.5 ? 'down' : 'flat');
+        const txt = change == null ? '—' : ((change > 0 ? '+' : '') + change.toFixed(1) + ' pts');
+        html += '<tr>';
+        html += '<td class="row-name">' + y.year + '</td>';
+        html += '<td class="num">' + fmtCurFull(y.pe) + '</td>';
+        html += '<td class="num">' + fmtCurFull(y.li) + '</td>';
+        html += '<td class="num">' + y.lr.toFixed(1) + '%</td>';
+        html += '<td class="num">' + y.er.toFixed(1) + '%</td>';
+        html += '<td class="num">' + y.cr.toFixed(1) + '%</td>';
+        html += '<td class="num"><span class="change-pill ' + cls + '">' + txt + '</span></td>';
+        html += '<td class="num">' + fmtCurFull(y.uw) + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += '<p class="report-footer">Generated ' + today + '. Loss ratio = losses incurred &divide; premium earned. ' +
+              'Expense ratio = expenses incurred &divide; premium written (trade basis). Combined ratio = loss ratio + expense ratio. ' +
+              'A combined ratio below 100% indicates an underwriting profit before investment income. ' +
+              'All amounts in ' + state.currency + '. Data provided by user &mdash; not independently verified. For informational purposes only.</p>';
+
+      html += '</div>';
+      return html;
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    function chartFontFamily() { return 'Inter'; }
+
+    function renderTrendChart(byYear, byLineYear) {
+      if (trendChart) trendChart.destroy();
+      const canvas = document.getElementById('trendCanvas');
+      if (!canvas) return;
+
+      const years = byYear.map(y => y.year);
+      const lines = Object.keys(byLineYear);
+
+      const datasets = lines.map(l => {
+        const color = LINE_COLORS[l] || 'rgba(127,140,141,0.85)';
+        const data = years.map(y => {
+          const a = byLineYear[l][y];
+          if (!a || a.pe <= 0) return null;
+          const lr = (a.li / a.pe) * 100;
+          const er = a.pw > 0 ? (a.ei / a.pw) * 100 : 0;
+          return +(lr + er).toFixed(2);
+        });
+        return {
+          label: l,
+          data,
+          borderColor: color,
+          backgroundColor: color.replace('0.85','0.10'),
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: color,
+          pointBorderWidth: 1.5,
+          tension: 0.3,
+          fill: false,
+          spanGaps: true,
+        };
+      });
+
+      // Book total line (bold)
+      datasets.push({
+        label: 'Book Total',
+        data: byYear.map(y => +y.cr.toFixed(2)),
+        borderColor: '#1a1a1a',
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderWidth: 2.75,
+        pointRadius: 4,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: '#1a1a1a',
+        pointBorderWidth: 2,
+        tension: 0.25,
+        fill: false,
+      });
+
+      // Target line
+      const target = state.targetCR || 0;
+      if (target > 0) {
+        datasets.push({
+          label: 'Target ' + target + '%',
+          data: years.map(() => target),
+          borderColor: 'rgba(100, 100, 100, 0.6)',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        });
+      }
+
+      // 100% line
+      datasets.push({
+        label: 'Break-even (100%)',
+        data: years.map(() => 100),
+        borderColor: 'rgba(192, 57, 43, 0.45)',
+        backgroundColor: 'transparent',
+        borderWidth: 1.25,
+        borderDash: [3, 3],
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+      });
+
+      trendChart = new Chart(canvas, {
+        type: 'line',
+        data: { labels: years.map(String), datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: chartFontFamily(), size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.dataset.label + ': ' + (item.parsed.y == null ? '—' : item.parsed.y.toFixed(1) + '%')
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: chartFontFamily(), size: 11 }, color: '#999' } },
+            y: {
+              grid: { color: '#f0f0f0' },
+              ticks: {
+                font: { family: chartFontFamily(), size: 10 }, color: '#999',
+                callback: v => v + '%',
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderBookChart(byLine) {
+      if (bookChart) bookChart.destroy();
+      const canvas = document.getElementById('bookCanvas');
+      if (!canvas) return;
+
+      const labels = byLine.map(l => l.line);
+      const lr = byLine.map(l => +l.lr.toFixed(2));
+      const er = byLine.map(l => +l.er.toFixed(2));
+
+      bookChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Loss Ratio',    data: lr, backgroundColor: 'rgba(192, 57, 43, 0.85)', borderRadius: 4, stack: 'cr' },
+            { label: 'Expense Ratio', data: er, backgroundColor: 'rgba(36, 113, 163, 0.85)', borderRadius: 4, stack: 'cr' },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: { font: { family: chartFontFamily(), size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 }
+            },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.dataset.label + ': ' + item.parsed.y.toFixed(1) + '%',
+                footer: items => {
+                  const total = items.reduce((s, it) => s + it.parsed.y, 0);
+                  return 'Combined: ' + total.toFixed(1) + '%';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999' } },
+            y: {
+              stacked: true,
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => v + '%' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderMixChart(byLine, currYear) {
+      if (mixChart) mixChart.destroy();
+      const canvas = document.getElementById('mixCanvas');
+      if (!canvas) return;
+
+      // Use latest year's premium earned per line for the mix
+      const labels = byLine.map(l => l.line);
+      const values = byLine.map(l => l.pe);
+      const colors = labels.map(l => LINE_COLORS[l] || 'rgba(127,140,141,0.85)');
+      const total = values.reduce((s,v) => s + v, 0);
+
+      mixChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { position: 'right', labels: { font: { family: chartFontFamily(), size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: ctx => {
+                  const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                  return ctx.label + ': ' + fmtCurShort(ctx.parsed) + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================
+    // Buttons + init
+    // ==============================
+    generateBtn.addEventListener('click', generate);
+    printBtn.addEventListener('click', () => window.print());
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    setStateFromDemo();
+    renderGrid();
+
+  })();
+  </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+</body>
+</html>

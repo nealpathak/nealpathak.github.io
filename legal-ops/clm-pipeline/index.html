@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contract Lifecycle Pipeline — Neal Pathak</title>
+  <meta name="description" content="Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time by stage with the bottleneck flagged, throughput, and a 90-day renewal watchlist.">
+  <meta property="og:title" content="Contract Lifecycle Pipeline — Neal Pathak">
+  <meta property="og:description" content="Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time by stage with the bottleneck flagged, throughput, and a 90-day renewal watchlist.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/legal-ops/clm-pipeline/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/legal-ops/clm-pipeline/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-text-tertiary);
+      color: var(--color-text);
+    }
+
+    .mode-btn.active {
+      background: var(--color-legal);
+      color: #fff;
+      border-color: var(--color-legal);
+    }
+
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 200px; }
+
+    .settings-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input,
+    .settings-row select {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .grid-editor__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .grid-editor h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .grid-editor .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .clm-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .clm-grid th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .clm-grid th.num { text-align: right; }
+
+    .clm-grid td {
+      padding: var(--space-xs) var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .clm-grid tr:last-child td { border-bottom: none; }
+
+    .clm-grid input[type="text"],
+    .clm-grid input[type="number"],
+    .clm-grid input[type="date"],
+    .clm-grid select {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      min-height: 32px;
+    }
+
+    .clm-grid input[type="number"] {
+      font-family: var(--font-mono);
+      text-align: right;
+      width: 120px;
+    }
+
+    .clm-grid input[type="text"] { width: 160px; }
+    .clm-grid input[type="date"] { width: 140px; font-family: var(--font-mono); }
+    .clm-grid select { width: 130px; }
+
+    .row-actions { width: 30px; text-align: center; }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: var(--text-lg);
+      padding: 0 6px;
+      line-height: 1;
+    }
+
+    .icon-btn:hover { color: var(--color-risk); }
+
+    .grid-add-row {
+      margin-top: var(--space-md);
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .csv-section { display: none; }
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-legal);
+      background: rgba(36, 113, 163, 0.02);
+    }
+
+    .csv-upload-zone p { max-width: none; }
+
+    .csv-upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .csv-upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .csv-upload-zone__status.success { color: var(--color-data); }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .template-link {
+      display: inline-block;
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+    }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+      max-width: none;
+    }
+
+    .generate-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .report-output { display: none; }
+    .report-output.visible { display: block; margin-top: var(--space-2xl); }
+
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .report-header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: var(--space-xl) var(--space-2xl);
+    }
+
+    .report-header__company {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .report-header__subtitle {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-header__period {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-body { padding: var(--space-xl) var(--space-2xl) var(--space-2xl); }
+
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: var(--space-lg) var(--space-md);
+      border-right: 1px solid var(--color-border-light);
+      background: var(--color-bg);
+    }
+
+    .report-stat:last-child { border-right: none; }
+
+    .report-stat__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-stat__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-top: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .report-stat__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* Funnel */
+    .funnel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: var(--space-md) 0;
+    }
+
+    .funnel-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 140px;
+      align-items: center;
+      gap: var(--space-md);
+      font-size: var(--text-sm);
+    }
+
+    .funnel-label {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .funnel-bar-wrap {
+      background: rgba(36, 113, 163, 0.08);
+      border-radius: var(--radius-sm);
+      height: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .funnel-bar {
+      background: rgba(36, 113, 163, 0.85);
+      height: 100%;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+      transition: width 250ms ease;
+    }
+
+    .funnel-bar.bottleneck { background: rgba(192, 57, 43, 0.85); }
+
+    .funnel-meta {
+      display: flex;
+      gap: var(--space-md);
+      align-items: baseline;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      justify-content: flex-end;
+    }
+
+    .funnel-meta .count { color: var(--color-text); font-weight: 600; }
+
+    .report-chart-full {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-chart-full h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-full__wrapper {
+      position: relative;
+      height: 280px;
+    }
+
+    .report-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-chart-box {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .report-chart-box h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-wrapper {
+      position: relative;
+      height: 280px;
+    }
+
+    .report-section-header {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-detail { margin-bottom: var(--space-xl); }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .report-table th.num { text-align: right; }
+
+    .report-table td {
+      padding: 10px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+      font-size: var(--text-xs);
+    }
+
+    .report-table .row-name {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .report-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .stage-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(36, 113, 163, 0.12);
+      color: var(--color-legal);
+    }
+
+    .stage-pill.intake      { background: rgba(127, 140, 141, 0.18); color: #555; }
+    .stage-pill.review      { background: rgba(36, 113, 163, 0.14); color: var(--color-legal); }
+    .stage-pill.negotiation { background: rgba(136, 78, 160, 0.16); color: #6c3483; }
+    .stage-pill.signature   { background: rgba(230, 126, 34, 0.18); color: #b9710e; }
+    .stage-pill.executed    { background: rgba(30, 132, 73, 0.14); color: var(--color-data); }
+    .stage-pill.expired     { background: rgba(192, 57, 43, 0.14); color: var(--color-risk); }
+
+    .risk-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .risk-pill.urgent   { background: rgba(192, 57, 43, 0.14); color: var(--color-risk); }
+    .risk-pill.soon     { background: rgba(230, 126, 34, 0.18); color: #b9710e; }
+    .risk-pill.upcoming { background: rgba(36, 113, 163, 0.12); color: var(--color-legal); }
+    .risk-pill.ok       { background: rgba(30, 132, 73, 0.12); color: var(--color-data); }
+
+    .report-footer {
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    @media print {
+      @page { margin: 0.5in 0.6in; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
+      .report-output { display: block !important; margin-top: 0 !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+
+      .report { border: none; border-radius: 0; box-shadow: none; }
+
+      .report-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 16px 20px;
+      }
+      .report-header__company { font-size: 20px; }
+      .report-header__subtitle { font-size: 11px; }
+      .report-header__period { font-size: 9px; }
+
+      .report-body { padding: 16px 20px 20px; }
+
+      .report-stats {
+        margin-bottom: 14px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        break-inside: avoid;
+      }
+      .report-stat { padding: 10px 6px; }
+      .report-stat__label { font-size: 8px; }
+      .report-stat__value { font-size: 18px; }
+      .report-stat__sub { font-size: 9px; }
+
+      .funnel-row { grid-template-columns: 100px 1fr 110px; font-size: 10px; }
+      .funnel-bar-wrap { height: 18px; }
+
+      .report-chart-full {
+        padding: 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .report-chart-full h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-full__wrapper { height: 180px !important; }
+
+      .report-charts {
+        gap: 12px;
+        margin-bottom: 14px;
+        break-inside: avoid;
+      }
+      .report-chart-box { padding: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .report-chart-box h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-wrapper { height: 170px !important; }
+
+      .report-detail { margin-bottom: 12px; break-inside: avoid; }
+      .report-section-header { font-size: 9px; margin-bottom: 6px; }
+
+      .report-table { font-size: 10px; }
+      .report-table th { font-size: 8px; padding: 4px 6px; }
+      .report-table td { padding: 5px 6px; }
+
+      .report-footer { font-size: 8px; padding-top: 8px; }
+    }
+
+    @media (max-width: 900px) {
+      .report-stats { grid-template-columns: repeat(2, 1fr); }
+      .report-charts { grid-template-columns: 1fr; }
+      .settings-row { flex-direction: column; align-items: stretch; }
+      .funnel-row { grid-template-columns: 110px 1fr 120px; }
+    }
+
+    @media (max-width: 480px) {
+      .report-stats { grid-template-columns: 1fr; }
+      .report-chart-wrapper,
+      .report-chart-full__wrapper { height: 240px; }
+      .funnel-row { grid-template-columns: 1fr; gap: var(--space-xs); }
+      .funnel-meta { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--legal">Legal</span>
+        <h1>Contract Lifecycle Pipeline</h1>
+        <p>Which contracts are stuck, and which renewals are about to lapse with money attached? Cycle time through each stage with the bottleneck flagged, monthly throughput, and a rolling 90-day renewal watchlist with the annualized value at risk.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="input-section" id="inputSection">
+
+          <div class="input-modes">
+            <span class="mode-label">Input:</span>
+            <button class="mode-btn active" data-mode="form">Form</button>
+            <button class="mode-btn" data-mode="csv">CSV Upload</button>
+            <button class="mode-btn" data-mode="demo">Demo Data</button>
+          </div>
+
+          <div class="settings-row">
+            <div class="form-group">
+              <label>Company / Department</label>
+              <input type="text" id="companyName" placeholder="e.g. Acme Inc. — Legal Operations">
+            </div>
+            <div class="form-group">
+              <label>Reporting As-of Date</label>
+              <input type="date" id="asOfDate">
+            </div>
+            <div class="form-group">
+              <label>Target Cycle Time (days)</label>
+              <input type="number" id="targetDays" value="30" min="1" max="365" step="1">
+            </div>
+            <div class="form-group">
+              <label>Prepared By</label>
+              <input type="text" id="preparedBy" placeholder="Optional">
+            </div>
+          </div>
+
+          <div class="grid-editor" id="formEditor">
+            <div class="grid-editor__header">
+              <h3>Contracts</h3>
+            </div>
+            <p class="subtitle">One row per contract. Stage = current status. Intake date is when the request hit legal; signed/expiry dates drive cycle time and renewal alerts. Annual value powers the at-risk dollars on the watchlist.</p>
+            <div style="overflow-x:auto; margin-top: var(--space-md);">
+              <table class="clm-grid" id="clmGrid"></table>
+            </div>
+            <div class="grid-add-row">
+              <button class="btn" id="addRowBtn" type="button">+ Add Contract</button>
+            </div>
+          </div>
+
+          <div class="csv-section" id="csvSection">
+            <div class="csv-upload-zone" id="csvUploadZone">
+              <p class="csv-upload-zone__title">Drop a CSV file here or click to upload</p>
+              <p class="csv-upload-zone__hint">Columns: contract_id, counterparty, type, stage, owner, intake_date, signed_date, expiry_date, annual_value</p>
+              <p class="csv-upload-zone__status" id="csvStatus"></p>
+              <input type="file" id="csvFileInput" accept=".csv" hidden aria-label="Upload contracts CSV">
+            </div>
+            <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+            <a class="template-link" id="downloadTemplate">Download CSV template</a>
+          </div>
+
+          <div class="generate-row">
+            <button class="btn btn--primary" id="generateBtn">Generate Dashboard</button>
+          </div>
+        </div>
+
+        <div class="report-output" id="reportOutput">
+          <div class="print-row">
+            <button class="btn btn--primary" id="printBtn">Print / Save as PDF</button>
+            <button class="btn" id="editBtn">Edit Data</button>
+          </div>
+          <div class="report" id="report"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Reference data
+    // ==============================
+    const STAGES = ['Intake', 'Review', 'Negotiation', 'Signature', 'Executed', 'Expired'];
+    const ACTIVE_STAGES = ['Intake', 'Review', 'Negotiation', 'Signature'];
+
+    const STAGE_KEY = {
+      'Intake':      'intake',
+      'Review':      'review',
+      'Negotiation': 'negotiation',
+      'Signature':   'signature',
+      'Executed':    'executed',
+      'Expired':     'expired',
+    };
+
+    const TYPES = ['MSA', 'NDA', 'SaaS Sub', 'DPA', 'SOW', 'Vendor', 'Employment', 'Other'];
+
+    const TYPE_COLORS = {
+      'MSA':        'rgba(36, 113, 163, 0.85)',
+      'NDA':        'rgba(127, 140, 141, 0.85)',
+      'SaaS Sub':   'rgba(136, 78, 160, 0.85)',
+      'DPA':        'rgba(30, 132, 73, 0.85)',
+      'SOW':        'rgba(230, 126, 34, 0.85)',
+      'Vendor':     'rgba(52, 152, 219, 0.85)',
+      'Employment': 'rgba(231, 76, 60, 0.85)',
+      'Other':      'rgba(149, 165, 166, 0.85)',
+    };
+
+    // ==============================
+    // Demo Data — anchored relative to today
+    // ==============================
+    function buildDemo() {
+      const today = new Date();
+      const d = (offset) => {
+        const x = new Date(today);
+        x.setDate(x.getDate() + offset);
+        return x.toISOString().slice(0, 10);
+      };
+
+      return {
+        company: 'Acme Inc. — Legal Operations',
+        asOf: d(0),
+        targetDays: 30,
+        contracts: [
+          // Active pipeline
+          { id: 'CTR-1042', cp: 'Globex Corp',       type: 'MSA',        stage: 'Negotiation', owner: 'M. Chen',   intake: d(-38), signed: '', expiry: '', value: 480000 },
+          { id: 'CTR-1043', cp: 'Initech',           type: 'NDA',        stage: 'Review',      owner: 'A. Park',   intake: d(-4),  signed: '', expiry: '', value: 0 },
+          { id: 'CTR-1044', cp: 'Hooli',             type: 'SaaS Sub',   stage: 'Signature',   owner: 'L. Howe',   intake: d(-22), signed: '', expiry: '', value: 168000 },
+          { id: 'CTR-1045', cp: 'Pied Piper',        type: 'SOW',        stage: 'Intake',      owner: 'M. Chen',   intake: d(-2),  signed: '', expiry: '', value: 92000 },
+          { id: 'CTR-1046', cp: 'Aperture Science',  type: 'DPA',        stage: 'Negotiation', owner: 'S. Okafor', intake: d(-61), signed: '', expiry: '', value: 0 },
+          { id: 'CTR-1047', cp: 'Soylent Industries',type: 'Vendor',     stage: 'Review',      owner: 'D. Vargas', intake: d(-11), signed: '', expiry: '', value: 36000 },
+          { id: 'CTR-1048', cp: 'Wonka Industries',  type: 'MSA',        stage: 'Negotiation', owner: 'J. Mehta',  intake: d(-47), signed: '', expiry: '', value: 720000 },
+          { id: 'CTR-1049', cp: 'Tyrell Corp',       type: 'NDA',        stage: 'Signature',   owner: 'A. Park',   intake: d(-7),  signed: '', expiry: '', value: 0 },
+          { id: 'CTR-1050', cp: 'Stark Industries',  type: 'SaaS Sub',   stage: 'Review',      owner: 'L. Howe',   intake: d(-19), signed: '', expiry: '', value: 240000 },
+          { id: 'CTR-1051', cp: 'Wayne Enterprises', type: 'SOW',        stage: 'Negotiation', owner: 'M. Chen',   intake: d(-31), signed: '', expiry: '', value: 142000 },
+          { id: 'CTR-1052', cp: 'Black Mesa',        type: 'Employment', stage: 'Intake',      owner: 'R. Singh',  intake: d(-1),  signed: '', expiry: '', value: 0 },
+
+          // Executed — recent
+          { id: 'CTR-1010', cp: 'Cyberdyne Systems', type: 'MSA',        stage: 'Executed', owner: 'M. Chen',   intake: d(-118), signed: d(-86),  expiry: d(279),  value: 920000 },
+          { id: 'CTR-1015', cp: 'Massive Dynamic',   type: 'SaaS Sub',   stage: 'Executed', owner: 'L. Howe',   intake: d(-92),  signed: d(-71),  expiry: d(294),  value: 312000 },
+          { id: 'CTR-1019', cp: 'Oscorp',            type: 'Vendor',     stage: 'Executed', owner: 'D. Vargas', intake: d(-77),  signed: d(-54),  expiry: d(311),  value: 84000 },
+          { id: 'CTR-1024', cp: 'Umbrella Corp',     type: 'NDA',        stage: 'Executed', owner: 'A. Park',   intake: d(-46),  signed: d(-38),  expiry: '', value: 0 },
+          { id: 'CTR-1029', cp: 'Vandelay Imports',  type: 'MSA',        stage: 'Executed', owner: 'J. Mehta',  intake: d(-105), signed: d(-72),  expiry: d(293),  value: 540000 },
+          { id: 'CTR-1031', cp: 'Dunder Mifflin',    type: 'SaaS Sub',   stage: 'Executed', owner: 'L. Howe',   intake: d(-58),  signed: d(-39),  expiry: d(326),  value: 96000 },
+
+          // Executed — about to expire (drive renewal watchlist)
+          { id: 'CTR-0931', cp: 'Aperture Science',  type: 'SaaS Sub',   stage: 'Executed', owner: 'L. Howe',   intake: d(-410), signed: d(-385), expiry: d(11),  value: 224000 },
+          { id: 'CTR-0944', cp: 'Globex Corp',       type: 'Vendor',     stage: 'Executed', owner: 'D. Vargas', intake: d(-395), signed: d(-372), expiry: d(28),  value: 64000 },
+          { id: 'CTR-0958', cp: 'Soylent Industries',type: 'MSA',        stage: 'Executed', owner: 'M. Chen',   intake: d(-420), signed: d(-380), expiry: d(48),  value: 410000 },
+          { id: 'CTR-0967', cp: 'Tyrell Corp',       type: 'DPA',        stage: 'Executed', owner: 'S. Okafor', intake: d(-410), signed: d(-365), expiry: d(72),  value: 0 },
+          { id: 'CTR-0972', cp: 'Initech',           type: 'SaaS Sub',   stage: 'Executed', owner: 'L. Howe',   intake: d(-388), signed: d(-358), expiry: d(85),  value: 178000 },
+
+          // Already expired
+          { id: 'CTR-0902', cp: 'Stark Industries',  type: 'NDA',        stage: 'Expired',  owner: 'A. Park',   intake: d(-790), signed: d(-770), expiry: d(-32), value: 0 },
+          { id: 'CTR-0908', cp: 'Wonka Industries',  type: 'SOW',        stage: 'Expired',  owner: 'J. Mehta',  intake: d(-740), signed: d(-720), expiry: d(-12), value: 88000 },
+        ],
+      };
+    }
+
+    const EMPTY_ROW = () => ({
+      id: '', cp: '', type: 'MSA', stage: 'Intake', owner: '',
+      intake: '', signed: '', expiry: '', value: 0,
+    });
+
+    // ==============================
+    // State
+    // ==============================
+    let state = {
+      company: '',
+      asOf: '',
+      targetDays: 30,
+      preparedBy: '',
+      contracts: [],
+      mode: 'form',
+    };
+
+    let funnelTimeChart = null;
+    let typeMixChart = null;
+    let throughputChart = null;
+
+    // Elements
+    const companyEl = document.getElementById('companyName');
+    const asOfEl = document.getElementById('asOfDate');
+    const targetDaysEl = document.getElementById('targetDays');
+    const preparedByEl = document.getElementById('preparedBy');
+    const clmGridEl = document.getElementById('clmGrid');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+    const downloadTemplate = document.getElementById('downloadTemplate');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    function setStateFromDemo() {
+      const d = buildDemo();
+      state.company = d.company;
+      state.asOf = d.asOf;
+      state.targetDays = d.targetDays;
+      state.contracts = d.contracts.map(c => ({ ...c }));
+      companyEl.value = state.company;
+      asOfEl.value = state.asOf;
+      targetDaysEl.value = state.targetDays;
+    }
+
+    function renderGrid() {
+      const distinctTypes = Array.from(new Set([...TYPES, ...state.contracts.map(c => c.type).filter(Boolean)]));
+
+      let html = '<thead><tr>';
+      html += '<th>ID</th><th>Counterparty</th><th>Type</th><th>Stage</th><th>Owner</th>';
+      html += '<th>Intake</th><th>Signed</th><th>Expiry</th>';
+      html += '<th class="num">Annual $</th><th class="row-actions"></th>';
+      html += '</tr></thead><tbody>';
+
+      state.contracts.forEach((c, i) => {
+        html += '<tr>';
+        html += '<td><input type="text" data-i="' + i + '" data-f="id" value="' + escapeAttr(c.id) + '" placeholder="ID" style="width:100px"></td>';
+        html += '<td><input type="text" data-i="' + i + '" data-f="cp" value="' + escapeAttr(c.cp) + '" placeholder="Counterparty"></td>';
+        html += '<td><select data-i="' + i + '" data-f="type">';
+        distinctTypes.forEach(t => {
+          html += '<option value="' + escapeAttr(t) + '"' + (c.type === t ? ' selected' : '') + '>' + escapeHtml(t) + '</option>';
+        });
+        html += '</select></td>';
+        html += '<td><select data-i="' + i + '" data-f="stage">';
+        STAGES.forEach(s => {
+          html += '<option value="' + s + '"' + (c.stage === s ? ' selected' : '') + '>' + s + '</option>';
+        });
+        html += '</select></td>';
+        html += '<td><input type="text" data-i="' + i + '" data-f="owner" value="' + escapeAttr(c.owner) + '" placeholder="Owner" style="width:110px"></td>';
+        html += '<td><input type="date" data-i="' + i + '" data-f="intake" value="' + escapeAttr(c.intake) + '"></td>';
+        html += '<td><input type="date" data-i="' + i + '" data-f="signed" value="' + escapeAttr(c.signed) + '"></td>';
+        html += '<td><input type="date" data-i="' + i + '" data-f="expiry" value="' + escapeAttr(c.expiry) + '"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="value" value="' + (c.value || '') + '" step="1000" placeholder="0"></td>';
+        html += '<td class="row-actions"><button type="button" class="icon-btn" data-del="' + i + '" title="Remove">&times;</button></td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      clmGridEl.innerHTML = html;
+
+      clmGridEl.oninput = function(e) {
+        const t = e.target;
+        if (t.tagName !== 'INPUT' && t.tagName !== 'SELECT') return;
+        const i = parseInt(t.dataset.i, 10);
+        const f = t.dataset.f;
+        if (isNaN(i) || !f) return;
+        if (f === 'value') state.contracts[i][f] = parseFloat(t.value) || 0;
+        else state.contracts[i][f] = t.value;
+      };
+
+      clmGridEl.onclick = function(e) {
+        const t = e.target;
+        if (t.classList.contains('icon-btn') && t.dataset.del != null) {
+          const idx = parseInt(t.dataset.del, 10);
+          state.contracts.splice(idx, 1);
+          if (state.contracts.length === 0) state.contracts.push(EMPTY_ROW());
+          renderGrid();
+        }
+      };
+    }
+
+    addRowBtn.addEventListener('click', () => {
+      state.contracts.push(EMPTY_ROW());
+      renderGrid();
+    });
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = mode;
+
+        if (mode === 'form') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+        } else if (mode === 'csv') {
+          formEditor.style.display = 'none';
+          csvSection.classList.add('visible');
+        } else if (mode === 'demo') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+          setStateFromDemo();
+          renderGrid();
+        }
+      });
+    });
+
+    companyEl.addEventListener('input', () => { state.company = companyEl.value; });
+    asOfEl.addEventListener('input', () => { state.asOf = asOfEl.value; });
+    targetDaysEl.addEventListener('input', () => { state.targetDays = parseFloat(targetDaysEl.value) || 0; });
+    preparedByEl.addEventListener('input', () => { state.preparedBy = preparedByEl.value; });
+
+    // ==============================
+    // CSV
+    // ==============================
+    function parseCSVLine(line) {
+      const out = [];
+      let cur = '';
+      let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQ) {
+          if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+          else if (c === '"') { inQ = false; }
+          else cur += c;
+        } else {
+          if (c === '"') inQ = true;
+          else if (c === ',') { out.push(cur); cur = ''; }
+          else cur += c;
+        }
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+      const required = ['contract_id','counterparty','type','stage','owner','intake_date','signed_date','expiry_date','annual_value'];
+      const missing = required.filter(h => headers.indexOf(h) === -1);
+      if (missing.length) throw new Error('Missing columns: ' + missing.join(', '));
+
+      const idx = {};
+      required.forEach(r => { idx[r] = headers.indexOf(r); });
+
+      const out = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCSVLine(lines[i]);
+        const id = cells[idx['contract_id']];
+        if (!id) continue;
+        let stage = cells[idx['stage']];
+        if (STAGES.indexOf(stage) === -1) stage = 'Intake';
+        out.push({
+          id,
+          cp: cells[idx['counterparty']] || '',
+          type: TYPES.indexOf(cells[idx['type']]) >= 0 ? cells[idx['type']] : (cells[idx['type']] || 'Other'),
+          stage,
+          owner: cells[idx['owner']] || '',
+          intake: cells[idx['intake_date']] || '',
+          signed: cells[idx['signed_date']] || '',
+          expiry: cells[idx['expiry_date']] || '',
+          value: parseFloat(cells[idx['annual_value']]) || 0,
+        });
+      }
+      if (!out.length) throw new Error('No valid data rows found.');
+      return out;
+    }
+
+    function loadCSV(text) {
+      try {
+        const out = parseCSV(text);
+        state.contracts = out;
+        csvStatus.textContent = 'Loaded ' + out.length + ' contracts.';
+        csvStatus.className = 'csv-upload-zone__status success';
+        renderGrid();
+      } catch (err) {
+        csvStatus.textContent = err.message;
+        csvStatus.className = 'csv-upload-zone__status error';
+      }
+    }
+
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    csvFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleCSVFile(e.target.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => loadCSV(e.target.result);
+      reader.readAsText(file);
+    }
+
+    downloadTemplate.addEventListener('click', e => {
+      e.preventDefault();
+      const header = 'contract_id,counterparty,type,stage,owner,intake_date,signed_date,expiry_date,annual_value';
+      const sample = 'CTR-1042,Globex Corp,MSA,Negotiation,M. Chen,2026-04-20,,,480000';
+      const blob = new Blob([header + '\n' + sample + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'clm-pipeline-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ==============================
+    // Date / number helpers
+    // ==============================
+    function parseDate(s) {
+      if (!s) return null;
+      // Accept YYYY-MM-DD strictly
+      const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+      if (m) return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function diffDays(a, b) {
+      if (!a || !b) return null;
+      return Math.round((b - a) / (1000 * 60 * 60 * 24));
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—';
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+
+    function fmtDollarShort(v) {
+      const abs = Math.abs(v);
+      const sign = v < 0 ? '-' : '';
+      if (abs >= 1e9) return sign + '$' + (abs / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(0) + 'K';
+      return sign + '$' + Math.round(abs).toLocaleString();
+    }
+
+    function fmtDollarFull(v) {
+      return '$' + Math.round(Math.abs(v)).toLocaleString();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    function median(arr) {
+      if (!arr.length) return 0;
+      const s = arr.slice().sort((a,b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2;
+    }
+
+    // ==============================
+    // Generate
+    // ==============================
+    function generate() {
+      const contracts = state.contracts.filter(c => c.id && c.id.trim());
+      if (!contracts.length) return;
+
+      const asOf = parseDate(state.asOf) || new Date();
+
+      // Enrich
+      const enriched = contracts.map(c => {
+        const intake = parseDate(c.intake);
+        const signed = parseDate(c.signed);
+        const expiry = parseDate(c.expiry);
+
+        // Cycle time (intake → signed for executed; intake → asOf for in-progress)
+        let cycleDays = null;
+        let active = false;
+        if (signed) cycleDays = diffDays(intake, signed);
+        else if (intake && ACTIVE_STAGES.indexOf(c.stage) >= 0) {
+          cycleDays = diffDays(intake, asOf);
+          active = true;
+        }
+
+        // Days to expiry (signed value, future). Negative if expired.
+        let daysToExpiry = null;
+        if (expiry) daysToExpiry = diffDays(asOf, expiry);
+
+        return { ...c, intakeD: intake, signedD: signed, expiryD: expiry, cycleDays, active, daysToExpiry };
+      });
+
+      // KPIs
+      const total = enriched.length;
+      const activeCount = enriched.filter(c => ACTIVE_STAGES.indexOf(c.stage) >= 0).length;
+      const executedCycles = enriched.filter(c => c.signedD && c.cycleDays != null).map(c => c.cycleDays);
+      const avgCycle = executedCycles.length ? (executedCycles.reduce((s,v)=>s+v,0) / executedCycles.length) : 0;
+      const medCycle = median(executedCycles);
+
+      // Active aging buckets
+      const activeAging = enriched.filter(c => c.active).map(c => c.cycleDays || 0);
+      const overTarget = activeAging.filter(d => d > state.targetDays).length;
+
+      // Renewal watchlist (expiry within next 90 days, not expired)
+      const watchlist = enriched
+        .filter(c => c.daysToExpiry != null && c.daysToExpiry >= 0 && c.daysToExpiry <= 90 && c.stage === 'Executed')
+        .sort((a,b) => a.daysToExpiry - b.daysToExpiry);
+      const atRiskValue = watchlist.reduce((s, c) => s + (c.value || 0), 0);
+
+      // By stage (counts + avg time)
+      const stageStats = STAGES.map(s => {
+        const inStage = enriched.filter(c => c.stage === s);
+        const times = inStage.filter(c => c.cycleDays != null).map(c => c.cycleDays);
+        const avg = times.length ? (times.reduce((s,v)=>s+v,0) / times.length) : 0;
+        const med = median(times);
+        return { stage: s, count: inStage.length, avg, med, items: inStage };
+      });
+
+      // By type
+      const typeMap = {};
+      enriched.forEach(c => {
+        if (!typeMap[c.type]) typeMap[c.type] = 0;
+        typeMap[c.type]++;
+      });
+
+      // Throughput last 6 months (signed per month)
+      const monthly = {};
+      enriched.forEach(c => {
+        if (!c.signedD) return;
+        const key = c.signedD.getFullYear() + '-' + String(c.signedD.getMonth() + 1).padStart(2, '0');
+        monthly[key] = (monthly[key] || 0) + 1;
+      });
+      // Build 6-month sliding window ending in the as-of month
+      const months = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(asOf.getFullYear(), asOf.getMonth() - i, 1);
+        const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        months.push({ key, label, count: monthly[key] || 0 });
+      }
+
+      const html = buildReport({
+        enriched, total, activeCount, executedCount: total - activeCount - enriched.filter(c => c.stage === 'Expired').length,
+        avgCycle, medCycle, overTarget, watchlist, atRiskValue,
+        stageStats, typeMap, months, asOf,
+      });
+
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      setTimeout(() => {
+        renderFunnelTimeChart(stageStats);
+        renderTypeMixChart(typeMap);
+        renderThroughputChart(months);
+      }, 30);
+    }
+
+    function buildReport(r) {
+      const {
+        enriched, total, activeCount, executedCount,
+        avgCycle, medCycle, overTarget, watchlist, atRiskValue,
+        stageStats, typeMap, months, asOf,
+      } = r;
+
+      const company = state.company.trim() || 'Company';
+      const preparedBy = state.preparedBy.trim();
+      const asOfLabel = fmtDate(asOf);
+
+      let html = '';
+      html += '<div class="report-header">';
+      html += '<div class="report-header__company">' + escapeHtml(company) + '</div>';
+      html += '<p class="report-header__subtitle">Contract Lifecycle Pipeline &mdash; as of ' + asOfLabel + '</p>';
+      html += '<p class="report-header__period">' + total + ' contracts &middot; ' + activeCount + ' in active pipeline';
+      if (preparedBy) html += ' &middot; Prepared by ' + escapeHtml(preparedBy);
+      html += '</p>';
+      html += '</div>';
+
+      html += '<div class="report-body">';
+
+      // KPIs
+      html += '<div class="report-stats">';
+      html += statBox('Active Pipeline', String(activeCount), 'In Intake → Signature');
+      html += statBox('Avg Cycle Time', Math.round(avgCycle) + 'd', 'Median ' + Math.round(medCycle) + 'd, target ' + state.targetDays + 'd');
+      html += statBox('Over Target', String(overTarget),
+        activeCount > 0 ? (Math.round(overTarget / activeCount * 100) + '% of active') : 'No active items');
+      html += statBox('Expiring 90d', String(watchlist.length), fmtDollarShort(atRiskValue) + ' annualized at risk');
+      html += '</div>';
+
+      // Funnel
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Pipeline Funnel</div>';
+      // Active funnel: counts in each active stage
+      const maxCount = Math.max(1, ...stageStats.filter(s => ACTIVE_STAGES.indexOf(s.stage) >= 0).map(s => s.count));
+      // Identify bottleneck stage (highest avg dwell in active stages)
+      const activeStats = stageStats.filter(s => ACTIVE_STAGES.indexOf(s.stage) >= 0);
+      const maxAvg = Math.max(...activeStats.map(s => s.avg || 0));
+      html += '<div class="funnel">';
+      activeStats.forEach(s => {
+        const pct = (s.count / maxCount) * 100;
+        const isBottleneck = s.count > 0 && s.avg > 0 && s.avg === maxAvg;
+        html += '<div class="funnel-row">';
+        html += '<div class="funnel-label">' + s.stage + '</div>';
+        html += '<div class="funnel-bar-wrap">';
+        html += '<div class="funnel-bar' + (isBottleneck ? ' bottleneck' : '') + '" style="width:' + pct.toFixed(1) + '%"></div>';
+        html += '</div>';
+        html += '<div class="funnel-meta">';
+        html += '<span class="count">' + s.count + '</span>';
+        html += '<span>avg ' + Math.round(s.avg) + 'd</span>';
+        html += '<span>med ' + Math.round(s.med) + 'd</span>';
+        html += '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+      // Footer note about bottleneck
+      const bn = activeStats.find(s => s.avg === maxAvg && s.count > 0);
+      if (bn) {
+        html += '<p style="font-size: var(--text-xs); color: var(--color-text-tertiary); margin-top: var(--space-sm); max-width: none;">Bottleneck stage: <strong>' + bn.stage + '</strong> &mdash; ' + bn.count + ' contracts, average ' + Math.round(bn.avg) + ' days in stage.</p>';
+      }
+      html += '</div>';
+
+      // Full-width throughput
+      html += '<div class="report-chart-full">';
+      html += '<h4>Monthly Throughput &mdash; Contracts Signed</h4>';
+      html += '<div class="report-chart-full__wrapper"><canvas id="throughputCanvas"></canvas></div>';
+      html += '</div>';
+
+      // Two charts
+      html += '<div class="report-charts">';
+      html += '<div class="report-chart-box">';
+      html += '<h4>Average Days by Stage (Active)</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="funnelTimeCanvas"></canvas></div>';
+      html += '</div>';
+      html += '<div class="report-chart-box">';
+      html += '<h4>Contract Type Mix</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="typeMixCanvas"></canvas></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Renewal watchlist
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Renewal Watchlist &mdash; Next 90 Days</div>';
+      if (watchlist.length === 0) {
+        html += '<p style="color: var(--color-text-tertiary); font-size: var(--text-sm); max-width: none;">No executed contracts expiring within 90 days.</p>';
+      } else {
+        html += '<table class="report-table"><thead><tr>';
+        html += '<th>ID</th><th>Counterparty</th><th>Type</th><th>Owner</th>';
+        html += '<th class="num">Expiry</th><th class="num">Days Left</th>';
+        html += '<th class="num">Annual $</th><th>Status</th>';
+        html += '</tr></thead><tbody>';
+        watchlist.forEach(c => {
+          let cls = 'upcoming', text = 'Upcoming';
+          if (c.daysToExpiry <= 14) { cls = 'urgent'; text = 'Urgent'; }
+          else if (c.daysToExpiry <= 30) { cls = 'soon'; text = 'Soon'; }
+          html += '<tr>';
+          html += '<td class="row-name">' + escapeHtml(c.id) + '</td>';
+          html += '<td>' + escapeHtml(c.cp || '—') + '</td>';
+          html += '<td>' + escapeHtml(c.type) + '</td>';
+          html += '<td>' + escapeHtml(c.owner || '—') + '</td>';
+          html += '<td class="num">' + fmtDate(c.expiryD) + '</td>';
+          html += '<td class="num">' + c.daysToExpiry + '</td>';
+          html += '<td class="num">' + (c.value > 0 ? fmtDollarFull(c.value) : '—') + '</td>';
+          html += '<td><span class="risk-pill ' + cls + '">' + text + '</span></td>';
+          html += '</tr>';
+        });
+        const totalVal = watchlist.reduce((s,c) => s + (c.value || 0), 0);
+        html += '<tr class="total-row">';
+        html += '<td colspan="6">Total at risk (' + watchlist.length + ' contracts)</td>';
+        html += '<td class="num">' + fmtDollarFull(totalVal) + '</td><td></td>';
+        html += '</tr>';
+        html += '</tbody></table>';
+      }
+      html += '</div>';
+
+      // Active pipeline detail
+      const activeList = enriched.filter(c => ACTIVE_STAGES.indexOf(c.stage) >= 0)
+                                  .sort((a,b) => (b.cycleDays || 0) - (a.cycleDays || 0));
+      if (activeList.length) {
+        html += '<div class="report-detail">';
+        html += '<div class="report-section-header">Active Pipeline &mdash; Sorted by Aging</div>';
+        html += '<table class="report-table"><thead><tr>';
+        html += '<th>ID</th><th>Counterparty</th><th>Type</th><th>Stage</th><th>Owner</th>';
+        html += '<th class="num">Intake</th><th class="num">Days Open</th>';
+        html += '<th class="num">Annual $</th>';
+        html += '</tr></thead><tbody>';
+        activeList.forEach(c => {
+          const ageDays = c.cycleDays != null ? c.cycleDays : 0;
+          const over = ageDays > state.targetDays;
+          const stagecls = STAGE_KEY[c.stage] || 'review';
+          html += '<tr>';
+          html += '<td class="row-name">' + escapeHtml(c.id) + '</td>';
+          html += '<td>' + escapeHtml(c.cp || '—') + '</td>';
+          html += '<td>' + escapeHtml(c.type) + '</td>';
+          html += '<td><span class="stage-pill ' + stagecls + '">' + c.stage + '</span></td>';
+          html += '<td>' + escapeHtml(c.owner || '—') + '</td>';
+          html += '<td class="num">' + fmtDate(c.intakeD) + '</td>';
+          html += '<td class="num"' + (over ? ' style="color: var(--color-risk); font-weight: 600;"' : '') + '>' + ageDays + 'd</td>';
+          html += '<td class="num">' + (c.value > 0 ? fmtDollarFull(c.value) : '—') + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += '<p class="report-footer">Generated ' + today + '. As-of date ' + asOfLabel + '. Cycle time for executed contracts = signed date &minus; intake date; for active contracts = as-of date &minus; intake date. Bottleneck is the active stage with the highest average dwell time. Renewal watchlist covers executed contracts expiring within 90 days. Data provided by user &mdash; not independently verified. For informational purposes only.</p>';
+
+      html += '</div>';
+      return html;
+    }
+
+    function statBox(label, value, sub) {
+      let h = '<div class="report-stat">';
+      h += '<div class="report-stat__label">' + label + '</div>';
+      h += '<div class="report-stat__value">' + value + '</div>';
+      h += '<div class="report-stat__sub">' + sub + '</div>';
+      h += '</div>';
+      return h;
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    function chartFontFamily() { return 'Inter'; }
+
+    function renderFunnelTimeChart(stageStats) {
+      if (funnelTimeChart) funnelTimeChart.destroy();
+      const canvas = document.getElementById('funnelTimeCanvas');
+      if (!canvas) return;
+
+      const active = stageStats.filter(s => ACTIVE_STAGES.indexOf(s.stage) >= 0);
+      const labels = active.map(s => s.stage);
+      const avgData = active.map(s => Math.round(s.avg));
+      const maxAvg = Math.max(...avgData);
+      const colors = avgData.map(v => v === maxAvg && v > 0 ? 'rgba(192, 57, 43, 0.85)' : 'rgba(36, 113, 163, 0.85)');
+
+      funnelTimeChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Avg days in stage',
+            data: avgData,
+            backgroundColor: colors,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => 'Avg ' + item.parsed.x + ' days'
+              }
+            },
+            annotation: {}
+          },
+          scales: {
+            x: {
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => v + 'd' }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#555' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTypeMixChart(typeMap) {
+      if (typeMixChart) typeMixChart.destroy();
+      const canvas = document.getElementById('typeMixCanvas');
+      if (!canvas) return;
+
+      const labels = Object.keys(typeMap);
+      const values = labels.map(k => typeMap[k]);
+      const colors = labels.map(k => TYPE_COLORS[k] || 'rgba(149, 165, 166, 0.85)');
+      const total = values.reduce((s,v) => s + v, 0);
+
+      typeMixChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { position: 'right', labels: { font: { family: chartFontFamily(), size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: ctx => {
+                  const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                  return ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderThroughputChart(months) {
+      if (throughputChart) throughputChart.destroy();
+      const canvas = document.getElementById('throughputCanvas');
+      if (!canvas) return;
+
+      const labels = months.map(m => m.label);
+      const data = months.map(m => m.count);
+
+      throughputChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Contracts signed',
+            data,
+            backgroundColor: 'rgba(36, 113, 163, 0.85)',
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => item.parsed.y + ' signed'
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: chartFontFamily(), size: 11 }, color: '#999' } },
+            y: {
+              grid: { color: '#f0f0f0' },
+              beginAtZero: true,
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', stepSize: 1, precision: 0 }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================
+    // Buttons + init
+    // ==============================
+    generateBtn.addEventListener('click', generate);
+    printBtn.addEventListener('click', () => window.print());
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    setStateFromDemo();
+    renderGrid();
+
+  })();
+  </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+</body>
+</html>

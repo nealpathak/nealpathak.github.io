@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MPL Underwriting &amp; Float Simulator — Neal Pathak</title>
+  <meta name="description" content="On a long-tail book, does investment income cover what underwriting gives away? Ten-year simulation of premium, loss emergence, float generation, and investment income.">
+  <meta property="og:title" content="MPL Underwriting &amp; Float Simulator — Neal Pathak">
+  <meta property="og:description" content="On a long-tail book, does investment income cover what underwriting gives away? Ten-year simulation of premium, loss emergence, float generation, and investment income.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/risk-analytics/mpl-simulator/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/risk-analytics/mpl-simulator/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .sim-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: var(--space-xl);
+      align-items: start;
+    }
+
+    /* --- Assumptions panel --- */
+    .assumptions {
+      position: sticky;
+      top: 80px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+
+    .assumptions h2 {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .ctrl-group { margin-bottom: var(--space-xl); }
+    .ctrl-group:last-child { margin-bottom: 0; }
+
+    .ctrl-group__title {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-xs);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .ctrl { margin-bottom: var(--space-md); }
+    .ctrl:last-child { margin-bottom: 0; }
+
+    .ctrl__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: var(--space-sm);
+      margin-bottom: 2px;
+    }
+
+    .ctrl__top label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+    }
+
+    .ctrl__val {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .ctrl input[type="range"] {
+      width: 100%;
+      accent-color: var(--color-risk);
+      cursor: pointer;
+      min-height: 24px;
+    }
+
+    .ctrl input[type="range"]:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+
+    .ctrl--toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .ctrl--toggle label {
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+
+    .ctrl--toggle input[type="checkbox"] {
+      accent-color: var(--color-risk);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .ctrl--toggle input[type="checkbox"]:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
+
+    .ctrl.is-disabled { opacity: 0.45; }
+
+    .btn--reset {
+      width: 100%;
+      margin-top: var(--space-lg);
+      min-height: 34px;
+      font-size: var(--text-xs);
+    }
+
+    .ctrl select {
+      width: 100%;
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      min-height: 32px;
+    }
+
+    /* --- Scenario row --- */
+    .scenario-bar {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .scenario-bar .btn { min-height: 34px; font-size: var(--text-xs); padding: var(--space-xs) var(--space-md); }
+
+    .scenario-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: var(--text-xs);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      padding: 4px 10px 4px 12px;
+    }
+
+    .scenario-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .scenario-chip__label { font-weight: 600; }
+    .scenario-chip__desc { font-family: var(--font-mono); color: var(--color-text-tertiary); font-size: 10px; }
+
+    .scenario-chip button {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-tertiary);
+      font-size: var(--text-sm);
+      line-height: 1;
+      padding: 2px;
+    }
+    .scenario-chip button:hover { color: var(--color-risk); }
+    .scenario-chip button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; border-radius: 2px; }
+
+    .scenario-bar__hint { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+
+    /* --- KPI strip --- */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+    }
+
+    .kpi {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+    }
+
+    .kpi__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .kpi__value {
+      font-family: var(--font-mono);
+      font-size: var(--text-lg);
+      font-weight: 600;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .kpi__value.neg { color: var(--color-risk); }
+
+    /* --- Chart cards --- */
+    .chart-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .chart-card h3 {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .chart-card .chart-sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+      margin-bottom: var(--space-md);
+    }
+
+    .chart-wrap { position: relative; height: 300px; }
+    .chart-wrap--short { height: 240px; }
+
+    .chart-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .chart-pair .chart-card { margin-bottom: 0; }
+
+    /* --- Annual table --- */
+    .table-scroll { overflow-x: auto; }
+
+    .annual-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .annual-table th {
+      text-align: right;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .annual-table th:first-child { text-align: left; }
+
+    .annual-table td {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      text-align: right;
+      padding: 7px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .annual-table td:first-child {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      text-align: left;
+      color: var(--color-text);
+    }
+
+    .annual-table tr:last-child td { border-bottom: none; }
+
+    .annual-table .total-row td {
+      font-weight: 600;
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .annual-table .neg { color: var(--color-risk); }
+
+    /* --- Scenario comparison table --- */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .compare-table th {
+      text-align: right;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .compare-table th:first-child { text-align: left; }
+
+    .compare-table td {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      text-align: right;
+      padding: 7px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .compare-table td:first-child {
+      font-family: var(--font-sans);
+      font-weight: 500;
+      text-align: left;
+      color: var(--color-text);
+    }
+
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table .neg { color: var(--color-risk); }
+
+    .compare-assumptions {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+      margin-top: var(--space-md);
+      line-height: 1.7;
+    }
+    .compare-assumptions .mono { font-family: var(--font-mono); font-size: 10px; }
+
+    /* --- Methodology --- */
+    .methodology {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md) var(--space-xl);
+      margin-bottom: var(--space-lg);
+    }
+
+    .methodology summary {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      padding: var(--space-sm) 0;
+      list-style: none;
+    }
+
+    .methodology summary::-webkit-details-marker { display: none; }
+    .methodology summary::before { content: '▸ '; color: var(--color-text-tertiary); }
+    .methodology[open] summary::before { content: '▾ '; }
+    .methodology summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+    .methodology ul {
+      margin: var(--space-sm) 0 var(--space-md) var(--space-lg);
+      font-size: var(--text-xs);
+      color: var(--color-text-secondary);
+      line-height: 1.7;
+    }
+
+    /* --- Responsive --- */
+    @media (max-width: 1024px) {
+      .sim-layout { grid-template-columns: 1fr; }
+      .assumptions { position: static; max-height: none; }
+      .assumptions__groups {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-xl);
+      }
+      .ctrl-group { margin-bottom: 0; }
+      .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .assumptions__groups { grid-template-columns: 1fr; gap: var(--space-lg); }
+      .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+      .chart-pair { grid-template-columns: 1fr; }
+      .chart-wrap { height: 260px; }
+    }
+
+    @media (max-width: 480px) {
+      .kpi-strip { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--risk">Risk</span>
+        <h1>MPL Underwriting &amp; Float Simulator</h1>
+        <p>On a long-tail book, does investment income cover what underwriting gives away? Ten years of premium, loss emergence, float, and investment income &mdash; with deployment lag, tail length, and a large-loss event as the levers.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="sim-layout">
+
+          <!-- ============ Assumptions panel ============ -->
+          <aside class="assumptions" aria-label="Model assumptions">
+            <h2>Assumptions</h2>
+            <!-- autocomplete="off" stops browser form-state restoration from clobbering values applied from a shared URL hash -->
+            <form autocomplete="off">
+            <div class="assumptions__groups">
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Underwriting</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pPremium">Annual written premium</label><span class="ctrl__val" id="vPremium"></span></div>
+                  <input type="range" id="pPremium" min="10" max="500" step="10" value="100">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pLR">Loss ratio (ultimate)</label><span class="ctrl__val" id="vLR"></span></div>
+                  <input type="range" id="pLR" min="50" max="110" step="1" value="82">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pER">Expense ratio</label><span class="ctrl__val" id="vER"></span></div>
+                  <input type="range" id="pER" min="15" max="35" step="1" value="22">
+                </div>
+              </div>
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Investment</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pYield">Portfolio yield (annual)</label><span class="ctrl__val" id="vYield"></span></div>
+                  <input type="range" id="pYield" min="2" max="8" step="0.25" value="5">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pCashYield">Uninvested cash yield</label><span class="ctrl__val" id="vCashYield"></span></div>
+                  <input type="range" id="pCashYield" min="0" max="3" step="0.25" value="0.5">
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pLag">Deployment lag</label><span class="ctrl__val" id="vLag"></span></div>
+                  <input type="range" id="pLag" min="0" max="24" step="1" value="0">
+                </div>
+              </div>
+
+              <div class="ctrl-group">
+                <div class="ctrl-group__title">Losses</div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pPreset">Coverage form preset</label></div>
+                  <select id="pPreset" aria-label="Coverage form preset">
+                    <option value="custom" selected>Custom tail</option>
+                    <option value="cm">Claims-made (7-yr tail)</option>
+                    <option value="occ">Occurrence (12-yr tail)</option>
+                  </select>
+                </div>
+                <div class="ctrl">
+                  <div class="ctrl__top"><label for="pTail">Payout tail length</label><span class="ctrl__val" id="vTail"></span></div>
+                  <input type="range" id="pTail" min="5" max="15" step="1" value="10">
+                </div>
+                <div class="ctrl ctrl--toggle">
+                  <label for="pLLOn">Large-loss event (month 30)</label>
+                  <input type="checkbox" id="pLLOn">
+                </div>
+                <div class="ctrl is-disabled" id="llSizeCtrl">
+                  <div class="ctrl__top"><label for="pLLSize">Large-loss size</label><span class="ctrl__val" id="vLLSize"></span></div>
+                  <input type="range" id="pLLSize" min="5" max="50" step="5" value="20">
+                </div>
+              </div>
+
+            </div>
+            <button class="btn btn--reset" id="resetBtn" type="button">Reset to defaults</button>
+            </form>
+          </aside>
+
+          <!-- ============ Main area ============ -->
+          <div class="sim-main">
+
+            <div class="scenario-bar" role="group" aria-label="Scenario comparison">
+              <button class="btn" id="pinA" type="button">Pin as Scenario A</button>
+              <button class="btn" id="pinB" type="button">Pin as Scenario B</button>
+              <span id="chipA"></span>
+              <span id="chipB"></span>
+              <span class="scenario-bar__hint" id="scenarioHint">Pin the current inputs as Scenario A, change any assumptions, then pin Scenario B to compare the two configurations.</span>
+            </div>
+
+            <div class="kpi-strip" id="kpiStrip"></div>
+
+            <div class="chart-card">
+              <h3>Float composition</h3>
+              <p class="chart-sub">Unearned premium and loss reserves (incl. IBNR proxy) held at each month-end.</p>
+              <div class="chart-wrap"><canvas id="floatCanvas" role="img" aria-label="Stacked area chart of unearned premium and loss reserves by month"></canvas></div>
+            </div>
+
+            <div class="chart-pair">
+              <div class="chart-card">
+                <h3>Cumulative investment income</h3>
+                <p class="chart-sub">Running total of income earned on cash and the investment portfolio.</p>
+                <div class="chart-wrap chart-wrap--short"><canvas id="invCanvas" role="img" aria-label="Line chart of cumulative investment income by month"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h3>Loss payout pattern</h3>
+                <p class="chart-sub">Share of an accident year's ultimate losses paid in each development year.</p>
+                <div class="chart-wrap chart-wrap--short"><canvas id="payoutCanvas" role="img" aria-label="Bar chart of loss payout pattern by development year"></canvas></div>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Annual income components</h3>
+              <p class="chart-sub" id="plSub">Underwriting income, investment income, and operating income by calendar year.</p>
+              <div class="chart-wrap"><canvas id="plCanvas" role="img" aria-label="Grouped bar chart of underwriting, investment, and operating income by year"></canvas></div>
+            </div>
+
+            <div class="chart-card">
+              <h3>Annual summary</h3>
+              <p class="chart-sub">Calendar-year figures under the current assumptions. Combined ratio = (incurred losses + expenses) &divide; earned premium. Operating ratio = combined ratio &minus; investment income &divide; earned premium.</p>
+              <div class="table-scroll">
+                <table class="annual-table" id="annualTable" aria-label="Annual summary table"></table>
+              </div>
+            </div>
+
+            <div class="chart-card" id="compareCard" style="display:none">
+              <h3>Scenario comparison — 10-year totals</h3>
+              <p class="chart-sub">Aggregate results for the two pinned configurations.</p>
+              <div class="table-scroll">
+                <table class="compare-table" id="compareTable" aria-label="Scenario comparison table"></table>
+              </div>
+              <p class="compare-assumptions" id="compareAssumptions"></p>
+            </div>
+
+            <details class="methodology">
+              <summary>Methodology &amp; model simplifications</summary>
+              <ul>
+                <li>Policies are written uniformly: 1/12 of annual written premium incepts each month, with the full annual premium collected at inception. Premium earns pro rata over the 12 months from inception.</li>
+                <li>The book starts cold at month 0, so year-1 figures reflect ramp-up of earned premium and in-force exposure.</li>
+                <li>Expenses are paid as premium is earned (a simplification; in practice acquisition costs are paid up front).</li>
+                <li>The loss ratio is deterministic and applied to earned premium by accident month — no stochastic frequency/severity, no trend, no reserve development beyond the payout curve.</li>
+                <li>Losses pay out on an industry-shaped MPL development curve stretched or compressed to the selected tail length, not company-specific triangles. Reserves shown are cumulative incurred minus cumulative paid (an IBNR proxy, not a reserving exercise).</li>
+                <li>Collected premium sits in cash at the uninvested-cash yield until the deployment lag elapses, then moves into the portfolio at the portfolio yield. Claims and expenses are paid from the portfolio first, then cash. Investment income compounds within investable assets.</li>
+                <li>Losses still unpaid at month 120 remain in reserves; the simulation window ends before the tail fully runs off.</li>
+                <li>No taxes, reinsurance, commissions structure, or capital charges are modeled.</li>
+                <li>This is an educational simulation instrument, not a pricing, reserving, or investment model.</li>
+              </ul>
+            </details>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    const $ = id => document.getElementById(id);
+
+    // ==============================
+    // Constants
+    // ==============================
+    const MONTHS = 120;
+    const YEARS = 10;
+    // Cumulative % of ultimate paid at year-end 0..10 (industry-shaped MPL curve)
+    const BASE_CUM = [0, 0.05, 0.15, 0.30, 0.48, 0.64, 0.77, 0.86, 0.92, 0.96, 1.0];
+    const LARGE_LOSS_MONTH = 30;
+
+    // Series colors — categorical only, no good/bad signaling
+    const C_UEP      = 'rgba(127, 140, 141, 0.45)';
+    const C_UEP_LINE = 'rgba(127, 140, 141, 0.9)';
+    const C_RES      = 'rgba(36, 113, 163, 0.35)';
+    const C_RES_LINE = 'rgba(36, 113, 163, 0.9)';
+    const C_CURRENT  = '#1a1a1a';
+    const C_A        = 'rgba(36, 113, 163, 1)';
+    const C_B        = 'rgba(108, 52, 131, 1)';
+    const C_UW       = 'rgba(127, 140, 141, 0.75)';
+    const C_INV      = 'rgba(36, 113, 163, 0.75)';
+    const C_OP       = 'rgba(26, 26, 26, 0.85)';
+    const C_BAR      = 'rgba(36, 113, 163, 0.75)';
+
+    // ==============================
+    // Simulation engine
+    // ==============================
+    function stretchedCum(tYears, tailYears) {
+      const x = tYears * 10 / tailYears;   // map onto the base 0..10 scale
+      if (x <= 0) return 0;
+      if (x >= 10) return 1;
+      const i = Math.floor(x);
+      return BASE_CUM[i] + (BASE_CUM[i + 1] - BASE_CUM[i]) * (x - i);
+    }
+
+    function payoutFractions(tailYears) {
+      // Incremental monthly fractions; telescoping sum is exactly 1
+      const n = tailYears * 12;
+      const f = new Array(n);
+      for (let k = 0; k < n; k++) {
+        f[k] = stretchedCum((k + 1) / 12, tailYears) - stretchedCum(k / 12, tailYears);
+      }
+      return f;
+    }
+
+    function simulate(p) {
+      const mw = p.premium / 12;                    // premium written & collected each month
+      const payFrac = payoutFractions(p.tailYears);
+
+      const earned = new Array(MONTHS);
+      const incurred = new Array(MONTHS);
+      const paid = new Array(MONTHS).fill(0);
+      const expense = new Array(MONTHS);
+      const invIncome = new Array(MONTHS);
+      const uep = new Array(MONTHS);
+      const reserves = new Array(MONTHS);
+      const floatArr = new Array(MONTHS);
+      const cumInv = new Array(MONTHS);
+
+      for (let m = 0; m < MONTHS; m++) {
+        // each cohort earns 1/12 per month for 12 months starting at inception
+        earned[m] = mw * Math.min(m + 1, 12) / 12;
+        incurred[m] = p.lossRatio * earned[m];
+        expense[m] = p.expenseRatio * earned[m];
+      }
+      if (p.largeLossOn) incurred[LARGE_LOSS_MONTH] += p.largeLossSize;
+
+      // convolve incurred with the payout pattern
+      for (let a = 0; a < MONTHS; a++) {
+        if (incurred[a] === 0) continue;
+        const maxK = Math.min(payFrac.length, MONTHS - a);
+        for (let k = 0; k < maxK; k++) paid[a + k] += incurred[a] * payFrac[k];
+      }
+
+      // cash / portfolio walk
+      let cash = 0, portfolio = 0, cumIncurred = 0, cumPaid = 0, runningInv = 0;
+      const deployAt = new Array(MONTHS + p.lagMonths + 2).fill(0);
+      const my = p.portYield / 12, mc = p.cashYield / 12;
+
+      for (let m = 0; m < MONTHS; m++) {
+        // 1. collect premium into cash; schedule deployment
+        cash += mw;
+        deployAt[m + p.lagMonths] += mw;
+
+        // 2. move scheduled amounts into the portfolio (carry any shortfall forward)
+        const due = deployAt[m];
+        const moved = Math.min(due, Math.max(cash, 0));
+        cash -= moved;
+        portfolio += moved;
+        if (due - moved > 1e-9) deployAt[m + 1] += due - moved;
+
+        // 3. investment income compounds within each bucket
+        const ci = cash * mc;
+        const pi = portfolio * my;
+        cash += ci;
+        portfolio += pi;
+        invIncome[m] = ci + pi;
+        runningInv += ci + pi;
+        cumInv[m] = runningInv;
+
+        // 4. pay claims and expenses — portfolio first, then cash
+        let out = paid[m] + expense[m];
+        const fromPort = Math.min(portfolio, out);
+        portfolio -= fromPort;
+        cash -= (out - fromPort);
+
+        // balances
+        cumIncurred += incurred[m];
+        cumPaid += paid[m];
+        reserves[m] = cumIncurred - cumPaid;
+      }
+
+      let cw = 0, ce = 0;
+      for (let m = 0; m < MONTHS; m++) {
+        cw += mw; ce += earned[m];
+        uep[m] = cw - ce;
+        floatArr[m] = uep[m] + reserves[m];
+      }
+
+      // annual aggregation
+      const annual = [];
+      for (let y = 0; y < YEARS; y++) {
+        let ep = 0, inc = 0, pd = 0, ex = 0, inv = 0;
+        for (let m = y * 12; m < y * 12 + 12; m++) {
+          ep += earned[m]; inc += incurred[m]; pd += paid[m]; ex += expense[m]; inv += invIncome[m];
+        }
+        const uw = ep - inc - ex;
+        annual.push({
+          year: y + 1,
+          earned: ep, incurred: inc, paidLoss: pd, expenses: ex,
+          uwIncome: uw,
+          combinedRatio: ep > 0 ? (inc + ex) / ep : 0,
+          invIncome: inv,
+          opIncome: uw + inv,
+          opRatio: ep > 0 ? (inc + ex) / ep - inv / ep : 0,
+          eoyUEP: uep[y * 12 + 11],
+          eoyReserves: reserves[y * 12 + 11],
+          eoyFloat: floatArr[y * 12 + 11],
+        });
+      }
+
+      const tot = annual.reduce((t, a) => ({
+        earned: t.earned + a.earned, incurred: t.incurred + a.incurred,
+        expenses: t.expenses + a.expenses, uwIncome: t.uwIncome + a.uwIncome,
+        invIncome: t.invIncome + a.invIncome, opIncome: t.opIncome + a.opIncome,
+      }), { earned: 0, incurred: 0, expenses: 0, uwIncome: 0, invIncome: 0, opIncome: 0 });
+      const totals = {
+        ...tot,
+        combinedRatio: tot.earned > 0 ? (tot.incurred + tot.expenses) / tot.earned : 0,
+        opRatio: tot.earned > 0 ? (tot.incurred + tot.expenses - tot.invIncome) / tot.earned : 0,
+        eoyFloat: floatArr[MONTHS - 1],
+      };
+
+      // payout pattern by development year at the selected tail
+      const payoutYears = [];
+      for (let i = 1; i <= p.tailYears; i++) {
+        payoutYears.push((stretchedCum(i, p.tailYears) - stretchedCum(i - 1, p.tailYears)) * 100);
+      }
+
+      return { monthly: { earned, incurred, paid, expense, invIncome, uep, reserves, float: floatArr, cumInv }, annual, totals, payoutYears };
+    }
+
+    // ==============================
+    // Inputs
+    // ==============================
+    function readInputs() {
+      return {
+        premium: +$('pPremium').value * 1e6,
+        lossRatio: +$('pLR').value / 100,
+        expenseRatio: +$('pER').value / 100,
+        portYield: +$('pYield').value / 100,
+        cashYield: +$('pCashYield').value / 100,
+        lagMonths: +$('pLag').value,
+        tailYears: +$('pTail').value,
+        largeLossOn: $('pLLOn').checked,
+        largeLossSize: +$('pLLSize').value * 1e6,
+      };
+    }
+
+    function inputSummary(p) {
+      return '$' + (p.premium / 1e6) + 'M · LR ' + (p.lossRatio * 100).toFixed(0) + '% · ER ' + (p.expenseRatio * 100).toFixed(0) +
+        '% · yld ' + (p.portYield * 100).toFixed(2) + '%/' + (p.cashYield * 100).toFixed(2) + '% · lag ' + p.lagMonths +
+        'mo · tail ' + p.tailYears + 'y · LL ' + (p.largeLossOn ? '$' + (p.largeLossSize / 1e6) + 'M' : 'off');
+    }
+
+    function updateValueLabels() {
+      $('vPremium').textContent = '$' + $('pPremium').value + 'M';
+      $('vLR').textContent = $('pLR').value + '%';
+      $('vER').textContent = $('pER').value + '%';
+      $('vYield').textContent = (+$('pYield').value).toFixed(2) + '%';
+      $('vCashYield').textContent = (+$('pCashYield').value).toFixed(2) + '%';
+      $('vLag').textContent = $('pLag').value + ' mo';
+      $('vTail').textContent = $('pTail').value + ' yr';
+      $('vLLSize').textContent = '$' + $('pLLSize').value + 'M';
+      const llOn = $('pLLOn').checked;
+      $('llSizeCtrl').classList.toggle('is-disabled', !llOn);
+      $('pLLSize').disabled = !llOn;   // real disabled state, so keyboard users can't reach an inert slider
+    }
+
+    // ==============================
+    // Formatting
+    // ==============================
+    function fmtM(v) {
+      const m = +(v / 1e6).toFixed(1);   // round before taking the sign so "−$0.0M" can't appear
+      return (m < 0 ? '−' : '') + '$' + Math.abs(m).toFixed(1) + 'M';
+    }
+    function fmtPct(v) { return (v * 100).toFixed(1) + '%'; }
+    function negClass(v) { return v < 0 ? ' class="neg"' : ''; }
+    function axisM(v) {
+      const m = v / 1e6;
+      return (m < 0 ? '−$' : '$') + Math.abs(m).toFixed(0) + 'M';
+    }
+
+    const FONT = 'Inter';
+    const monthLabels = Array.from({ length: MONTHS }, (_, i) => i + 1);
+    function monthTick(val, idx) { return idx % 12 === 0 ? 'Yr ' + (idx / 12 + 1) : ''; }
+    function monthTitle(items) {
+      const m = items[0].dataIndex + 1;
+      return 'Month ' + m + ' (year ' + Math.ceil(m / 12) + ')';
+    }
+
+    function baseTooltip(labelCb, titleCb, extraCbs) {
+      return {
+        backgroundColor: '#1a1a1a',
+        titleFont: { family: FONT, size: 11 },
+        bodyFont: { family: FONT, size: 11 },
+        footerFont: { family: FONT, size: 11, weight: '600' },
+        padding: 10,
+        cornerRadius: 6,
+        callbacks: Object.assign({ label: labelCb }, titleCb ? { title: titleCb } : {}, extraCbs || {}),
+      };
+    }
+
+    const baseLegend = {
+      position: 'top',
+      align: 'end',
+      labels: { font: { family: FONT, size: 11 }, padding: 10, usePointStyle: true, pointStyleWidth: 10, boxHeight: 8 },
+    };
+
+    function monthAxisX() {
+      return {
+        grid: { display: false },
+        ticks: { font: { family: FONT, size: 10 }, color: '#999', autoSkip: false, maxRotation: 0, callback: monthTick },
+      };
+    }
+
+    function dollarAxisY(stacked) {
+      return {
+        stacked: !!stacked,
+        grid: { color: '#f0f0f0' },
+        ticks: { font: { family: FONT, size: 10 }, color: '#999', callback: v => axisM(v) },
+      };
+    }
+
+    // ==============================
+    // State & charts
+    // ==============================
+    const state = { current: null, A: null, B: null };
+    let floatChart = null, invChart = null, payoutChart = null, plChart = null;
+
+    function renderKPIs(r) {
+      const t = r.totals;
+      const items = [
+        ['10-yr earned premium', fmtM(t.earned), t.earned],
+        ['10-yr underwriting income', fmtM(t.uwIncome), t.uwIncome],
+        ['10-yr investment income', fmtM(t.invIncome), t.invIncome],
+        ['10-yr operating income', fmtM(t.opIncome), t.opIncome],
+        ['10-yr combined ratio', fmtPct(t.combinedRatio), 1],
+        ['Float, end of yr 10', fmtM(t.eoyFloat), t.eoyFloat],
+      ];
+      $('kpiStrip').innerHTML = items.map(([label, val, raw]) =>
+        '<div class="kpi"><div class="kpi__label">' + label + '</div><div class="kpi__value' + (raw < 0 ? ' neg' : '') + '">' + val + '</div></div>'
+      ).join('');
+    }
+
+    function renderFloatChart(r) {
+      const data = {
+        labels: monthLabels,
+        datasets: [
+          {
+            label: 'Unearned premium',
+            data: r.monthly.uep,
+            borderColor: C_UEP_LINE, backgroundColor: C_UEP,
+            borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.15,
+          },
+          {
+            label: 'Loss reserves',
+            data: r.monthly.reserves,
+            borderColor: C_RES_LINE, backgroundColor: C_RES,
+            borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.15,
+          },
+        ],
+      };
+      if (floatChart) { floatChart.data = data; floatChart.update(); return; }
+      floatChart = new Chart($('floatCanvas'), {
+        type: 'line',
+        data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: baseLegend,
+            tooltip: baseTooltip(
+              item => item.dataset.label + ': ' + fmtM(item.parsed.y),
+              monthTitle,
+              { footer: items => 'Total float: ' + fmtM(items.reduce((s, i) => s + i.parsed.y, 0)) }
+            ),
+          },
+          scales: { x: monthAxisX(), y: dollarAxisY(true) },
+        },
+      });
+    }
+
+    function renderInvChart(r) {
+      const datasets = [{
+        label: state.A || state.B ? 'Current inputs' : 'Cumulative investment income',
+        data: r.monthly.cumInv,
+        borderColor: C_CURRENT, backgroundColor: 'rgba(0,0,0,0.04)',
+        borderWidth: 2.25, pointRadius: 0, fill: false, tension: 0.15,
+      }];
+      if (state.A) datasets.push({
+        label: 'Scenario A',
+        data: state.A.r.monthly.cumInv,
+        borderColor: C_A, backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 0, fill: false, tension: 0.15,
+      });
+      if (state.B) datasets.push({
+        label: 'Scenario B',
+        data: state.B.r.monthly.cumInv,
+        borderColor: C_B, backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 0, fill: false, tension: 0.15,
+      });
+      const data = { labels: monthLabels, datasets };
+      if (invChart) { invChart.data = data; invChart.update(); return; }
+      invChart = new Chart($('invCanvas'), {
+        type: 'line',
+        data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: baseLegend,
+            tooltip: baseTooltip(
+              item => item.dataset.label + ': ' + fmtM(item.parsed.y),
+              monthTitle
+            ),
+          },
+          scales: { x: monthAxisX(), y: dollarAxisY(false) },
+        },
+      });
+    }
+
+    function renderPayoutChart(r, p) {
+      const data = {
+        labels: r.payoutYears.map((_, i) => 'Yr ' + (i + 1)),
+        datasets: [{
+          label: '% of ultimate paid',
+          data: r.payoutYears.map(v => +v.toFixed(2)),
+          backgroundColor: C_BAR, borderWidth: 0, borderRadius: 3,
+        }],
+      };
+      if (payoutChart) { payoutChart.data = data; payoutChart.update(); return; }
+      payoutChart = new Chart($('payoutCanvas'), {
+        type: 'bar',
+        data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: baseTooltip(item => item.parsed.y.toFixed(1) + '% of ultimate losses paid'),
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: FONT, size: 10 }, color: '#999' } },
+            y: { grid: { color: '#f0f0f0' }, ticks: { font: { family: FONT, size: 10 }, color: '#999', callback: v => v + '%' } },
+          },
+        },
+      });
+    }
+
+    function renderPLChart(r) {
+      const years = r.annual.map(a => 'Yr ' + a.year);
+      const compare = state.A && state.B;
+      let datasets;
+      if (compare) {
+        $('plSub').textContent = 'Operating income by calendar year for the two pinned scenarios.';
+        datasets = [
+          { label: 'Scenario A — operating income', data: state.A.r.annual.map(a => a.opIncome), backgroundColor: C_A.replace('1)', '0.75)'), borderRadius: 3 },
+          { label: 'Scenario B — operating income', data: state.B.r.annual.map(a => a.opIncome), backgroundColor: C_B.replace('1)', '0.75)'), borderRadius: 3 },
+        ];
+      } else {
+        $('plSub').textContent = 'Underwriting income, investment income, and operating income by calendar year.';
+        datasets = [
+          { label: 'Underwriting income', data: r.annual.map(a => a.uwIncome), backgroundColor: C_UW, borderRadius: 3 },
+          { label: 'Investment income', data: r.annual.map(a => a.invIncome), backgroundColor: C_INV, borderRadius: 3 },
+          { label: 'Operating income', data: r.annual.map(a => a.opIncome), backgroundColor: C_OP, borderRadius: 3 },
+        ];
+      }
+      const data = { labels: years, datasets };
+      if (plChart) { plChart.data = data; plChart.update(); return; }
+      plChart = new Chart($('plCanvas'), {
+        type: 'bar',
+        data,
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: baseLegend,
+            tooltip: baseTooltip(item => item.dataset.label + ': ' + fmtM(item.parsed.y)),
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: FONT, size: 10 }, color: '#999' } },
+            y: dollarAxisY(false),
+          },
+        },
+      });
+    }
+
+    function renderTable(r) {
+      const head = '<thead><tr><th>Year</th><th>Earned premium</th><th>Incurred losses</th><th>UW income</th><th>Combined ratio</th><th>Investment income</th><th>Operating income</th><th>Operating ratio</th><th>EOY float</th></tr></thead>';
+      const rows = r.annual.map(a =>
+        '<tr><td>Year ' + a.year + '</td>' +
+        '<td>' + fmtM(a.earned) + '</td>' +
+        '<td>' + fmtM(a.incurred) + '</td>' +
+        '<td' + negClass(a.uwIncome) + '>' + fmtM(a.uwIncome) + '</td>' +
+        '<td>' + fmtPct(a.combinedRatio) + '</td>' +
+        '<td>' + fmtM(a.invIncome) + '</td>' +
+        '<td' + negClass(a.opIncome) + '>' + fmtM(a.opIncome) + '</td>' +
+        '<td>' + fmtPct(a.opRatio) + '</td>' +
+        '<td>' + fmtM(a.eoyFloat) + '</td></tr>'
+      ).join('');
+      const t = r.totals;
+      const totalRow = '<tr class="total-row"><td>10-yr total</td>' +
+        '<td>' + fmtM(t.earned) + '</td>' +
+        '<td>' + fmtM(t.incurred) + '</td>' +
+        '<td' + negClass(t.uwIncome) + '>' + fmtM(t.uwIncome) + '</td>' +
+        '<td>' + fmtPct(t.combinedRatio) + '</td>' +
+        '<td>' + fmtM(t.invIncome) + '</td>' +
+        '<td' + negClass(t.opIncome) + '>' + fmtM(t.opIncome) + '</td>' +
+        '<td>' + fmtPct(t.opRatio) + '</td>' +
+        '<td>' + fmtM(t.eoyFloat) + '</td></tr>';
+      $('annualTable').innerHTML = head + '<tbody>' + rows + totalRow + '</tbody>';
+    }
+
+    function renderCompare() {
+      const card = $('compareCard');
+      if (!(state.A && state.B)) { card.style.display = 'none'; return; }
+      card.style.display = 'block';
+      const a = state.A.r.totals, b = state.B.r.totals;
+      const rows = [
+        ['Earned premium', a.earned, b.earned, fmtM],
+        ['Underwriting income', a.uwIncome, b.uwIncome, fmtM],
+        ['Investment income', a.invIncome, b.invIncome, fmtM],
+        ['Operating income', a.opIncome, b.opIncome, fmtM],
+        ['Combined ratio', a.combinedRatio, b.combinedRatio, fmtPct],
+        ['Operating ratio', a.opRatio, b.opRatio, fmtPct],
+        ['Float, end of yr 10', a.eoyFloat, b.eoyFloat, fmtM],
+      ];
+      const head = '<thead><tr><th>Measure</th><th>Scenario A</th><th>Scenario B</th><th>B &minus; A</th></tr></thead>';
+      const body = rows.map(([label, va, vb, fmt]) => {
+        const d = fmt === fmtPct ? +((vb - va) * 100).toFixed(1) : +((vb - va) / 1e6).toFixed(1);
+        const sign = d > 0 ? '+' : d < 0 ? '−' : '';
+        const dStr = fmt === fmtPct ? sign + Math.abs(d).toFixed(1) + ' pts' : sign + '$' + Math.abs(d).toFixed(1) + 'M';
+        return '<tr><td>' + label + '</td>' +
+          '<td' + negClass(va) + '>' + fmt(va) + '</td>' +
+          '<td' + negClass(vb) + '>' + fmt(vb) + '</td>' +
+          '<td>' + dStr + '</td></tr>';
+      }).join('');
+      $('compareTable').innerHTML = head + '<tbody>' + body + '</tbody>';
+      $('compareAssumptions').innerHTML =
+        'Scenario A: <span class="mono">' + inputSummary(state.A.p) + '</span><br>' +
+        'Scenario B: <span class="mono">' + inputSummary(state.B.p) + '</span>';
+    }
+
+    function renderChips() {
+      const chip = (key, color) => {
+        const s = state[key];
+        if (!s) return '';
+        return '<span class="scenario-chip"><span class="scenario-chip__dot" style="background:' + color + '"></span>' +
+          '<span class="scenario-chip__label">Scenario ' + key + '</span>' +
+          '<span class="scenario-chip__desc">' + inputSummary(s.p) + '</span>' +
+          '<button type="button" aria-label="Clear scenario ' + key + '" data-clear="' + key + '">&times;</button></span>';
+      };
+      $('chipA').innerHTML = chip('A', C_A);
+      $('chipB').innerHTML = chip('B', C_B);
+      $('scenarioHint').style.display = (state.A || state.B) ? 'none' : '';
+      document.querySelectorAll('[data-clear]').forEach(btn => {
+        btn.addEventListener('click', () => { state[btn.dataset.clear] = null; renderChips(); renderAll(); });
+      });
+    }
+
+    // ==============================
+    // Orchestration
+    // ==============================
+    function renderAll() {
+      updateValueLabels();
+      const p = readInputs();
+      const r = simulate(p);
+      state.current = { p, r };
+      renderKPIs(r);
+      renderFloatChart(r);
+      renderInvChart(r);
+      renderPayoutChart(r, p);
+      renderPLChart(r);
+      renderTable(r);
+      renderCompare();
+    }
+
+    // ==============================
+    // Defaults & shareable URL state
+    // ==============================
+    const DEFAULTS = { pPremium: '100', pLR: '82', pER: '22', pYield: '5', pCashYield: '0.5', pLag: '0', pTail: '10', pLLSize: '20' };
+    const HASH_KEYS = [['pm', 'pPremium'], ['lr', 'pLR'], ['er', 'pER'], ['py', 'pYield'], ['cy', 'pCashYield'], ['lag', 'pLag'], ['tail', 'pTail'], ['lls', 'pLLSize']];
+
+    function syncPreset() {
+      const t = +$('pTail').value;
+      $('pPreset').value = t === 7 ? 'cm' : t === 12 ? 'occ' : 'custom';
+    }
+
+    // reflect current inputs in the URL hash so a configuration can be shared; no storage involved
+    let hashTimer = null;
+    function writeHash() {
+      clearTimeout(hashTimer);
+      hashTimer = setTimeout(() => {
+        const atDefaults = Object.keys(DEFAULTS).every(id => $(id).value === DEFAULTS[id]) && !$('pLLOn').checked;
+        if (atDefaults) {
+          history.replaceState(null, '', location.pathname + location.search);
+          return;
+        }
+        const parts = HASH_KEYS.map(([k, id]) => k + '=' + $(id).value);
+        if ($('pLLOn').checked) parts.push('ll=1');
+        history.replaceState(null, '', '#' + parts.join('&'));
+      }, 200);
+    }
+
+    function readHash() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      HASH_KEYS.forEach(([k, id]) => {
+        const v = h.get(k);
+        if (v !== null && v !== '' && isFinite(+v)) $(id).value = v;   // range inputs clamp to min/max
+      });
+      $('pLLOn').checked = h.get('ll') === '1';
+    }
+
+    // slider / toggle wiring — a full recompute is sub-millisecond, so render synchronously
+    function onInput() { renderAll(); writeHash(); }
+    ['pPremium', 'pLR', 'pER', 'pYield', 'pCashYield', 'pLag', 'pLLSize'].forEach(id => {
+      $(id).addEventListener('input', onInput);
+    });
+    $('pLLOn').addEventListener('change', onInput);
+    $('pTail').addEventListener('input', () => { syncPreset(); onInput(); });
+    $('pPreset').addEventListener('change', () => {
+      const v = $('pPreset').value;
+      if (v === 'cm') $('pTail').value = 7;
+      if (v === 'occ') $('pTail').value = 12;
+      onInput();
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      Object.keys(DEFAULTS).forEach(id => { $(id).value = DEFAULTS[id]; });
+      $('pLLOn').checked = false;
+      syncPreset();
+      onInput();
+    });
+
+    $('pinA').addEventListener('click', () => {
+      state.A = { p: state.current.p, r: state.current.r };
+      renderChips(); renderAll();
+    });
+    $('pinB').addEventListener('click', () => {
+      state.B = { p: state.current.p, r: state.current.r };
+      renderChips(); renderAll();
+    });
+
+    readHash();
+    syncPreset();
+    renderChips();
+    renderAll();
+
+    // The fragment can surface after script execution (form-state restoration, embedded
+    // viewers applying the URL late), so re-apply shared state once the load settles and
+    // on any external hash change. Our own writeHash uses replaceState, which does not
+    // fire hashchange, so this cannot loop.
+    function applySharedState() {
+      if (!location.hash) return;
+      readHash();
+      syncPreset();
+      renderAll();
+    }
+    window.addEventListener('pageshow', () => setTimeout(applySharedState, 0));
+    window.addEventListener('hashchange', applySharedState);
+  })();
+  </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+</body>
+</html>

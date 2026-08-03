@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matter Economics — Neal Pathak</title>
+  <meta name="description" content="What does legal work actually cost once write-downs and write-offs are in? Realization, collection, effective hourly rate, and margin by matter.">
+  <meta property="og:title" content="Matter Economics — Neal Pathak">
+  <meta property="og:description" content="What does legal work actually cost once write-downs and write-offs are in? Realization, collection, effective hourly rate, and margin by matter.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nealpathak.github.io/legal-ops/matter-profitability/">
+  <meta property="og:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://nealpathak.github.io/assets/og/og-card.png">
+  <link rel="canonical" href="https://nealpathak.github.io/legal-ops/matter-profitability/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../assets/css/shared.css">
+  <style>
+    .input-section { margin-bottom: var(--space-2xl); }
+
+    .input-modes {
+      display: flex;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .input-modes .mode-label {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      margin-right: var(--space-sm);
+    }
+
+    .mode-btn {
+      font-family: var(--font-sans);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      padding: var(--space-sm) var(--space-lg);
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      background: var(--color-surface);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+
+    .mode-btn:hover {
+      border-color: var(--color-text-tertiary);
+      color: var(--color-text);
+    }
+
+    .mode-btn.active {
+      background: var(--color-legal);
+      color: #fff;
+      border-color: var(--color-legal);
+    }
+
+    .settings-row {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg) var(--space-xl);
+      display: flex;
+      gap: var(--space-lg);
+      align-items: end;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .settings-row .form-group { flex: 1 1 200px; }
+
+    .settings-row .form-group label {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input,
+    .settings-row select {
+      width: 100%;
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      min-height: 36px;
+    }
+
+    .grid-editor {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      overflow-x: auto;
+    }
+
+    .grid-editor__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: var(--space-md);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .grid-editor h3 {
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .grid-editor .subtitle {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .matter-grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+      white-space: nowrap;
+    }
+
+    .matter-grid th {
+      text-align: left;
+      font-weight: 600;
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .matter-grid th.num { text-align: right; }
+
+    .matter-grid td {
+      padding: var(--space-xs) var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .matter-grid tr:last-child td { border-bottom: none; }
+
+    .matter-grid input[type="text"],
+    .matter-grid input[type="number"],
+    .matter-grid select {
+      font-family: var(--font-sans);
+      font-size: var(--text-sm);
+      padding: var(--space-xs) var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg);
+      min-height: 32px;
+    }
+
+    .matter-grid input[type="number"] {
+      font-family: var(--font-mono);
+      text-align: right;
+      width: 110px;
+    }
+
+    .matter-grid input[type="text"] { width: 180px; }
+    .matter-grid select { width: 150px; }
+
+    .row-actions { width: 30px; text-align: center; }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      font-size: var(--text-lg);
+      padding: 0 6px;
+      line-height: 1;
+    }
+
+    .icon-btn:hover { color: var(--color-risk); }
+
+    .grid-add-row {
+      margin-top: var(--space-md);
+      display: flex;
+      gap: var(--space-sm);
+    }
+
+    .csv-section { display: none; }
+    .csv-section.visible { display: block; }
+
+    .csv-upload-zone {
+      border: 2px dashed var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-2xl) var(--space-xl);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--transition-fast), background var(--transition-fast);
+    }
+
+    .csv-upload-zone:hover,
+    .csv-upload-zone.dragover {
+      border-color: var(--color-legal);
+      background: rgba(36, 113, 163, 0.02);
+    }
+
+    .csv-upload-zone p { max-width: none; }
+
+    .csv-upload-zone__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .csv-upload-zone__hint {
+      font-size: var(--text-sm);
+      color: var(--color-text-tertiary);
+    }
+
+    .csv-upload-zone__status {
+      font-size: var(--text-sm);
+      margin-top: var(--space-sm);
+      font-weight: 500;
+    }
+
+    .csv-upload-zone__status.success { color: var(--color-data); }
+    .csv-upload-zone__status.error { color: var(--color-risk); }
+
+    .template-link {
+      display: inline-block;
+      margin-top: var(--space-md);
+      font-size: var(--text-sm);
+      cursor: pointer;
+    }
+
+    .privacy-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: var(--space-sm);
+      text-align: center;
+      max-width: none;
+    }
+
+    .generate-row {
+      margin-top: var(--space-xl);
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .report-output { display: none; }
+    .report-output.visible { display: block; margin-top: var(--space-2xl); }
+
+    .report {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .report-header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: var(--space-xl) var(--space-2xl);
+    }
+
+    .report-header__company {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .report-header__subtitle {
+      font-size: var(--text-sm);
+      color: rgba(255, 255, 255, 0.7);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-header__period {
+      font-size: var(--text-xs);
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: var(--space-xs);
+      max-width: none;
+    }
+
+    .report-body { padding: var(--space-xl) var(--space-2xl) var(--space-2xl); }
+
+    .report-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-bottom: var(--space-xl);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: var(--space-lg) var(--space-md);
+      border-right: 1px solid var(--color-border-light);
+      background: var(--color-bg);
+    }
+
+    .report-stat:last-child { border-right: none; }
+
+    .report-stat__label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-tertiary);
+    }
+
+    .report-stat__value {
+      font-size: var(--text-2xl);
+      font-weight: 700;
+      margin-top: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .report-stat__sub {
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      margin-top: 4px;
+    }
+
+    .report-chart-full {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+
+    .report-chart-full h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-full__wrapper {
+      position: relative;
+      height: 320px;
+    }
+
+    .report-charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .report-chart-box {
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+
+    .report-chart-box h4 {
+      font-size: var(--text-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-tertiary);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-chart-wrapper {
+      position: relative;
+      height: 280px;
+    }
+
+    .report-section-header {
+      font-size: var(--text-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--color-text);
+      padding-bottom: var(--space-sm);
+      border-bottom: 2px solid var(--color-text);
+      margin-bottom: var(--space-md);
+    }
+
+    .report-detail { margin-bottom: var(--space-xl); }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--text-sm);
+    }
+
+    .report-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-tertiary);
+      padding: var(--space-sm);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .report-table th.num { text-align: right; }
+
+    .report-table td {
+      padding: 10px var(--space-sm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .report-table tr:last-child td { border-bottom: none; }
+
+    .report-table .num {
+      font-family: var(--font-mono);
+      text-align: right;
+      font-size: var(--text-xs);
+    }
+
+    .report-table .row-name {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+
+    .report-table .total-row td {
+      font-weight: 600;
+      color: var(--color-text);
+      border-top: 2px solid var(--color-border);
+      background: var(--color-bg);
+    }
+
+    .health-pill {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .health-pill.strong { background: rgba(30, 132, 73, 0.12); color: var(--color-data); }
+    .health-pill.ok     { background: rgba(36, 113, 163, 0.12); color: var(--color-legal); }
+    .health-pill.weak   { background: rgba(230, 126, 34, 0.14); color: #b9710e; }
+    .health-pill.poor   { background: rgba(192, 57, 43, 0.12); color: var(--color-risk); }
+
+    .report-footer {
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-md);
+      font-size: var(--text-xs);
+      color: var(--color-text-tertiary);
+      max-width: none;
+    }
+
+    .print-row {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
+      flex-wrap: wrap;
+    }
+
+    @media print {
+      @page { margin: 0.5in 0.6in; }
+      .site-nav, .tool-header, .input-section, .print-row, .site-footer { display: none !important; }
+      .report-output { display: block !important; margin-top: 0 !important; }
+      .tool-body { padding: 0 !important; }
+      .container { padding: 0 !important; max-width: none !important; }
+      body { background: #fff; }
+
+      .report { border: none; border-radius: 0; box-shadow: none; }
+
+      .report-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        padding: 16px 20px;
+      }
+      .report-header__company { font-size: 20px; }
+      .report-header__subtitle { font-size: 11px; }
+      .report-header__period { font-size: 9px; }
+
+      .report-body { padding: 16px 20px 20px; }
+
+      .report-stats {
+        margin-bottom: 14px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        break-inside: avoid;
+      }
+      .report-stat { padding: 10px 6px; }
+      .report-stat__label { font-size: 8px; }
+      .report-stat__value { font-size: 18px; }
+      .report-stat__sub { font-size: 9px; }
+
+      .report-chart-full {
+        padding: 10px;
+        margin-bottom: 10px;
+        break-inside: avoid;
+      }
+      .report-chart-full h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-full__wrapper { height: 200px !important; }
+
+      .report-charts {
+        gap: 12px;
+        margin-bottom: 14px;
+        break-inside: avoid;
+      }
+      .report-chart-box { padding: 10px; }
+      .report-chart-box h4 { font-size: 9px; margin-bottom: 6px; }
+      .report-chart-wrapper { height: 170px !important; }
+
+      .report-detail { margin-bottom: 12px; break-inside: avoid; }
+      .report-section-header { font-size: 9px; margin-bottom: 6px; }
+
+      .report-table { font-size: 10px; }
+      .report-table th { font-size: 8px; padding: 4px 6px; }
+      .report-table td { padding: 5px 6px; }
+
+      .report-footer { font-size: 8px; padding-top: 8px; }
+    }
+
+    @media (max-width: 900px) {
+      .report-stats { grid-template-columns: repeat(2, 1fr); }
+      .report-charts { grid-template-columns: 1fr; }
+      .settings-row { flex-direction: column; align-items: stretch; }
+    }
+
+    @media (max-width: 480px) {
+      .report-stats { grid-template-columns: 1fr; }
+      .report-chart-wrapper,
+      .report-chart-full__wrapper { height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a href="/" class="site-nav__logo">Neal Pathak</a>
+      <ul class="site-nav__links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/notes/">Notes</a></li>
+        <li><a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <section class="tool-header">
+      <div class="container">
+        <span class="category-badge category-badge--legal">Legal</span>
+        <h1>Matter Economics</h1>
+        <p>What does legal work actually cost once write-downs and write-offs are in? Realization, collection, effective hourly rate, and margin by matter &mdash; the economics worth understanding on either side of a rate negotiation.</p>
+      </div>
+    </section>
+
+    <section class="tool-body">
+      <div class="container">
+        <div class="input-section" id="inputSection">
+
+          <div class="input-modes">
+            <span class="mode-label">Input:</span>
+            <button class="mode-btn active" data-mode="form">Form</button>
+            <button class="mode-btn" data-mode="csv">CSV Upload</button>
+            <button class="mode-btn" data-mode="demo">Demo Data</button>
+          </div>
+
+          <div class="settings-row">
+            <div class="form-group">
+              <label>Firm Name</label>
+              <input type="text" id="firmName" placeholder="e.g. Sterling &amp; Reed LLP">
+            </div>
+            <div class="form-group">
+              <label>Period</label>
+              <input type="text" id="period" placeholder="e.g. Q1 2026 or YTD">
+            </div>
+            <div class="form-group">
+              <label>Standard Rate ($/hr)</label>
+              <input type="number" id="standardRate" value="650" step="25" min="0">
+            </div>
+            <div class="form-group">
+              <label>Prepared By</label>
+              <input type="text" id="preparedBy" placeholder="Optional">
+            </div>
+          </div>
+
+          <div class="grid-editor" id="formEditor">
+            <div class="grid-editor__header">
+              <h3>Matters</h3>
+            </div>
+            <p class="subtitle">Hours worked = total time recorded. Hours billed = time invoiced (write-downs removed). Collected = cash actually received. Costs = blended cost of fee-earners + allocated overhead for those hours.</p>
+            <div style="overflow-x:auto; margin-top: var(--space-md);">
+              <table class="matter-grid" id="matterGrid"></table>
+            </div>
+            <div class="grid-add-row">
+              <button class="btn" id="addRowBtn" type="button">+ Add Matter</button>
+            </div>
+          </div>
+
+          <div class="csv-section" id="csvSection">
+            <div class="csv-upload-zone" id="csvUploadZone">
+              <p class="csv-upload-zone__title">Drop a CSV file here or click to upload</p>
+              <p class="csv-upload-zone__hint">Columns: matter, partner, practice_area, hours_worked, hours_billed, billed_amount, collected_amount, cost</p>
+              <p class="csv-upload-zone__status" id="csvStatus"></p>
+              <input type="file" id="csvFileInput" accept=".csv" hidden aria-label="Upload matters CSV">
+            </div>
+            <p class="privacy-note">All data stays in your browser. Nothing is uploaded or stored.</p>
+            <a class="template-link" id="downloadTemplate">Download CSV template</a>
+          </div>
+
+          <div class="generate-row">
+            <button class="btn btn--primary" id="generateBtn">Generate Dashboard</button>
+          </div>
+        </div>
+
+        <div class="report-output" id="reportOutput">
+          <div class="print-row">
+            <button class="btn btn--primary" id="printBtn">Print / Save as PDF</button>
+            <button class="btn" id="editBtn">Edit Data</button>
+          </div>
+          <div class="report" id="report"></div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    // ==============================
+    // Demo Data — mid-size firm, one quarter, mix of healthy + bleeding matters
+    // ==============================
+    const DEMO_DATA = {
+      firm: 'Sterling & Reed LLP',
+      period: 'Q1 2026',
+      standardRate: 650,
+      matters: [
+        { matter: 'Apex Industries — MSA',          partner: 'M. Chen',   practice: 'Corporate',    worked: 142, billed: 138, billedAmt: 89700, collected: 89700, cost: 41200 },
+        { matter: 'Helix Bio — IP Dispute',         partner: 'A. Park',   practice: 'Litigation',   worked: 410, billed: 372, billedAmt: 242000, collected: 218000, cost: 168000 },
+        { matter: 'Orion Capital — Fund Formation', partner: 'M. Chen',   practice: 'Corporate',    worked: 218, billed: 218, billedAmt: 158600, collected: 158600, cost: 79200 },
+        { matter: 'Northwind — Class Defense',      partner: 'D. Vargas', practice: 'Litigation',   worked: 680, billed: 540, billedAmt: 318000, collected: 256000, cost: 312000 },
+        { matter: 'Vertex Labs — Patent Filings',   partner: 'S. Okafor', practice: 'IP',           worked: 96,  billed: 96,  billedAmt: 67200, collected: 67200, cost: 32800 },
+        { matter: 'Cobalt — Series C',              partner: 'M. Chen',   practice: 'Corporate',    worked: 165, billed: 158, billedAmt: 112400, collected: 105200, cost: 58400 },
+        { matter: 'Riverstone — Lease Restructure', partner: 'J. Mehta',  practice: 'Real Estate',  worked: 78,  billed: 72,  billedAmt: 41800, collected: 41800, cost: 23600 },
+        { matter: 'Atlas Holdings — Tax Audit',     partner: 'R. Singh',  practice: 'Tax',          worked: 124, billed: 119, billedAmt: 78400, collected: 71200, cost: 38900 },
+        { matter: 'Beacon Health — Reg Compliance', partner: 'L. Howe',   practice: 'Regulatory',   worked: 188, billed: 175, billedAmt: 108500, collected: 102000, cost: 64700 },
+        { matter: 'Quill Media — Employment',       partner: 'A. Park',   practice: 'Employment',   worked: 92,  billed: 76,  billedAmt: 44400, collected: 39200, cost: 41800 },
+        { matter: 'Stellar Energy — JV Negotiation',partner: 'J. Mehta',  practice: 'Corporate',    worked: 254, billed: 254, billedAmt: 186900, collected: 186900, cost: 92400 },
+        { matter: 'Pinecrest — Subpoena Response',  partner: 'D. Vargas', practice: 'Litigation',   worked: 56,  billed: 38,  billedAmt: 21800, collected: 18200, cost: 28400 },
+      ],
+    };
+
+    const EMPTY_ROW = () => ({
+      matter: '', partner: '', practice: 'Corporate',
+      worked: 0, billed: 0, billedAmt: 0, collected: 0, cost: 0,
+    });
+
+    const PRACTICES = ['Corporate', 'Litigation', 'IP', 'Real Estate', 'Tax', 'Regulatory', 'Employment', 'Other'];
+
+    // Stable color palette by practice area
+    const PRACTICE_COLORS = {
+      'Corporate':   'rgba(36, 113, 163, 0.85)',
+      'Litigation':  'rgba(192, 57, 43, 0.85)',
+      'IP':          'rgba(136, 78, 160, 0.85)',
+      'Real Estate': 'rgba(230, 126, 34, 0.85)',
+      'Tax':         'rgba(30, 132, 73, 0.85)',
+      'Regulatory':  'rgba(52, 152, 219, 0.85)',
+      'Employment':  'rgba(231, 76, 60, 0.85)',
+      'Other':       'rgba(127, 140, 141, 0.85)',
+    };
+
+    // ==============================
+    // State
+    // ==============================
+    let state = {
+      firm: '',
+      period: '',
+      preparedBy: '',
+      standardRate: 650,
+      matters: [],
+      mode: 'form',
+    };
+
+    let topMattersChart = null;
+    let practiceChart = null;
+    let scatterChart = null;
+
+    // Elements
+    const firmNameEl = document.getElementById('firmName');
+    const periodEl = document.getElementById('period');
+    const standardRateEl = document.getElementById('standardRate');
+    const preparedByEl = document.getElementById('preparedBy');
+    const matterGridEl = document.getElementById('matterGrid');
+    const formEditor = document.getElementById('formEditor');
+    const csvSection = document.getElementById('csvSection');
+    const csvUploadZone = document.getElementById('csvUploadZone');
+    const csvFileInput = document.getElementById('csvFileInput');
+    const csvStatus = document.getElementById('csvStatus');
+    const downloadTemplate = document.getElementById('downloadTemplate');
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const editBtn = document.getElementById('editBtn');
+    const reportOutput = document.getElementById('reportOutput');
+    const inputSection = document.getElementById('inputSection');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    // ==============================
+    // State <-> UI
+    // ==============================
+    function setStateFromDemo() {
+      const d = DEMO_DATA;
+      state.firm = d.firm;
+      state.period = d.period;
+      state.standardRate = d.standardRate;
+      state.matters = d.matters.map(m => ({ ...m }));
+      firmNameEl.value = state.firm;
+      periodEl.value = state.period;
+      standardRateEl.value = state.standardRate;
+    }
+
+    function renderGrid() {
+      let html = '<thead><tr>';
+      html += '<th>Matter</th><th>Partner</th><th>Practice</th>';
+      html += '<th class="num">Hrs Worked</th><th class="num">Hrs Billed</th>';
+      html += '<th class="num">Billed $</th><th class="num">Collected $</th>';
+      html += '<th class="num">Cost $</th><th class="row-actions"></th>';
+      html += '</tr></thead><tbody>';
+
+      state.matters.forEach((m, i) => {
+        html += '<tr>';
+        html += '<td><input type="text" data-i="' + i + '" data-f="matter" value="' + escapeAttr(m.matter) + '" placeholder="Matter name"></td>';
+        html += '<td><input type="text" data-i="' + i + '" data-f="partner" value="' + escapeAttr(m.partner) + '" placeholder="Partner" style="width:120px"></td>';
+        html += '<td><select data-i="' + i + '" data-f="practice">';
+        PRACTICES.forEach(p => {
+          html += '<option value="' + p + '"' + (m.practice === p ? ' selected' : '') + '>' + p + '</option>';
+        });
+        html += '</select></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="worked" value="' + (m.worked || '') + '" step="1" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="billed" value="' + (m.billed || '') + '" step="1" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="billedAmt" value="' + (m.billedAmt || '') + '" step="100" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="collected" value="' + (m.collected || '') + '" step="100" placeholder="0"></td>';
+        html += '<td class="num"><input type="number" data-i="' + i + '" data-f="cost" value="' + (m.cost || '') + '" step="100" placeholder="0"></td>';
+        html += '<td class="row-actions"><button type="button" class="icon-btn" data-del="' + i + '" title="Remove">&times;</button></td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody>';
+      matterGridEl.innerHTML = html;
+
+      matterGridEl.oninput = function(e) {
+        const t = e.target;
+        if (t.tagName !== 'INPUT' && t.tagName !== 'SELECT') return;
+        const i = parseInt(t.dataset.i, 10);
+        const f = t.dataset.f;
+        if (isNaN(i) || !f) return;
+        if (['worked','billed','billedAmt','collected','cost'].includes(f)) {
+          state.matters[i][f] = parseFloat(t.value) || 0;
+        } else {
+          state.matters[i][f] = t.value;
+        }
+      };
+
+      matterGridEl.onclick = function(e) {
+        const t = e.target;
+        if (t.classList.contains('icon-btn') && t.dataset.del != null) {
+          const idx = parseInt(t.dataset.del, 10);
+          state.matters.splice(idx, 1);
+          if (state.matters.length === 0) state.matters.push(EMPTY_ROW());
+          renderGrid();
+        }
+      };
+    }
+
+    addRowBtn.addEventListener('click', () => {
+      state.matters.push(EMPTY_ROW());
+      renderGrid();
+    });
+
+    modeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const mode = btn.dataset.mode;
+        modeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = mode;
+
+        if (mode === 'form') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+        } else if (mode === 'csv') {
+          formEditor.style.display = 'none';
+          csvSection.classList.add('visible');
+        } else if (mode === 'demo') {
+          formEditor.style.display = '';
+          csvSection.classList.remove('visible');
+          setStateFromDemo();
+          renderGrid();
+        }
+      });
+    });
+
+    firmNameEl.addEventListener('input', () => { state.firm = firmNameEl.value; });
+    periodEl.addEventListener('input', () => { state.period = periodEl.value; });
+    standardRateEl.addEventListener('input', () => { state.standardRate = parseFloat(standardRateEl.value) || 0; });
+    preparedByEl.addEventListener('input', () => { state.preparedBy = preparedByEl.value; });
+
+    // ==============================
+    // CSV
+    // ==============================
+    function parseCSVLine(line) {
+      // Handle simple comma-separated; supports quoted fields
+      const out = [];
+      let cur = '';
+      let inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (inQ) {
+          if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+          else if (c === '"') { inQ = false; }
+          else cur += c;
+        } else {
+          if (c === '"') inQ = true;
+          else if (c === ',') { out.push(cur); cur = ''; }
+          else cur += c;
+        }
+      }
+      out.push(cur);
+      return out.map(s => s.trim());
+    }
+
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+      if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
+
+      const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase());
+      const required = ['matter','partner','practice_area','hours_worked','hours_billed','billed_amount','collected_amount','cost'];
+      const missing = required.filter(h => headers.indexOf(h) === -1);
+      if (missing.length) throw new Error('Missing columns: ' + missing.join(', '));
+
+      const idx = {};
+      required.forEach(r => { idx[r] = headers.indexOf(r); });
+
+      const matters = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cells = parseCSVLine(lines[i]);
+        if (cells.length < required.length) continue;
+        const m = cells[idx['matter']];
+        if (!m) continue;
+        matters.push({
+          matter: m,
+          partner: cells[idx['partner']] || '',
+          practice: PRACTICES.indexOf(cells[idx['practice_area']]) >= 0 ? cells[idx['practice_area']] : 'Other',
+          worked: parseFloat(cells[idx['hours_worked']]) || 0,
+          billed: parseFloat(cells[idx['hours_billed']]) || 0,
+          billedAmt: parseFloat(cells[idx['billed_amount']]) || 0,
+          collected: parseFloat(cells[idx['collected_amount']]) || 0,
+          cost: parseFloat(cells[idx['cost']]) || 0,
+        });
+      }
+      if (!matters.length) throw new Error('No valid data rows found.');
+      return matters;
+    }
+
+    function loadCSV(text) {
+      try {
+        const matters = parseCSV(text);
+        state.matters = matters;
+        csvStatus.textContent = 'Loaded ' + matters.length + ' matters.';
+        csvStatus.className = 'csv-upload-zone__status success';
+        renderGrid();
+      } catch (err) {
+        csvStatus.textContent = err.message;
+        csvStatus.className = 'csv-upload-zone__status error';
+      }
+    }
+
+    csvUploadZone.addEventListener('click', () => csvFileInput.click());
+    csvUploadZone.addEventListener('dragover', e => { e.preventDefault(); csvUploadZone.classList.add('dragover'); });
+    csvUploadZone.addEventListener('dragleave', () => csvUploadZone.classList.remove('dragover'));
+    csvUploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      csvUploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handleCSVFile(file);
+    });
+    csvFileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleCSVFile(e.target.files[0]);
+    });
+
+    function handleCSVFile(file) {
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        csvStatus.textContent = 'Please upload a .csv file.';
+        csvStatus.className = 'csv-upload-zone__status error';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => loadCSV(e.target.result);
+      reader.readAsText(file);
+    }
+
+    downloadTemplate.addEventListener('click', e => {
+      e.preventDefault();
+      const header = 'matter,partner,practice_area,hours_worked,hours_billed,billed_amount,collected_amount,cost';
+      const sample = 'Apex Industries - MSA,M. Chen,Corporate,142,138,89700,89700,41200';
+      const blob = new Blob([header + '\n' + sample + '\n'], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'matter-profitability-template.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ==============================
+    // Formatters
+    // ==============================
+    function fmtDollarShort(v) {
+      const abs = Math.abs(v);
+      const sign = v < 0 ? '-' : '';
+      if (abs >= 1e9) return sign + '$' + (abs / 1e9).toFixed(2) + 'B';
+      if (abs >= 1e6) return sign + '$' + (abs / 1e6).toFixed(2) + 'M';
+      if (abs >= 1e3) return sign + '$' + (abs / 1e3).toFixed(0) + 'K';
+      return sign + '$' + Math.round(abs).toLocaleString();
+    }
+
+    function fmtDollarFull(v) {
+      const sign = v < 0 ? '-' : '';
+      return sign + '$' + Math.round(Math.abs(v)).toLocaleString();
+    }
+
+    function fmtPct(v) { return v.toFixed(1) + '%'; }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    function marginPill(marginPct) {
+      if (marginPct >= 35) return { cls: 'strong', text: 'Strong' };
+      if (marginPct >= 20) return { cls: 'ok',     text: 'Healthy' };
+      if (marginPct >= 5)  return { cls: 'weak',   text: 'Thin' };
+      return { cls: 'poor', text: 'Bleeding' };
+    }
+
+    // ==============================
+    // Report generation
+    // ==============================
+    function generate() {
+      // Filter valid rows
+      const matters = state.matters.filter(m => m.matter && m.matter.trim());
+      if (!matters.length) return;
+
+      // Per-matter computed metrics
+      const enriched = matters.map(m => {
+        const realization   = m.worked > 0 ? (m.billed / m.worked) * 100 : 0;          // hrs billed / hrs worked
+        const collection    = m.billedAmt > 0 ? (m.collected / m.billedAmt) * 100 : 0;  // $ collected / $ billed
+        const effectiveRate = m.worked > 0 ? (m.collected / m.worked) : 0;              // $ collected per hr worked
+        const margin        = m.collected - m.cost;
+        const marginPct     = m.collected > 0 ? (margin / m.collected) * 100 : (m.cost > 0 ? -100 : 0);
+        const writeOff      = Math.max(0, m.billedAmt * (m.worked > 0 ? (m.worked - m.billed) / m.worked : 0));
+        return { ...m, realization, collection, effectiveRate, margin, marginPct, writeOff };
+      });
+
+      // Firm totals
+      const sum = (arr, k) => arr.reduce((s, x) => s + (x[k] || 0), 0);
+      const totWorked    = sum(enriched, 'worked');
+      const totBilled    = sum(enriched, 'billed');
+      const totBilledAmt = sum(enriched, 'billedAmt');
+      const totCollected = sum(enriched, 'collected');
+      const totCost      = sum(enriched, 'cost');
+      const totMargin    = totCollected - totCost;
+
+      const firmRealization = totWorked > 0 ? (totBilled / totWorked) * 100 : 0;
+      const firmCollection  = totBilledAmt > 0 ? (totCollected / totBilledAmt) * 100 : 0;
+      const firmEffRate     = totWorked > 0 ? totCollected / totWorked : 0;
+      const firmMarginPct   = totCollected > 0 ? (totMargin / totCollected) * 100 : 0;
+
+      // By practice
+      const byPractice = {};
+      enriched.forEach(m => {
+        if (!byPractice[m.practice]) byPractice[m.practice] = { worked: 0, billed: 0, billedAmt: 0, collected: 0, cost: 0, count: 0 };
+        const p = byPractice[m.practice];
+        p.worked += m.worked; p.billed += m.billed; p.billedAmt += m.billedAmt;
+        p.collected += m.collected; p.cost += m.cost; p.count++;
+      });
+
+      // By partner
+      const byPartner = {};
+      enriched.forEach(m => {
+        const k = m.partner || '(Unassigned)';
+        if (!byPartner[k]) byPartner[k] = { worked: 0, billed: 0, billedAmt: 0, collected: 0, cost: 0, count: 0 };
+        const p = byPartner[k];
+        p.worked += m.worked; p.billed += m.billed; p.billedAmt += m.billedAmt;
+        p.collected += m.collected; p.cost += m.cost; p.count++;
+      });
+
+      const html = buildReport({
+        enriched,
+        firmRealization, firmCollection, firmEffRate, firmMarginPct,
+        totWorked, totBilled, totBilledAmt, totCollected, totCost, totMargin,
+        byPractice, byPartner,
+      });
+
+      document.getElementById('report').innerHTML = html;
+      reportOutput.classList.add('visible');
+      inputSection.style.display = 'none';
+
+      setTimeout(() => {
+        renderTopMattersChart(enriched);
+        renderPracticeChart(byPractice);
+        renderScatterChart(enriched);
+      }, 30);
+    }
+
+    function buildReport(r) {
+      const {
+        enriched,
+        firmRealization, firmCollection, firmEffRate, firmMarginPct,
+        totWorked, totBilled, totBilledAmt, totCollected, totCost, totMargin,
+        byPractice, byPartner,
+      } = r;
+
+      const firm = state.firm.trim() || 'Firm';
+      const period = state.period.trim() || 'Current Period';
+      const preparedBy = state.preparedBy.trim();
+
+      let html = '';
+
+      // Header
+      html += '<div class="report-header">';
+      html += '<div class="report-header__company">' + escapeHtml(firm) + '</div>';
+      html += '<p class="report-header__subtitle">Matter Profitability Dashboard &mdash; ' + escapeHtml(period) + '</p>';
+      html += '<p class="report-header__period">' + enriched.length + ' matters analyzed';
+      if (preparedBy) html += ' &middot; Prepared by ' + escapeHtml(preparedBy);
+      html += '</p>';
+      html += '</div>';
+
+      html += '<div class="report-body">';
+
+      // Stats — 4 KPIs
+      html += '<div class="report-stats">';
+      html += statBox('Realization Rate', fmtPct(firmRealization), 'Hrs billed / hrs worked');
+      html += statBox('Collection Rate',  fmtPct(firmCollection),  'Collected / billed $');
+      html += statBox('Effective Rate',   '$' + Math.round(firmEffRate).toLocaleString() + '/hr', 'Standard rate $' + state.standardRate);
+      html += statBox('Firm Margin',      fmtPct(firmMarginPct),   fmtDollarShort(totMargin) + ' on ' + fmtDollarShort(totCollected));
+      html += '</div>';
+
+      // Full-width top matters bar
+      html += '<div class="report-chart-full">';
+      html += '<h4>Top Matters by Margin Contribution</h4>';
+      html += '<div class="report-chart-full__wrapper"><canvas id="topMattersCanvas"></canvas></div>';
+      html += '</div>';
+
+      // Two charts
+      html += '<div class="report-charts">';
+      html += '<div class="report-chart-box">';
+      html += '<h4>Practice Area Mix (Collected $)</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="practiceCanvas"></canvas></div>';
+      html += '</div>';
+      html += '<div class="report-chart-box">';
+      html += '<h4>Effective Rate vs Margin (per matter)</h4>';
+      html += '<div class="report-chart-wrapper"><canvas id="scatterCanvas"></canvas></div>';
+      html += '</div>';
+      html += '</div>';
+
+      // Detail table — matters
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Matter Detail</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Matter</th><th>Partner</th><th>Practice</th>';
+      html += '<th class="num">Real.</th><th class="num">Coll.</th>';
+      html += '<th class="num">Eff Rate</th><th class="num">Collected</th>';
+      html += '<th class="num">Margin</th><th class="num">Margin %</th><th>Health</th>';
+      html += '</tr></thead><tbody>';
+
+      // Sort by margin descending
+      const sorted = enriched.slice().sort((a,b) => b.margin - a.margin);
+      sorted.forEach(m => {
+        const pill = marginPill(m.marginPct);
+        html += '<tr>';
+        html += '<td class="row-name">' + escapeHtml(m.matter) + '</td>';
+        html += '<td>' + escapeHtml(m.partner || '—') + '</td>';
+        html += '<td>' + escapeHtml(m.practice) + '</td>';
+        html += '<td class="num">' + fmtPct(m.realization) + '</td>';
+        html += '<td class="num">' + fmtPct(m.collection) + '</td>';
+        html += '<td class="num">$' + Math.round(m.effectiveRate).toLocaleString() + '</td>';
+        html += '<td class="num">' + fmtDollarFull(m.collected) + '</td>';
+        html += '<td class="num">' + fmtDollarFull(m.margin) + '</td>';
+        html += '<td class="num">' + fmtPct(m.marginPct) + '</td>';
+        html += '<td><span class="health-pill ' + pill.cls + '">' + pill.text + '</span></td>';
+        html += '</tr>';
+      });
+
+      // Total row
+      html += '<tr class="total-row">';
+      html += '<td>Firm Total</td><td></td><td></td>';
+      html += '<td class="num">' + fmtPct(firmRealization) + '</td>';
+      html += '<td class="num">' + fmtPct(firmCollection) + '</td>';
+      html += '<td class="num">$' + Math.round(firmEffRate).toLocaleString() + '</td>';
+      html += '<td class="num">' + fmtDollarFull(totCollected) + '</td>';
+      html += '<td class="num">' + fmtDollarFull(totMargin) + '</td>';
+      html += '<td class="num">' + fmtPct(firmMarginPct) + '</td>';
+      html += '<td></td>';
+      html += '</tr>';
+      html += '</tbody></table></div>';
+
+      // Partner leaderboard
+      html += '<div class="report-detail">';
+      html += '<div class="report-section-header">Partner Leaderboard</div>';
+      html += '<table class="report-table"><thead><tr>';
+      html += '<th>Partner</th><th class="num">Matters</th>';
+      html += '<th class="num">Hrs Worked</th><th class="num">Collected</th>';
+      html += '<th class="num">Eff Rate</th><th class="num">Real.</th>';
+      html += '<th class="num">Coll.</th><th class="num">Margin</th><th class="num">Margin %</th>';
+      html += '</tr></thead><tbody>';
+
+      const partnerRows = Object.keys(byPartner).map(name => {
+        const p = byPartner[name];
+        const eff = p.worked > 0 ? p.collected / p.worked : 0;
+        const real = p.worked > 0 ? (p.billed / p.worked) * 100 : 0;
+        const col = p.billedAmt > 0 ? (p.collected / p.billedAmt) * 100 : 0;
+        const margin = p.collected - p.cost;
+        const marginPct = p.collected > 0 ? (margin / p.collected) * 100 : 0;
+        return { name, ...p, eff, real, col, margin, marginPct };
+      }).sort((a,b) => b.margin - a.margin);
+
+      partnerRows.forEach(p => {
+        html += '<tr>';
+        html += '<td class="row-name">' + escapeHtml(p.name) + '</td>';
+        html += '<td class="num">' + p.count + '</td>';
+        html += '<td class="num">' + Math.round(p.worked).toLocaleString() + '</td>';
+        html += '<td class="num">' + fmtDollarFull(p.collected) + '</td>';
+        html += '<td class="num">$' + Math.round(p.eff).toLocaleString() + '</td>';
+        html += '<td class="num">' + fmtPct(p.real) + '</td>';
+        html += '<td class="num">' + fmtPct(p.col) + '</td>';
+        html += '<td class="num">' + fmtDollarFull(p.margin) + '</td>';
+        html += '<td class="num">' + fmtPct(p.marginPct) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+
+      // Bleeding matters callout
+      const bleeding = sorted.filter(m => m.margin < 0).slice(0, 5);
+      if (bleeding.length) {
+        html += '<div class="report-detail">';
+        html += '<div class="report-section-header">Watchlist &mdash; Negative-margin Matters</div>';
+        html += '<table class="report-table"><thead><tr>';
+        html += '<th>Matter</th><th>Partner</th>';
+        html += '<th class="num">Hrs Worked</th><th class="num">Write-Off $</th>';
+        html += '<th class="num">Collected</th><th class="num">Cost</th><th class="num">Loss</th>';
+        html += '</tr></thead><tbody>';
+        bleeding.forEach(m => {
+          html += '<tr>';
+          html += '<td class="row-name">' + escapeHtml(m.matter) + '</td>';
+          html += '<td>' + escapeHtml(m.partner || '—') + '</td>';
+          html += '<td class="num">' + Math.round(m.worked).toLocaleString() + '</td>';
+          html += '<td class="num">' + fmtDollarFull(m.writeOff) + '</td>';
+          html += '<td class="num">' + fmtDollarFull(m.collected) + '</td>';
+          html += '<td class="num">' + fmtDollarFull(m.cost) + '</td>';
+          html += '<td class="num">' + fmtDollarFull(m.margin) + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+      }
+
+      const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      html += '<p class="report-footer">Generated ' + today + '. Realization = hours billed &divide; hours worked. Collection = $ collected &divide; $ billed. ' +
+              'Effective rate = $ collected &divide; hours worked. Margin uses fully-burdened cost as supplied. ' +
+              'All data provided by user &mdash; not independently verified. For informational purposes only.</p>';
+
+      html += '</div>';
+      return html;
+    }
+
+    function statBox(label, value, sub) {
+      let h = '<div class="report-stat">';
+      h += '<div class="report-stat__label">' + label + '</div>';
+      h += '<div class="report-stat__value">' + value + '</div>';
+      h += '<div class="report-stat__sub">' + sub + '</div>';
+      h += '</div>';
+      return h;
+    }
+
+    // ==============================
+    // Charts
+    // ==============================
+    function chartFontFamily() { return 'Inter'; }
+
+    function renderTopMattersChart(enriched) {
+      if (topMattersChart) topMattersChart.destroy();
+      const canvas = document.getElementById('topMattersCanvas');
+      if (!canvas) return;
+
+      // Sort by margin desc, take up to 10
+      const sorted = enriched.slice().sort((a,b) => b.margin - a.margin).slice(0, 10);
+      const labels = sorted.map(m => m.matter.length > 28 ? m.matter.slice(0, 26) + '…' : m.matter);
+      const data = sorted.map(m => m.margin);
+      const colors = data.map(v => v >= 0 ? 'rgba(30, 132, 73, 0.85)' : 'rgba(192, 57, 43, 0.85)');
+
+      topMattersChart = new Chart(canvas, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Margin $', data, backgroundColor: colors, borderRadius: 4 }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: item => 'Margin: ' + fmtDollarShort(item.parsed.x),
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => fmtDollarShort(v) }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#555' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderPracticeChart(byPractice) {
+      if (practiceChart) practiceChart.destroy();
+      const canvas = document.getElementById('practiceCanvas');
+      if (!canvas) return;
+
+      const keys = Object.keys(byPractice);
+      const labels = keys;
+      const values = keys.map(k => byPractice[k].collected);
+      const colors = keys.map(k => PRACTICE_COLORS[k] || 'rgba(127,140,141,0.85)');
+      const total = values.reduce((s, v) => s + v, 0);
+
+      practiceChart = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { position: 'right', labels: { font: { family: chartFontFamily(), size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: ctx => {
+                  const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : '0.0';
+                  return ctx.label + ': ' + fmtDollarShort(ctx.parsed) + ' (' + pct + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderScatterChart(enriched) {
+      if (scatterChart) scatterChart.destroy();
+      const canvas = document.getElementById('scatterCanvas');
+      if (!canvas) return;
+
+      // Group by practice for colors
+      const groups = {};
+      enriched.forEach(m => {
+        const k = m.practice;
+        if (!groups[k]) groups[k] = [];
+        groups[k].push({
+          x: m.effectiveRate,
+          y: m.marginPct,
+          r: Math.max(4, Math.min(18, Math.sqrt(Math.abs(m.collected)) / 25)),
+          name: m.matter,
+          collected: m.collected,
+        });
+      });
+
+      const datasets = Object.keys(groups).map(k => ({
+        label: k,
+        data: groups[k],
+        backgroundColor: (PRACTICE_COLORS[k] || 'rgba(127,140,141,0.85)').replace('0.85', '0.55'),
+        borderColor: PRACTICE_COLORS[k] || 'rgba(127,140,141,0.85)',
+        borderWidth: 1.5,
+      }));
+
+      const stdRate = state.standardRate;
+
+      scatterChart = new Chart(canvas, {
+        type: 'bubble',
+        data: { datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { family: chartFontFamily(), size: 10 }, boxWidth: 10, padding: 8 } },
+            tooltip: {
+              backgroundColor: '#1a1a1a',
+              titleFont: { family: chartFontFamily(), size: 11 },
+              bodyFont: { family: chartFontFamily(), size: 11 },
+              padding: 10,
+              cornerRadius: 6,
+              callbacks: {
+                label: ctx => {
+                  const p = ctx.raw;
+                  return [
+                    p.name,
+                    'Eff rate: $' + Math.round(p.x).toLocaleString() + '/hr',
+                    'Margin: ' + p.y.toFixed(1) + '%',
+                    'Collected: ' + fmtDollarShort(p.collected),
+                  ];
+                }
+              }
+            },
+            annotation: {}
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Effective Rate ($/hr)', font: { family: chartFontFamily(), size: 10 }, color: '#555' },
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => '$' + v.toLocaleString() }
+            },
+            y: {
+              title: { display: true, text: 'Margin %', font: { family: chartFontFamily(), size: 10 }, color: '#555' },
+              grid: { color: '#f0f0f0' },
+              ticks: { font: { family: chartFontFamily(), size: 10 }, color: '#999', callback: v => v + '%' }
+            }
+          }
+        }
+      });
+    }
+
+    // ==============================
+    // Buttons + init
+    // ==============================
+    generateBtn.addEventListener('click', generate);
+    printBtn.addEventListener('click', () => window.print());
+    editBtn.addEventListener('click', () => {
+      reportOutput.classList.remove('visible');
+      inputSection.style.display = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Start with demo
+    setStateFromDemo();
+    renderGrid();
+
+  })();
+  </script>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="site-footer__tagline">Neal Pathak &mdash; decision instruments for risk, capital, and legal exposure.</p>
+      <div class="site-footer__links">
+        <a href="https://www.linkedin.com/in/nealpathak/" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="site-footer__sep">&middot;</span>
+        <a href="/notes/">Notes</a>
+        <span class="site-footer__sep">&middot;</span>
+        <span class="site-footer__aside">Off hours: <a href="/games/monty-hall/">Monty Hall</a>, <a href="/games/falling-sand/">Falling Sand</a></span>
+      </div>
+      <p class="site-footer__note">All tools run entirely in the browser. Nothing you enter leaves the page.</p>
+    </div>
+  </footer>
+</body>
+</html>

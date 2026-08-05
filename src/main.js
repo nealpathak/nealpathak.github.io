@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { loadWorld } from './core/state.js';
 import { makeClock } from './core/clock.js';
 import { makeTerrain } from './core/noise.js';
+import { makeClimate } from './core/climate.js';
 
 import { createPlanet } from './world/planet.js';
 import { createOcean } from './world/ocean.js';
@@ -55,11 +56,18 @@ async function start() {
 
   const { radius, subdivisions } = state.planet;
   const terrain = makeTerrain({ seed: state.seed, ...state.planet });
+  const climate = makeClimate(state.climate);
 
-  const planet = createPlanet({ radius, subdivisions, terrain });
+  const planet = createPlanet({ radius, subdivisions, terrain, climate });
   const ocean = createOcean({ radius, seaLevel: 0 });
   const sky = createSky({ seed: state.seed, radius, scene });
-  const flora = createFlora({ seed: state.seed, radius, terrain, count: state.life.flora });
+  const flora = createFlora({
+    seed: state.seed,
+    radius,
+    terrain,
+    climate,
+    count: state.life.flora,
+  });
   const wanderers = createWanderers({
     seed: state.seed,
     radius,
@@ -98,6 +106,7 @@ async function start() {
     clock.advance(dt);
     sky.update(dt, clock);
     ocean.update(dt);
+    flora.update(dt, elapsed);
     wanderers.update(dt, elapsed);
     rig.update(dt);
     hud.update(sky.sunDirection, rig.viewDirection);

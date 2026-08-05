@@ -10,7 +10,8 @@ get longer, not shorter.
 
 ## Near term — make the world feel inhabited
 
-- [ ] Trees sway slightly; foliage colour varies by latitude and altitude
+- [x] Trees sway slightly; foliage colour varies by latitude and altitude — done
+      day 2, along with ice caps, sea ice and a climate-driven tree line
 - [ ] Clouds — a thin shell of drifting low-poly puffs casting no shadow yet
 - [ ] Creatures rest at night and are livelier at midday
 - [ ] Grass and small shrubs on the plains; rocks and scree above the tree line

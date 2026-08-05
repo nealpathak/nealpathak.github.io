@@ -1,33 +1,61 @@
 // The planet itself: a subdivided icosahedron pushed around by the terrain
-// function, coloured by elevation, and shaded flat.
+// function, coloured by elevation and climate, and shaded flat.
 
 import * as THREE from 'three';
+import { mixHex, smoothstep } from '../core/climate.js';
 
-// Elevation bands, in world units relative to sea level. Each face takes the
-// colour of the first band whose ceiling it falls under, so the palette reads
-// as distinct terrain types rather than a smooth gradient.
-// Thresholds are tuned against the actual elevation distribution this terrain
-// produces (median land ~0.19, p90 ~0.60, peaks ~1.40). Re-check them if
-// landHeight in state.json ever changes, or the palette will collapse into one
-// or two colours.
-const BANDS = [
-  { until: -0.34, color: 0x1a3a52 }, // deep seabed
-  { until: -0.07, color: 0x2b5a72 }, // shallow seabed
-  { until: 0.05, color: 0xd9c290 }, // beach
-  { until: 0.42, color: 0x5f9e56 }, // grassland
-  { until: 0.80, color: 0x487d45 }, // forest floor
-  { until: 1.15, color: 0x74786a }, // highland rock
-  { until: Infinity, color: 0xe9edf1 }, // snow
-];
+const SEABED_DEEP = 0x1a3a52;
+const SEABED_SHALLOW = 0x2b5a72;
+const SEABED_COLD = 0x30536b;
 
-function colorForElevation(e) {
-  for (const band of BANDS) {
-    if (e < band.until) return band.color;
+const BEACH = 0xd9c290;
+const BEACH_COLD = 0xb0b6b4; // grey shingle rather than warm sand
+
+const GRASS_TROPICAL = 0x4f9c3a;
+const GRASS_TEMPERATE = 0x5f9e56;
+const TUNDRA = 0x8d9179;
+const ROCK = 0x74786a;
+const SNOW = 0xe1e8ee;
+
+// How wide the thaw is. A narrow band gives a hard painted-on cap; this much
+// lets tundra and rock show through along the edge of the ice.
+const THAW = 0.11;
+
+/**
+ * Colour for a patch of ground.
+ *
+ * Written as a stack of blends rather than a table of bands: vegetation first,
+ * then bare rock on the high ground, then snow over the top of whatever is
+ * underneath. Layering it this way means a change to the snow line can't
+ * accidentally punch a hole in the grass.
+ */
+function landColor(e, coldness, frozen) {
+  // Below the waterline the ocean shell hides most of this, but the depth
+  // shading still reads through it.
+  if (e < 0.0) {
+    const depth = smoothstep(-0.05, -0.42, e);
+    const base = mixHex(SEABED_SHALLOW, SEABED_DEEP, depth);
+    return mixHex(base, SEABED_COLD, smoothstep(0.55, 0.95, coldness));
   }
-  return BANDS[BANDS.length - 1].color;
+
+  // Shoreline.
+  if (e < 0.05) {
+    const shore = mixHex(BEACH, BEACH_COLD, smoothstep(0.42, 0.72, coldness));
+    return mixHex(shore, SNOW, smoothstep(frozen - THAW, frozen + THAW, coldness));
+  }
+
+  // Vegetation, cooling with distance from the equator.
+  let color = mixHex(GRASS_TROPICAL, GRASS_TEMPERATE, smoothstep(0.04, 0.34, coldness));
+  color = mixHex(color, TUNDRA, smoothstep(0.40, 0.66, coldness));
+
+  // Bare rock where the ground gets high.
+  color = mixHex(color, ROCK, smoothstep(0.88, 1.16, e));
+
+  // Ice over everything, once it's cold enough.
+  return mixHex(color, SNOW, smoothstep(frozen - THAW, frozen + THAW, coldness));
 }
 
-export function createPlanet({ radius, subdivisions, terrain }) {
+export function createPlanet({ radius, subdivisions, terrain, climate }) {
   // PolyhedronGeometry produces non-indexed geometry: every triangle owns its
   // three vertices. That is exactly what flat shading and per-face colouring
   // want, and it means displacement can never crack a seam.
@@ -45,24 +73,25 @@ export function createPlanet({ radius, subdivisions, terrain }) {
   const dir = new THREE.Vector3();
   const faceColor = new THREE.Color();
   const elevations = new Float32Array(count);
+  const coldness = new Float32Array(count);
 
   // Pass 1: displace every vertex along its own direction from the centre.
   for (let i = 0; i < count; i++) {
     dir.fromBufferAttribute(position, i).normalize();
     const e = terrain.heightAt(dir);
     elevations[i] = e;
+    coldness[i] = climate.coldnessAt(dir, e);
 
-    // Seabed is pulled down but kept shallow enough that the ocean shell
-    // always covers it.
     const r = radius + e;
     position.setXYZ(i, dir.x * r, dir.y * r, dir.z * r);
   }
   position.needsUpdate = true;
 
-  // Pass 2: colour per triangle, using the average elevation of its corners.
+  // Pass 2: colour per triangle, using the average of its corners.
   for (let i = 0; i < count; i += 3) {
-    const avg = (elevations[i] + elevations[i + 1] + elevations[i + 2]) / 3;
-    faceColor.setHex(colorForElevation(avg), THREE.SRGBColorSpace);
+    const e = (elevations[i] + elevations[i + 1] + elevations[i + 2]) / 3;
+    const c = (coldness[i] + coldness[i + 1] + coldness[i + 2]) / 3;
+    faceColor.setHex(landColor(e, c, climate.FROZEN), THREE.SRGBColorSpace);
     for (let k = 0; k < 3; k++) {
       colors[(i + k) * 3 + 0] = faceColor.r;
       colors[(i + k) * 3 + 1] = faceColor.g;
@@ -80,8 +109,6 @@ export function createPlanet({ radius, subdivisions, terrain }) {
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = 'planet';
-  mesh.castShadow = false;
-  mesh.receiveShadow = false;
 
   return mesh;
 }

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0",
-  "day": 1,
+  "version": "0.2.0",
+  "day": 2,
   "born": "2026-08-05",
   "updated": "2026-08-05",
   "seed": 20260805,
@@ -13,6 +13,11 @@
     "seabedDepth": 1.0,
     "seaLevel": 0.08
   },
+  "climate": {
+    "poleColdness": 1.0,
+    "lapseRate": 0.42,
+    "latitudeFalloff": 2.5
+  },
   "cycle": {
     "cycleSeconds": 240,
     "startAt": 0.15
@@ -21,5 +26,15 @@
     "flora": 900,
     "wanderers": 26
   },
-  "systems": ["terrain", "ocean", "atmosphere", "stars", "sun", "moon", "flora", "wanderers"]
+  "systems": [
+    "terrain",
+    "climate",
+    "ocean",
+    "atmosphere",
+    "stars",
+    "sun",
+    "moon",
+    "flora",
+    "wanderers"
+  ]
 }

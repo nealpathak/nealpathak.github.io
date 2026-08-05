@@ -49,6 +49,9 @@ get longer, not shorter.
 
 ## Structural
 
+- [x] Archive milestone worlds under `archive/day-NNN/` so past days stay
+      runnable, with versioned vendoring so engine upgrades can't break them
+- [ ] Snapshot the next milestone (day 10), then 25, 50, 100
 - [ ] Split `src/systems/` out of `src/world/` once there are more than a few
       simulation systems
 - [ ] A tiny deterministic test page that renders known frames and hashes them,

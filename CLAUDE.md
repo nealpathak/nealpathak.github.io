@@ -29,10 +29,28 @@ These are not preferences. Breaking one is a bug.
 5. **The world is continuous, not regenerated.** All randomness flows from the
    seeded PRNG in `src/core/rng.js`. Never call `Math.random()`. The continents
    a visitor saw yesterday must be there tomorrow.
-6. **Every update leaves a chronicle entry.** Growth nobody can perceive is not
-   growth.
+6. **The chronicle is the universe's diary, not a changelog.** Entries record
+   things that happened *in the world* — land rose, a river found the sea, the
+   herds moved north. Engineering work never appears there. See below.
 
 ---
+
+## Two kinds of change
+
+Keep these strictly separate. Mixing them is how the chronicle turns into a
+release note and stops being worth reading.
+
+**World updates** — anything a visitor could notice by looking: new life, new
+weather, better light, a shifted season. These bump `day`, get a chronicle
+entry, and are what the daily ritual below is for. One per day.
+
+**Infrastructure** — archiving, refactors, build and tooling, docs, performance
+work with no visible effect. These do **not** bump `day` and do **not** get a
+chronicle entry. Commit them separately, with a plain commit message. They can
+happen any time and don't consume the day's world update.
+
+If you're unsure which a change is, ask: would a visitor who can't see the code
+notice? If no, it's infrastructure.
 
 ## The daily ritual
 
@@ -79,6 +97,44 @@ world.render();
 
 ---
 
+## Archiving milestones
+
+Past worlds are kept runnable, not just recoverable, under `archive/day-NNN/`.
+Git alone would preserve the code, but nobody can visit a git commit from a
+phone — and watching the world change is the entire point of the site.
+
+**Snapshot on milestones**: days 1, 10, 25, 50, 100, 200, 365, then every 100.
+Not every day — consecutive days look nearly identical, so daily snapshots would
+be clutter that costs repo size and buys nothing.
+
+To take one (this is infrastructure — no day bump, no chronicle entry):
+
+```bash
+DAY=010                       # zero-padded to three digits
+mkdir -p archive/day-$DAY
+git archive HEAD | tar -x -C archive/day-$DAY
+cd archive/day-$DAY && rm -rf vendor .claude docs archive CLAUDE.md README.md .gitignore .nojekyll
+```
+
+Then, in the snapshot's `index.html`:
+
+- point the importmap at `../../vendor/three-rNNN/three.module.min.js`
+- add `<link rel="stylesheet" href="../banner.css" />`
+- add `<script src="../banner.js" defer></script>`
+- suffix the `<title>` with the day
+
+Finally add an entry to `archive/index.json` (day, date, title, path). The
+chronicle panel reads that file, so nothing else needs editing.
+
+**Vendored three.js is versioned by directory** (`vendor/three-r185/`). When
+upgrading, add `vendor/three-rNNN/` alongside rather than replacing — every
+archived world keeps pointing at the version it was built and tested against,
+so an engine upgrade can never silently break the past.
+
+The one part of a snapshot allowed to change afterwards is the shared banner
+chrome (`archive/banner.*`), which gives a visitor a way back to the present.
+The world inside stays exactly as it shipped.
+
 ## How it's put together
 
 ```
@@ -86,7 +142,9 @@ index.html          canvas, importmap, HUD markup
 styles.css
 world/state.json    the save file — the world boots from this
 world/chronicle.json  dated history, shown in the UI
-vendor/three/       pinned three.js r185.1 (two files, must stay together)
+archive/day-NNN/    frozen milestone worlds, still runnable
+archive/index.json  manifest the chronicle panel reads
+vendor/three-r185/  pinned three.js r185.1 (two files, must stay together)
 src/
   core/    rng, noise + terrain, clock, state loading
   world/   planet, ocean, sky, flora

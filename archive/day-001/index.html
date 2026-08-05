@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>A Living World</title>
+    <title>A Living World &middot; Day 1</title>
     <meta
       name="description"
       content="A small 3D world that grows a little every day. Watch the sun cross it, the sea move, and its wanderers go about their lives."
@@ -15,12 +15,13 @@
     <meta property="og:type" content="website" />
 
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="../banner.css" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%235f9e56'/><path d='M4 16a12 12 0 0 1 24 0z' fill='%232f7fb5'/></svg>" />
 
     <script type="importmap">
       {
         "imports": {
-          "three": "./vendor/three-r185/three.module.min.js"
+          "three": "../../vendor/three-r185/three.module.min.js"
         }
       }
     </script>
@@ -57,18 +58,11 @@
       <h2 class="chronicle__heading">Chronicle</h2>
       <p class="chronicle__intro">This world gets one change a day. Everything that has happened so far:</p>
       <ol class="chronicle__list" data-chronicle="list"></ol>
-
-      <section class="chronicle__archive" data-chronicle="archive" hidden>
-        <h3 class="chronicle__subheading">Past worlds</h3>
-        <p class="chronicle__intro">
-          These are kept exactly as they were. Open one and it still runs.
-        </p>
-        <ul class="archive-list" data-chronicle="archive-list"></ul>
-      </section>
     </aside>
 
     <p class="hint">Drag to turn · scroll to zoom</p>
 
     <script type="module" src="./src/main.js"></script>
+    <script src="../banner.js" defer></script>
   </body>
 </html>

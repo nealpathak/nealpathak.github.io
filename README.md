@@ -10,7 +10,9 @@ zoom. The chronicle in the corner records everything that has happened to the
 world so far.
 
 It started on 5 August 2026 as bare rock and water, and it gets one change
-every day.
+every day. Milestone days are kept frozen under `archive/` and are still
+runnable — open one from the chronicle panel and you're looking at the world
+exactly as it was, not a screenshot of it.
 
 ## How it works
 
@@ -38,6 +40,7 @@ and a `step(dt)` you can use to fast-forward time.
 | `src/life/` | Creatures |
 | `src/ui/` | Camera, HUD, chronicle panel |
 | `world/` | The save file and the history |
+| `archive/` | Frozen milestone worlds you can still visit |
 | `docs/ROADMAP.md` | Where it's going |
 
 Built with [three.js](https://threejs.org) (MIT).

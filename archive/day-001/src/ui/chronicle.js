@@ -4,49 +4,6 @@
 // way of knowing the world has been growing unless it tells them, so every
 // daily update leaves an entry here.
 
-/**
- * Milestone worlds are kept frozen under archive/ and can still be visited.
- * The list is data-driven from archive/index.json, so snapshotting a new day
- * never means editing this file.
- */
-async function renderArchive() {
-  const section = document.querySelector('[data-chronicle="archive"]');
-  const list = document.querySelector('[data-chronicle="archive-list"]');
-  if (!section || !list) return;
-
-  let snapshots = [];
-  try {
-    const res = await fetch('archive/index.json', { cache: 'no-cache' });
-    if (!res.ok) return;
-    snapshots = await res.json();
-  } catch {
-    return; // No archive yet, or offline. Not worth an error.
-  }
-
-  if (!snapshots.length) return;
-
-  for (const snap of [...snapshots].sort((a, b) => b.day - a.day)) {
-    const item = document.createElement('li');
-    const link = document.createElement('a');
-    link.className = 'archive-link';
-    link.href = snap.path;
-
-    const day = document.createElement('span');
-    day.className = 'archive-link__day';
-    day.textContent = `Day ${snap.day}`;
-
-    const title = document.createElement('span');
-    title.className = 'archive-link__title';
-    title.textContent = snap.title;
-
-    link.append(day, title);
-    item.append(link);
-    list.append(item);
-  }
-
-  section.hidden = false;
-}
-
 export function createChronicle(entries) {
   const panel = document.querySelector('[data-chronicle="panel"]');
   const list = document.querySelector('[data-chronicle="list"]');
@@ -97,5 +54,4 @@ export function createChronicle(entries) {
   });
 
   setOpen(false);
-  renderArchive();
 }

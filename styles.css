@@ -1,0 +1,256 @@
+/* The interface stays deliberately quiet. The world is the thing; the text
+   around it should feel like a label on a display case, not a dashboard. */
+
+:root {
+  --ink: #eef2f7;
+  --ink-dim: #9dabc0;
+  --edge: rgba(160, 190, 230, 0.18);
+  --panel: rgba(9, 14, 26, 0.86);
+  --space: #05070f;
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--space);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+#world {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+#world:active {
+  cursor: grabbing;
+}
+
+/* --- Boot / failure state ------------------------------------------------ */
+
+.boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--space);
+  transition: opacity 700ms ease;
+  z-index: 20;
+}
+
+.boot__message {
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  max-width: 32ch;
+  text-align: center;
+  line-height: 1.6;
+  padding: 0 1.5rem;
+}
+
+body.is-ready .boot {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.is-failed .boot {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --- HUD ------------------------------------------------------------------ */
+
+.hud {
+  position: fixed;
+  top: max(1.5rem, env(safe-area-inset-top));
+  left: max(1.5rem, env(safe-area-inset-left));
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms ease 400ms;
+}
+
+body.is-ready .hud {
+  opacity: 1;
+}
+
+.hud__title {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.hud__line {
+  margin: 0.15rem 0;
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud__day {
+  color: var(--ink);
+}
+
+.hud__sep {
+  margin: 0 0.4rem;
+  opacity: 0.5;
+}
+
+/* --- Chronicle ------------------------------------------------------------ */
+
+.chronicle__toggle {
+  position: fixed;
+  top: max(1.5rem, env(safe-area-inset-top));
+  right: max(1.5rem, env(safe-area-inset-right));
+  z-index: 12;
+  padding: 0.5rem 0.95rem;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 900ms ease 400ms, background 200ms ease;
+}
+
+body.is-ready .chronicle__toggle {
+  opacity: 1;
+}
+
+.chronicle__toggle:hover {
+  background: rgba(24, 34, 54, 0.92);
+}
+
+.chronicle__toggle:focus-visible {
+  outline: 2px solid #7fb0ff;
+  outline-offset: 2px;
+}
+
+.chronicle {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  width: min(24rem, 100vw);
+  padding: calc(max(1.5rem, env(safe-area-inset-top)) + 3.2rem) 1.6rem 2rem;
+  background: var(--panel);
+  border-left: 1px solid var(--edge);
+  backdrop-filter: blur(14px);
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chronicle.is-open {
+  transform: translateX(0);
+}
+
+.chronicle__heading {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.chronicle__intro {
+  margin: 0 0 1.6rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--ink-dim);
+}
+
+.chronicle__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chronicle__entry {
+  padding: 1rem 0;
+  border-top: 1px solid var(--edge);
+}
+
+.chronicle__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chronicle__day {
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+.chronicle__title {
+  margin: 0.5rem 0 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.chronicle__text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--ink-dim);
+}
+
+/* --- Hint ----------------------------------------------------------------- */
+
+.hint {
+  position: fixed;
+  bottom: max(1.4rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 10;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1000ms ease 1200ms;
+}
+
+body.is-ready .hint {
+  opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+  .hud__title {
+    font-size: 0.95rem;
+  }
+
+  .chronicle {
+    width: 100vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 1ms !important;
+  }
+}

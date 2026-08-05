@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>A Living World</title>
+    <meta
+      name="description"
+      content="A small 3D world that grows a little every day. Watch the sun cross it, the sea move, and its wanderers go about their lives."
+    />
+    <meta name="theme-color" content="#05070f" />
+
+    <meta property="og:title" content="A Living World" />
+    <meta property="og:description" content="A small 3D world that grows a little every day." />
+    <meta property="og:type" content="website" />
+
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%235f9e56'/><path d='M4 16a12 12 0 0 1 24 0z' fill='%232f7fb5'/></svg>" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.min.js"
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <canvas id="world" aria-label="A small planet with trees and creatures, orbited by a sun and a moon"></canvas>
+
+    <div class="boot" data-boot="root">
+      <p class="boot__message" data-boot="message">Forming…</p>
+    </div>
+
+    <header class="hud">
+      <h1 class="hud__title">A Living World</h1>
+      <p class="hud__line">
+        <span class="hud__day" data-hud="day">Day —</span>
+        <span class="hud__sep" aria-hidden="true">·</span>
+        <span data-hud="phase">…</span>
+      </p>
+      <p class="hud__line hud__life" data-hud="life"></p>
+    </header>
+
+    <button class="chronicle__toggle" data-chronicle="toggle" aria-expanded="false" aria-controls="chronicle-panel">
+      Chronicle
+    </button>
+
+    <aside
+      class="chronicle"
+      id="chronicle-panel"
+      data-chronicle="panel"
+      aria-hidden="true"
+      aria-label="History of the world"
+    >
+      <h2 class="chronicle__heading">Chronicle</h2>
+      <p class="chronicle__intro">This world gets one change a day. Everything that has happened so far:</p>
+      <ol class="chronicle__list" data-chronicle="list"></ol>
+    </aside>
+
+    <p class="hint">Drag to turn · scroll to zoom</p>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

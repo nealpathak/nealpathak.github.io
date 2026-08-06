@@ -150,6 +150,7 @@ async function start() {
     terrain,
     clock,
     sky,
+    wanderers,
     counts: { wanderers: wanderers.count, flora: flora.count },
     step,
     render: () => renderer.render(scene, camera),

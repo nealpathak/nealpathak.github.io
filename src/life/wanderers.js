@@ -82,6 +82,10 @@ export function createWanderers({ seed, radius, terrain, count }) {
       wakesAt: range(rng, -0.1, 0.12),
       // Slow rise and fall while asleep.
       breathRate: range(rng, 0.9, 1.5),
+      // Where this one is heading for the night, and how much it cares.
+      goal: null,
+      dusk: 0,
+      crowded: false,
     });
 
     color.setHex(pick(rng, BODY_COLORS), THREE.SRGBColorSpace);
@@ -105,7 +109,102 @@ export function createWanderers({ seed, radius, terrain, count }) {
   const SHORE = 0.06; // elevation considered walkable
   const SHOULDER = 1.2; // radians to either side when looking for a way out
 
+  // Roosting. All distances are angles of arc, so they're independent of the
+  // planet's radius.
+  const ROOST_RADIUS = 0.5; // how far away a companion still counts as nearby
+  const COMFORT = 0.045; // any closer than this and it's too crowded
+  const COS_ROOST = Math.cos(ROOST_RADIUS);
+  const COS_COMFORT = Math.cos(COMFORT);
+
+  // Finding neighbours is the one O(n^2) thing here. It doesn't need to happen
+  // every frame — a herd forms over tens of seconds — so it runs periodically
+  // and each creature steers toward the last answer in between.
+  const REGROUP_EVERY = 12;
+  let regroupCounter = 0;
+
+  const _goal = new THREE.Vector3();
+  const _desired = new THREE.Vector3();
+  const _cross = new THREE.Vector3();
+
+  /**
+   * Pick somewhere for each creature to head as the light goes. Neighbours pull
+   * a creature in; a neighbour that's too close pushes it back out again, which
+   * is what keeps a herd a loose group rather than a single stack of bodies.
+   */
+  function regroup() {
+    for (let i = 0; i < agents.length; i++) {
+      const a = agents[i];
+      a.crowded = false;
+
+      let count = 0;
+      let nearestDot = -1;
+      let nearest = null;
+      _goal.set(0, 0, 0);
+
+      for (let j = 0; j < agents.length; j++) {
+        if (j === i) continue;
+        const d = a.p.dot(agents[j].p);
+        if (d < COS_ROOST) continue;
+        _goal.add(agents[j].p);
+        count++;
+        if (d > nearestDot) {
+          nearestDot = d;
+          nearest = agents[j].p;
+        }
+      }
+
+      if (count === 0) {
+        a.goal = null;
+      } else if (nearestDot > COS_COMFORT) {
+        // Too close for comfort — back off from whoever it is. Personal space
+        // applies around the clock, not only while gathering, or creatures
+        // would walk straight through each other all day.
+        a.crowded = true;
+        a.goal = awayFrom(a, nearest, a.goal || new THREE.Vector3());
+      } else if (a.dusk < 0.05) {
+        a.goal = null;
+      } else {
+        a.goal = (a.goal || new THREE.Vector3()).copy(_goal).normalize();
+      }
+    }
+  }
+
+  /**
+   * A point to walk to in order to get away from `other`.
+   *
+   * The tempting one-liner — reflect through your own position, `2p - other` —
+   * is wrong exactly when it matters: as two creatures converge it tends toward
+   * `p` itself, which has no tangential component at all, so the steering has
+   * no direction to act on and two overlapping creatures stay overlapping.
+   * Take the separation along the ground instead.
+   */
+  function awayFrom(a, other, out) {
+    _desired.copy(a.p).sub(other);
+    _desired.addScaledVector(a.p, -a.p.dot(_desired)); // flatten onto the ground
+    if (_desired.lengthSq() < 1e-12) _desired.copy(a.t); // exactly stacked; any way will do
+    _desired.normalize();
+    return out.copy(a.p).addScaledVector(_desired, 0.25).normalize();
+  }
+
+  /** Steer the heading toward `goal`, at most `maxTurn` radians. */
+  function steerToward(a, goal, maxTurn) {
+    _desired.copy(goal).addScaledVector(a.p, -a.p.dot(goal));
+    if (_desired.lengthSq() < 1e-10) return;
+    _desired.normalize();
+
+    const cos = Math.max(-1, Math.min(1, a.t.dot(_desired)));
+    _cross.crossVectors(a.t, _desired);
+    const sign = _cross.dot(a.p) < 0 ? -1 : 1;
+    const angle = Math.acos(cos) * sign;
+    turn(a.p, a.t, Math.max(-maxTurn, Math.min(maxTurn, angle)));
+  }
+
   function update(dt, elapsed, sunDir) {
+    if (regroupCounter-- <= 0) {
+      regroupCounter = REGROUP_EVERY;
+      regroup();
+    }
+
     for (let i = 0; i < agents.length; i++) {
       const a = agents[i];
 
@@ -116,8 +215,22 @@ export function createWanderers({ seed, radius, terrain, count }) {
       const sunHeight = sunDir ? a.p.dot(sunDir) : 1;
       const awake = smoothstep(a.wakesAt - 0.06, a.wakesAt + 0.2, sunHeight);
 
+      // How strongly the evening is pulling this one toward company. It starts
+      // well before sunset, because a creature that only began looking for
+      // company at dusk would have no time left to walk anywhere.
+      a.dusk = smoothstep(0.62, 0.02, sunHeight);
+
       if (awake < 0.02) {
-        // Asleep. Still breathing, but going nowhere.
+        // Asleep. Still breathing, but going nowhere — unless somebody has
+        // bedded down on top of them, in which case they'll shuffle over
+        // without properly waking. Sleepers freeze, so without this two
+        // creatures that settle too close stay overlapping until morning.
+        if (a.crowded && a.goal) {
+          steerToward(a, a.goal, 1.0 * dt);
+          stepForward(a.p, a.t, (a.speed * 0.3 * dt) / radius);
+          a.p.normalize();
+          a.t.addScaledVector(a.p, -a.p.dot(a.t)).normalize();
+        }
         restAt(a, i, elapsed);
         continue;
       }
@@ -145,9 +258,14 @@ export function createWanderers({ seed, radius, terrain, count }) {
           }
         }
         turn(a.p, a.t, best * dt * 3.6);
+      } else if (a.goal && (a.dusk > 0.05 || a.crowded)) {
+        // Heading for company, or stepping out of someone's way. Dry ground
+        // still wins — the check above runs first — so herds form island by
+        // island rather than across water.
+        steerToward(a, a.goal, Math.max(1.5, 2.0 * a.dusk) * dt);
       } else {
         // Otherwise meander gently.
-        turn(a.p, a.t, (Math.sin(elapsed * 0.7 + a.bobPhase) * a.wander) * dt * 0.6);
+        turn(a.p, a.t, (Math.sin(elapsed * 0.7 + a.bobPhase) * a.wander) * dt * 0.6 * (1 - a.dusk));
       }
 
       // Slowest at first light and again as the sun goes down; briskest with
@@ -191,5 +309,8 @@ export function createWanderers({ seed, radius, terrain, count }) {
     heads.setMatrixAt(i, _matrix);
   }
 
-  return { group, count: spawned, update };
+  // `agents` is exposed for inspection from the console alongside the rest of
+  // window.world; behaviour like herding is far easier to check by reading the
+  // creatures' own state than by staring at the screen.
+  return { group, count: spawned, agents, update };
 }

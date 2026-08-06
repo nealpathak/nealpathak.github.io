@@ -1,6 +1,6 @@
 {
-  "version": "0.4.0",
-  "day": 4,
+  "version": "0.5.0",
+  "day": 5,
   "born": "2026-08-05",
   "updated": "2026-08-05",
   "seed": 20260805,
@@ -28,7 +28,7 @@
   },
   "life": {
     "flora": 900,
-    "wanderers": 26
+    "wanderers": 60
   },
   "systems": [
     "terrain",
@@ -41,6 +41,7 @@
     "sun",
     "moon",
     "flora",
-    "wanderers"
+    "wanderers",
+    "creature-rhythm"
   ]
 }

@@ -16,7 +16,9 @@ get longer, not shorter.
       done day 3, with the deck shearing (equator drifts ~2x faster than poles)
 - [x] Cloud shadows on the ground — done day 4, projected analytically along the
       sun ray rather than with a shadow map
-- [ ] Creatures rest at night and are livelier at midday
+- [x] Creatures rest at night and are livelier at midday — done day 5; the
+      day/night cycle is now something the world experiences, not just lighting
+- [ ] Creatures gather to sleep rather than settling wherever they stand
 - [ ] Grass and small shrubs on the plains; rocks and scree above the tree line
 - [ ] Birds: a small flock that circles and lands
 - [ ] Creature trails — faint paths worn where they walk most often

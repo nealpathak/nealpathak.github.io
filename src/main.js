@@ -128,7 +128,7 @@ async function start() {
     // After sky.update, so the shadows use this frame's sun direction.
     clouds.update(dt, elapsed, sky.sunDirection);
     flora.update(dt, elapsed);
-    wanderers.update(dt, elapsed);
+    wanderers.update(dt, elapsed, sky.sunDirection);
     rig.update(dt);
     hud.update(sky.sunDirection, rig.viewDirection);
   }

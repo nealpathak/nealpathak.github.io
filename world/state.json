@@ -1,6 +1,6 @@
 {
-  "version": "0.7.0",
-  "day": 7,
+  "version": "0.8.0",
+  "day": 8,
   "born": "2026-08-05",
   "updated": "2026-08-05",
   "seed": 20260805,
@@ -28,7 +28,9 @@
   },
   "life": {
     "flora": 900,
-    "wanderers": 60
+    "wanderers": 60,
+    "flocks": 3,
+    "birdsPerFlock": 9
   },
   "scenery": {
     "grass": 5200,
@@ -49,6 +51,7 @@
     "groundcover",
     "wanderers",
     "creature-rhythm",
-    "herding"
+    "herding",
+    "birds"
   ]
 }

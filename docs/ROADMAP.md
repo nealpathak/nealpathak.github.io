@@ -22,7 +22,8 @@ get longer, not shorter.
       day 6; nearest-neighbour spacing tightens ~32% from midday to dusk
 - [x] Grass and small shrubs on the plains; rocks and scree above the tree line
       — done day 7; placement decided by the existing climate, not by chance
-- [ ] Birds: a small flock that circles and lands
+- [x] Birds: a small flock that circles and lands — done day 8; three flocks,
+      airborne ~38% of the time, never landing on water
 - [ ] Creature trails — faint paths worn where they walk most often
 - [ ] Sound, muted by default, with an obvious toggle (wind, sea, birds)
 

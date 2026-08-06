@@ -9,7 +9,8 @@ export function createHud({ state, counts }) {
   const lifeEl = document.querySelector('[data-hud="life"]');
 
   dayEl.textContent = `Day ${state.day}`;
-  lifeEl.textContent = `${counts.wanderers} wanderers · ${counts.flora} trees`;
+  lifeEl.textContent =
+    `${counts.wanderers} wanderers · ${counts.birds} birds · ${counts.flora} trees`;
 
   let lastPhase = '';
 

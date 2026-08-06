@@ -19,6 +19,7 @@ import { createFlora } from './world/flora.js';
 import { createGroundcover } from './world/groundcover.js';
 
 import { createWanderers } from './life/wanderers.js';
+import { createBirds } from './life/birds.js';
 
 import { createCameraRig } from './ui/camera.js';
 import { createHud } from './ui/hud.js';
@@ -89,6 +90,13 @@ async function start() {
     terrain,
     count: state.life.wanderers,
   });
+  const birds = createBirds({
+    seed: state.seed,
+    radius,
+    terrain,
+    flocks: state.life.flocks,
+    perFlock: state.life.birdsPerFlock,
+  });
 
   scene.add(
     planet,
@@ -96,6 +104,7 @@ async function start() {
     groundcover.group,
     flora.group,
     wanderers.group,
+    birds.group,
     clouds.group
   );
 
@@ -104,7 +113,7 @@ async function start() {
 
   const hud = createHud({
     state,
-    counts: { wanderers: wanderers.count, flora: flora.count },
+    counts: { wanderers: wanderers.count, birds: birds.count, flora: flora.count },
   });
   createChronicle(chronicle);
 
@@ -144,6 +153,7 @@ async function start() {
     clouds.update(dt, elapsed, sky.sunDirection);
     flora.update(dt, elapsed);
     wanderers.update(dt, elapsed, sky.sunDirection);
+    birds.update(dt, elapsed, sky.sunDirection);
     rig.update(dt);
     hud.update(sky.sunDirection, rig.viewDirection);
   }
@@ -166,7 +176,8 @@ async function start() {
     clock,
     sky,
     wanderers,
-    counts: { wanderers: wanderers.count, flora: flora.count },
+    birds,
+    counts: { wanderers: wanderers.count, birds: birds.count, flora: flora.count },
     step,
     render: () => renderer.render(scene, camera),
   };

@@ -12,7 +12,9 @@ get longer, not shorter.
 
 - [x] Trees sway slightly; foliage colour varies by latitude and altitude — done
       day 2, along with ice caps, sea ice and a climate-driven tree line
-- [ ] Clouds — a thin shell of drifting low-poly puffs casting no shadow yet
+- [x] Clouds — a thin shell of drifting low-poly puffs casting no shadow yet —
+      done day 3, with the deck shearing (equator drifts ~2x faster than poles)
+- [ ] Cloud shadows on the ground, now that there is something to cast them
 - [ ] Creatures rest at night and are livelier at midday
 - [ ] Grass and small shrubs on the plains; rocks and scree above the tree line
 - [ ] Birds: a small flock that circles and lands

@@ -72,14 +72,18 @@ function createStars(seed, count, distance) {
  * This fresnel rim is what sells "atmosphere" more than any amount of fog.
  */
 function createAtmosphere(radius) {
-  // The rim IS the silhouette here, so it has to be smooth.
-  const geometry = new THREE.IcosahedronGeometry(radius * 1.055, 32);
+  // The rim IS the silhouette here, so it has to be smooth. The shell also has
+  // to sit above the cloud deck — clouds drifting outside the glow would read
+  // as being in space rather than in the air.
+  const geometry = new THREE.IcosahedronGeometry(radius * 1.10, 32);
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uColor: { value: new THREE.Color(0x6fb4ff) },
-      uIntensity: { value: 0.85 },
-      uPower: { value: 3.0 },
+      uIntensity: { value: 0.9 },
+      // Raised along with the shell radius, to keep the glow hugging the limb
+      // rather than spreading into a wide halo.
+      uPower: { value: 4.6 },
     },
     vertexShader: `
       varying vec3 vNormal;
@@ -191,9 +195,6 @@ export function createSky({ seed, radius, scene }) {
         Math.sin(m) * Math.cos(moonTilt)
       ).normalize().multiplyScalar(moonDistance);
       moon.rotation.y += dt * 0.05;
-
-      // The rim glow is brightest on the daylit limb.
-      atmosphere.material.uniforms.uIntensity.value = 0.85;
     },
   };
 }

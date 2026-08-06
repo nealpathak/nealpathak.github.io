@@ -1,6 +1,6 @@
 {
-  "version": "0.2.0",
-  "day": 2,
+  "version": "0.3.0",
+  "day": 3,
   "born": "2026-08-05",
   "updated": "2026-08-05",
   "seed": 20260805,
@@ -18,6 +18,9 @@
     "lapseRate": 0.42,
     "latitudeFalloff": 2.5
   },
+  "weather": {
+    "clouds": 78
+  },
   "cycle": {
     "cycleSeconds": 240,
     "startAt": 0.15
@@ -31,6 +34,7 @@
     "climate",
     "ocean",
     "atmosphere",
+    "clouds",
     "stars",
     "sun",
     "moon",

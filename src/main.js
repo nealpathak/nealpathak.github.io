@@ -14,6 +14,7 @@ import { makeClimate } from './core/climate.js';
 import { createPlanet } from './world/planet.js';
 import { createOcean } from './world/ocean.js';
 import { createSky } from './world/sky.js';
+import { createClouds } from './world/clouds.js';
 import { createFlora } from './world/flora.js';
 
 import { createWanderers } from './life/wanderers.js';
@@ -61,6 +62,12 @@ async function start() {
   const planet = createPlanet({ radius, subdivisions, terrain, climate });
   const ocean = createOcean({ radius, seaLevel: 0 });
   const sky = createSky({ seed: state.seed, radius, scene });
+  const clouds = createClouds({
+    seed: state.seed,
+    radius,
+    terrain,
+    count: state.weather.clouds,
+  });
   const flora = createFlora({
     seed: state.seed,
     radius,
@@ -75,7 +82,7 @@ async function start() {
     count: state.life.wanderers,
   });
 
-  scene.add(planet, ocean.mesh, flora.group, wanderers.group);
+  scene.add(planet, ocean.mesh, flora.group, wanderers.group, clouds.group);
 
   const clock = makeClock(state.cycle);
   const rig = createCameraRig({ camera, domElement: canvas, radius, reducedMotion });
@@ -87,13 +94,25 @@ async function start() {
   createChronicle(chronicle);
 
   function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+
+    // A page that hasn't been laid out yet reports zero. Sizing the drawing
+    // buffer to 0x0 here would leave the world rendering into nothing, with
+    // only a later resize event to rescue it — which may never come.
+    if (w === 0 || h === 0) return;
+
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(w, h, false);
     rig.setViewport(camera.aspect, camera.fov);
+  }
+
+  // Watching the canvas rather than the window catches the case where layout
+  // arrives after load — a background tab, or an embed that starts collapsed.
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(resize).observe(canvas);
   }
   window.addEventListener('resize', resize);
   resize();
@@ -106,6 +125,7 @@ async function start() {
     clock.advance(dt);
     sky.update(dt, clock);
     ocean.update(dt);
+    clouds.update(dt, elapsed);
     flora.update(dt, elapsed);
     wanderers.update(dt, elapsed);
     rig.update(dt);

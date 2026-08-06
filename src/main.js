@@ -125,7 +125,8 @@ async function start() {
     clock.advance(dt);
     sky.update(dt, clock);
     ocean.update(dt);
-    clouds.update(dt, elapsed);
+    // After sky.update, so the shadows use this frame's sun direction.
+    clouds.update(dt, elapsed, sky.sunDirection);
     flora.update(dt, elapsed);
     wanderers.update(dt, elapsed);
     rig.update(dt);

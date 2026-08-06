@@ -12,6 +12,21 @@ import { streamFor, pointOnSphere, range } from '../core/rng.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
+/** Soft-edged blot, drawn once and reused for every cloud shadow. */
+function shadowTexture() {
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.55, 'rgba(255,255,255,0.82)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(canvas);
+}
+
 // Clouds sit in this band above sea level. The floor has to clear the biggest
 // puff radius so nothing dips into a hillside.
 const DECK_LOW = 0.55;
@@ -29,7 +44,7 @@ const SPREAD_MAX = 0.095;
 const BULK_MIN = 0.34;
 const BULK_MAX = 0.5;
 
-export function createClouds({ seed, radius, terrain, count }) {
+export function createClouds({ seed, radius, terrain, count, shadows = true }) {
   const rng = streamFor(seed, 'clouds');
 
   // One chunky blob, reused. Detail 1 is round enough to read as cloud while
@@ -105,12 +120,88 @@ export function createClouds({ seed, radius, terrain, count }) {
   group.name = 'weather';
   group.add(mesh);
 
+  // --- Shadows -------------------------------------------------------------
+  // Cast analytically rather than with a shadow map. One directional shadow map
+  // stretched over a whole planet would be far too coarse to resolve a cloud,
+  // and would cost far more than this: for each puff, walk from the cloud away
+  // from the sun and find where that ray meets the ground.
+  let shadowMesh = null;
+  if (shadows) {
+    const shadowGeo = new THREE.PlaneGeometry(1, 1);
+    // Lay the plane flat: it is built standing in XY, and everything below
+    // assumes +Y is the surface normal.
+    shadowGeo.rotateX(-Math.PI / 2);
+
+    shadowMesh = new THREE.InstancedMesh(
+      shadowGeo,
+      new THREE.MeshBasicMaterial({
+        map: shadowTexture(),
+        color: 0x0d1f2b,
+        transparent: true,
+        opacity: 0.46,
+        depthWrite: false,
+      }),
+      puffCount
+    );
+    shadowMesh.name = 'cloud-shadows';
+    // After the land and after the sea, both of which they fall on.
+    shadowMesh.renderOrder = 2;
+    group.add(shadowMesh);
+  }
+
   const pos = new THREE.Vector3();
   const right = new THREE.Vector3();
   const fwd = new THREE.Vector3();
   const matrix = new THREE.Matrix4();
+  const hit = new THREE.Vector3();
+  const shadowUp = new THREE.Vector3();
+  const shadowRight = new THREE.Vector3();
 
-  function update(dt, elapsed) {
+  /**
+   * Where the shadow of a puff at `p` falls, given a unit vector toward the
+   * sun. Writes the ground point into `out` and returns how square-on the sun
+   * strikes there (0 at the terminator, 1 overhead), or -1 for no shadow.
+   */
+  function projectShadow(p, sunDir, out) {
+    const b = -p.dot(sunDir); // p · ray direction, where the ray is -sunDir
+    const pp = p.lengthSq();
+
+    // Intersect against a sea-level sphere first, then re-intersect against a
+    // sphere raised to whatever terrain height was found there, and repeat.
+    //
+    // Simply pushing the sea-level hit outward to ground height — the obvious
+    // shortcut — slides the blot sideways off the sun ray, by as much as 25
+    // degrees over tall country. Re-intersecting keeps it on the ray. Two
+    // rounds is plenty; the third almost always breaks out immediately.
+    let r = radius;
+    let facing = -1;
+    for (let iter = 0; iter < 3; iter++) {
+      const disc = b * b - (pp - r * r);
+      if (disc < 0) return -1; // grazes past the planet entirely
+
+      const t = -b - Math.sqrt(disc);
+      if (t < 0) return -1; // ground is behind the cloud, not below it
+
+      out.copy(p).addScaledVector(sunDir, -t);
+      facing = out.dot(sunDir) / r;
+      if (facing <= 0) return -1; // landed on the night side
+
+      const height = Math.max(0, terrain.heightAt(out.divideScalar(r)));
+      const nextR = radius + height;
+      if (Math.abs(nextR - r) < 0.01) {
+        r = nextR;
+        break;
+      }
+      r = nextR;
+    }
+
+    // `out` is left unit length by the divide above; lift it just clear of the
+    // ground so the blot doesn't fight with the surface it lies on.
+    out.multiplyScalar(r + 0.03);
+    return facing;
+  }
+
+  function update(dt, elapsed, sunDir) {
     for (let i = 0; i < puffCount; i++) {
       const b = baseDir[i];
       const a = speed[i] * elapsed;
@@ -143,8 +234,44 @@ export function createClouds({ seed, radius, terrain, count }) {
         0, 0, 0, 1
       );
       mesh.setMatrixAt(i, matrix);
+
+      if (!shadowMesh) continue;
+
+      pos.set(x, y, z).multiplyScalar(altitude[i]);
+      const facing = sunDir ? projectShadow(pos, sunDir, hit) : -1;
+
+      if (facing <= 0) {
+        // Nothing to draw. Instances can't be skipped individually, so collapse
+        // it to nothing instead.
+        matrix.makeScale(0, 0, 0);
+      } else {
+        shadowUp.copy(hit).normalize();
+        shadowRight.set(-shadowUp.z, 0, shadowUp.x);
+        if (shadowRight.lengthSq() < 1e-8) shadowRight.set(1, 0, 0);
+        shadowRight.normalize();
+        const fx = shadowRight.y * shadowUp.z - shadowRight.z * shadowUp.y;
+        const fy = shadowRight.z * shadowUp.x - shadowRight.x * shadowUp.z;
+        const fz = shadowRight.x * shadowUp.y - shadowRight.y * shadowUp.x;
+
+        // Shrink toward the terminator. A real shadow lengthens as the sun
+        // drops, but fading it out is the artefact-free version: it keeps the
+        // blot from stretching into a smear and avoids a hard pop at the line
+        // between day and night.
+        const fade = Math.min(1, facing * 2.2);
+        const w = sc.x * 3.6 * fade;
+        const d = sc.z * 3.6 * fade;
+
+        matrix.set(
+          shadowRight.x * w, shadowUp.x, fx * d, hit.x,
+          shadowRight.y * w, shadowUp.y, fy * d, hit.y,
+          shadowRight.z * w, shadowUp.z, fz * d, hit.z,
+          0, 0, 0, 1
+        );
+      }
+      shadowMesh.setMatrixAt(i, matrix);
     }
     mesh.instanceMatrix.needsUpdate = true;
+    if (shadowMesh) shadowMesh.instanceMatrix.needsUpdate = true;
   }
 
   return { group, count: placed, puffs: puffCount, update };

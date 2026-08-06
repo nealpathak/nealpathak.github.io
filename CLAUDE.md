@@ -75,7 +75,19 @@ notice? If no, it's infrastructure.
    the end; the UI sorts it newest-first). Write it in plain, warm language,
    the way you'd narrate a nature documentary. Not a changelog.
 6. Verify (below).
-7. Commit and push to `main`. GitHub Pages serves it within a minute or two.
+7. Commit and push to `main`.
+8. **Confirm it actually went live.** Pushing is not publishing, and a local
+   `git log` proves neither. Check the deployed site itself:
+
+   ```bash
+   curl -s "https://nealpathak.github.io/world/state.json?cb=$(date +%s)" | grep '"day"'
+   ```
+
+   It normally appears within a minute. If it doesn't, check
+   `https://www.githubstatus.com/api/v2/components.json` for the Pages and
+   Actions components before assuming the commit is at fault — Pages has gone
+   down mid-update before, and the day simply publishes when it recovers.
+   Never report a day as live without this check.
 
 ### Verifying
 

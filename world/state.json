@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0",
-  "day": 6,
+  "version": "0.7.0",
+  "day": 7,
   "born": "2026-08-05",
   "updated": "2026-08-05",
   "seed": 20260805,
@@ -30,6 +30,11 @@
     "flora": 900,
     "wanderers": 60
   },
+  "scenery": {
+    "grass": 5200,
+    "shrubs": 700,
+    "rocks": 600
+  },
   "systems": [
     "terrain",
     "climate",
@@ -41,6 +46,7 @@
     "sun",
     "moon",
     "flora",
+    "groundcover",
     "wanderers",
     "creature-rhythm",
     "herding"

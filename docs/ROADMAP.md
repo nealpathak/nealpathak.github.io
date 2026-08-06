@@ -20,7 +20,8 @@ get longer, not shorter.
       day/night cycle is now something the world experiences, not just lighting
 - [x] Creatures gather to sleep rather than settling wherever they stand — done
       day 6; nearest-neighbour spacing tightens ~32% from midday to dusk
-- [ ] Grass and small shrubs on the plains; rocks and scree above the tree line
+- [x] Grass and small shrubs on the plains; rocks and scree above the tree line
+      — done day 7; placement decided by the existing climate, not by chance
 - [ ] Birds: a small flock that circles and lands
 - [ ] Creature trails — faint paths worn where they walk most often
 - [ ] Sound, muted by default, with an obvious toggle (wind, sea, birds)

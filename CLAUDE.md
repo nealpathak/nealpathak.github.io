@@ -26,6 +26,14 @@ These are not preferences. Breaking one is a bug.
 4. **It must run on a phone.** Target 60fps. Instance anything numerous. Cap
    pixel ratio at 2. Keep an eye on `renderer.info` after any change that adds
    geometry.
+
+   Beware of measuring this badly. `renderer.render()` only *submits* work; the
+   GPU finishes afterwards, so timing a loop of `step()` and `render()` measures
+   CPU submit cost and nothing else. It is a useful number — it's the budget
+   simulation code spends — but it is not a frame rate, and a figure taken on a
+   desktop at a phone-sized canvas says nothing about a phone's GPU. Watch draw
+   calls and triangle count for that, and keep them low enough not to need
+   measuring.
 5. **The world is continuous, not regenerated.** All randomness flows from the
    seeded PRNG in `src/core/rng.js`. Never call `Math.random()`. The continents
    a visitor saw yesterday must be there tomorrow.

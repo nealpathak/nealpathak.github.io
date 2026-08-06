@@ -16,6 +16,7 @@ import { createOcean } from './world/ocean.js';
 import { createSky } from './world/sky.js';
 import { createClouds } from './world/clouds.js';
 import { createFlora } from './world/flora.js';
+import { createGroundcover } from './world/groundcover.js';
 
 import { createWanderers } from './life/wanderers.js';
 
@@ -75,6 +76,13 @@ async function start() {
     climate,
     count: state.life.flora,
   });
+  const groundcover = createGroundcover({
+    seed: state.seed,
+    radius,
+    terrain,
+    climate,
+    counts: state.scenery,
+  });
   const wanderers = createWanderers({
     seed: state.seed,
     radius,
@@ -82,7 +90,14 @@ async function start() {
     count: state.life.wanderers,
   });
 
-  scene.add(planet, ocean.mesh, flora.group, wanderers.group, clouds.group);
+  scene.add(
+    planet,
+    ocean.mesh,
+    groundcover.group,
+    flora.group,
+    wanderers.group,
+    clouds.group
+  );
 
   const clock = makeClock(state.cycle);
   const rig = createCameraRig({ camera, domElement: canvas, radius, reducedMotion });

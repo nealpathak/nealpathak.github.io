@@ -4,7 +4,7 @@
     {
       "name": "world",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8080", "--bind", "127.0.0.1"],
+      "runtimeArgs": [".claude/devserver.py", "8080"],
       "port": 8080
     }
   ]

@@ -72,10 +72,17 @@ notice? If no, it's infrastructure.
 ### Verifying
 
 ```bash
-python -m http.server 8080 --bind 127.0.0.1
+python .claude/devserver.py 8080
 ```
 
-There's a `.claude/launch.json` for this. Then, in the browser:
+There's a `.claude/launch.json` for this. Use it rather than
+`python -m http.server`: it sends `no-store`, and a browser reusing cached ES
+modules has already caused a day's verification to silently measure the
+*previous* day's code and report success. If you ever see a change that should
+be obvious having no effect at all, suspect a stale module before you suspect
+your logic.
+
+Then, in the browser:
 
 - The world renders, is lit, and drifts on its own.
 - **Reload twice — the continents must be identical.** The fastest check is to

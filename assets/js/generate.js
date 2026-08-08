@@ -159,17 +159,33 @@ function buildYear(yearCfg, cfg, schema, rng, valuationMs, pattern) {
   let attempts = 0;
   const maxAttempts = yearCfg.claimCount * 40;
 
+  const cnp = cfg.closedNoIndemnity;
+
   while (claims.length < yearCfg.claimCount && attempts < maxAttempts) {
     attempts += 1;
 
     const coverageCode = rng.next() < coverageMix.PL ? 'PL' : 'GL';
     const entity = rng.weighted(schema.entities, (e) => e.weight);
+
+    /* Report lag belongs to the coverage, not to the book. Professional
+     * liability surfaces slowly — a claimant consults counsel, records are
+     * requested, a demand arrives a year later. A slip-and-fall is reported the
+     * same week. A single lag curve across both makes the claims-made and
+     * occurrence bases assign nearly identical policy years, which quietly
+     * removes the distinction the program is built on. */
+    const lagCfg = reportLagMonths[coverageCode];
     const lagMonths = Math.min(
       reportLagMonths.max,
-      Math.exp(Math.log(reportLagMonths.median) + reportLagMonths.sigma * rng.normal())
+      Math.exp(Math.log(lagCfg.median) + lagCfg.sigma * rng.normal())
     );
     const lagMs = Math.round(lagMonths * 30.44 * MS_DAY);
     const offsetMs = Math.floor(rng.next() * elapsedDays) * MS_DAY;
+
+    /* Most professional liability claims close without an indemnity payment —
+     * they cost defence and nothing else. A book with no closed-no-indemnity
+     * claims at all is the most visible tell that the data was invented, and it
+     * is the first thing a claims person looks for. */
+    const isCNP = rng.next() < cnp.share;
 
     let occurrenceMs;
     let reportMs;
@@ -195,7 +211,10 @@ function buildYear(yearCfg, cfg, schema, rng, valuationMs, pattern) {
       occurrenceMs,
       reportMs,
       reportAgeMonths: monthsBetween(inceptionMs, reportMs),
-      rawSeverity: rng.lognormal(severity.logMean, severity.logSigma),
+      isCNP,
+      rawSeverity: isCNP
+        ? rng.lognormal(cnp.logMean, cnp.logSigma)
+        : rng.lognormal(severity.logMean, severity.logSigma),
       yearAge,
       closeDraw: rng.next(),
     });
@@ -293,8 +312,15 @@ function rescaleYear(claims, year, delta, exclude) {
   const factor = (total - delta) / total;
   for (const c of others) {
     const paid = Math.round((c.paidIndemnity + c.paidExpense) * factor);
+    const wasExpenseShare =
+      c.paidIndemnity + c.paidExpense > 0
+        ? c.paidExpense / (c.paidIndemnity + c.paidExpense)
+        : 1;
     c.incurred = Math.round(c.incurred * factor);
-    c.paidExpense = Math.round(paid * (c.status === 'CLOSED' ? 0.18 : 0.26));
+    // Preserve the claim's own indemnity/expense split. Re-deriving it from a
+    // blended ratio turns closed-no-indemnity claims back into paying ones,
+    // which is the single most visible tell in a loss run.
+    c.paidExpense = Math.round(paid * wasExpenseShare);
     c.paidIndemnity = paid - c.paidExpense;
     c.caseReserve = Math.max(0, c.incurred - paid);
   }
@@ -330,12 +356,28 @@ export function synthesize(config) {
 
     for (const c of built.claims) {
       const sizeDrag = Math.min(0.9, c.incurred / generation.severity.cap);
-      const isClosed = c.closeDraw < yearCfg.closedShare * (1 - sizeDrag * 0.55);
+      // Expense-only claims close early and cheaply; the ones carrying indemnity
+      // are the ones that stay open, which is why the open inventory skews large.
+      const closeBias = c.isCNP ? 1.25 : 1 - sizeDrag * 0.55;
+      const isClosed = c.closeDraw < Math.min(1, yearCfg.closedShare * closeBias);
 
-      const maturity = Math.min(1, Math.max(0, (c.yearAge - c.reportAgeMonths) / 30));
-      const paidShare = isClosed ? 1 : 0.15 + 0.55 * maturity;
+      /* Payment lags incurred on a stated pattern rather than a linear ramp.
+       * Professional liability pays under a tenth of incurred at six months
+       * and is still short of eighty percent at three and a half years. */
+      const sinceReport = Math.max(0, c.yearAge - c.reportAgeMonths);
+      const paidShare = isClosed
+        ? 1
+        : Math.min(0.95, patternAt(
+            generation.paymentPattern.map((s) => ({
+              ageMonths: s.ageMonths,
+              reportedFraction: s.paidShare,
+            })),
+            Math.max(1, sinceReport)
+          ));
       const paidTotal = Math.round(c.incurred * paidShare);
-      const expenseShare = isClosed ? 0.18 : 0.26;
+      const expenseShare = c.isCNP
+        ? generation.expenseShare.cnp
+        : generation.expenseShare.paying;
 
       c.status = isClosed ? 'CLOSED' : 'OPEN';
       c.paidExpense = Math.round(paidTotal * expenseShare);
@@ -408,10 +450,17 @@ export function synthesize(config) {
    * be distorting the book rather than only the extract. */
 
   const overLimitCount = config.defects.find((d) => d.id === 'paid-over-limit').count;
-  const atRetention = [...claims]
-    .filter((c) => !c.isHero)
-    .sort((a, b) => b.incurred - a.incurred)
-    .slice(0, overLimitCount);
+  const bySize = [...claims].filter((c) => !c.isHero).sort((a, b) => b.incurred - a.incurred);
+
+  /* At least one has to sit in the current policy year. The unconfirmed-cession
+   * question is only a live board item if it moves the year the board is being
+   * asked about; landing all of them in closed years would make the exception
+   * true but inert. */
+  const inCurrent = bySize.find((c) => c.policyYear === program.currentPolicyYear);
+  const atRetention = [...new Set([inCurrent, ...bySize].filter(Boolean))].slice(
+    0,
+    overLimitCount
+  );
 
   for (const c of atRetention) {
     const delta = program.retentionPerClaim - c.incurred;

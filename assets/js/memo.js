@@ -76,29 +76,23 @@ function execSummary(p, recon) {
 
     p.correction.exception
       ? para([
-          'Reconciliation removed ',
-          (h) => inlineTraced(t(p.correction.reportedDelta, `Incurred removed from the ${p.currentYear} reported figure by reconciliation. Duplicate merges only — over-limit claims are carried gross pending confirmation of cession, not removed.`), 'money', h),
-          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
-            ? ' of double-counted incurred from the reported figure, all of it one duplicate — '
-            : ' of double-counted incurred from the reported figure. One duplicate accounted for ',
-          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
-            ? ''
-            : (h) => inlineTraced(t(p.correction.heroReported, `Full incurred on the duplicate row flagged by identity resolution: ${p.correction.exception.title}`), 'money', h),
-          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
-            ? 'which the development factor would have carried into the projection as '
-            : ' of that, which the development factor would have carried into the projection as ',
-          (h) => inlineTraced(t(p.correction.heroProjected, `Duplicated incurred of ${fmt.money(p.correction.heroReported)} multiplied by the age-to-ultimate factor of ${fmt.factor(p.correction.magnification)} at ${p.current.age} months`), 'money', h),
-          '. Uncorrected, the year would have been reported at ',
-          (h) => inlineTraced(t(p.correction.naivePct, `Projected ultimate on the unreconciled feed against the annual aggregate`), 'percent', h),
-          p.correction.flipsBreach
-            ? ' of aggregate, against a reported position that sits inside it.'
-            : ' of aggregate.',
+          'Identity resolution found one claim reported twice under different numbers, worth ',
+          (h) => inlineTraced(t(p.correction.heroReported, `Full incurred on the duplicate row flagged by identity resolution: ${p.correction.exception.title}`), 'money', h),
+          ' of double-counted incurred. Left in, the year would read ',
+          (h) => inlineTraced(t(p.correction.naivePct, `Projected ultimate on the unreconciled feed, on the selected method, against the annual aggregate`), 'percent', h),
+          ` of aggregate rather than ${fmt.pct(p.correction.correctedPct, 1)}. `,
+          'On a chain ladder it would have been worse: the development factor of ',
+          `${fmt.factor(p.correction.magnification)} at ${p.current.age} months multiplies the error along with everything else, turning ${fmt.money(p.correction.heroReported)} of bad data into `,
+          (h) => inlineTraced(t(p.correction.heroProjected, `Duplicated incurred of ${fmt.money(p.correction.heroReported)} multiplied by the age-to-ultimate factor of ${fmt.factor(p.correction.magnification)}`), 'money', h),
+          ` of projected ultimate and reporting ${fmt.pct(p.correction.chainLadderNaivePct, 1)}`,
+          p.correction.chainLadderNaiveBreach ? ' — a projected breach that is not there. ' : '. ',
+          'Bornhuetter-Ferguson is selected for this year partly for that reason: it credits reported experience only to the extent the year has developed, so neither a thin diagonal nor an error in it drives the answer.',
         ])
       : null,
 
     // The reported figure is the conservative end of a range, not a point. The
     // board is being asked to close the other end.
-    p.current.pending
+    recon.summary.pendingImpact
       ? para([
           'That reported position is the conservative reading. ',
           `${fmt.int(recon.summary.heldNotApplied)} exceptions are held and have not been applied. `,
@@ -363,13 +357,44 @@ function reserves(p) {
       'The tail is the one judgment input in the method and is exposed as an assumption rather than fixed in code.',
     ]),
 
+    el('h4', { class: 'memo__subheading', text: 'Method selection' }),
+    dataTable(
+      [
+        { label: 'Policy year', key: 'year' },
+        { label: 'Age', key: 'age', num: true },
+        { label: '% reported', key: 'rep', num: true },
+        { label: 'Chain ladder', key: 'cl', num: true },
+        { label: 'Bornhuetter-Ferguson', key: 'bf', num: true },
+        { label: 'Selected', key: 'sel' },
+        { label: 'Spread', key: 'spread', num: true },
+      ],
+      p.years.map((y) => ({
+        year: String(y.year),
+        age: `${y.age}m`,
+        rep: fmt.pct(y.pctReported, 1),
+        cl: fmt.money(y.chainLadder),
+        bf: fmt.money(y.bornhuetterFerguson),
+        sel: y.method,
+        spread: fmt.money(y.high - y.low),
+      }))
+    ),
+    el('p', { class: 'small muted memo__note' }, [
+      'Two methods, because one is not enough at this maturity. ',
+      `The chain ladder is credible once a year has developed — by ${p.years[0].year}'s age it is reading a book that is ${fmt.pct(p.years[0].pctReported, 0)} reported. `,
+      `At ${p.current.age} months ${p.currentYear} is only ${fmt.pct(p.current.pctReported, 0)} reported, so a cumulative factor of ${fmt.factor(p.current.cdf)} is being applied to a thin diagonal whose driving step rests on ${p.factors.steps[0].years.length} observations. `,
+      'Bornhuetter-Ferguson uses an expected ultimate of ',
+      fmt.money(p.expectedUltimate),
+      ` — this program's own mature years trended to ${p.currentYear} cost level, not an industry loss ratio — and credits actual experience only in proportion to development. `,
+      'Younger years take BF, mature years take the chain ladder, and the spread between them is shown rather than hidden inside a single number.',
+    ]),
+
     el('h4', { class: 'memo__subheading', text: 'Position by policy year' }),
     dataTable(ibnrCols, ibnrRows),
     node,
   ]);
 }
 
-function layers(p) {
+function layers(p, recon) {
   const cols = [
     { label: 'Layer', key: 'band' },
     ...p.triangle.map((t2) => ({ label: String(t2.year), key: `y${t2.year}`, num: true })),
@@ -398,7 +423,16 @@ function layers(p) {
         const all = top.totalCount;
         const cur = topCur.count;
         if (!all) return 'No claim on the book has reached the per-claim retention.';
-        return `${fmt.int(all)} claim${all === 1 ? '' : 's'} across the book ${all === 1 ? 'sits' : 'sit'} at the ${fmt.money(p.retention)} per-claim retention${cur ? `, ${fmt.int(cur)} of them in ${p.currentYear}` : ''}. Each is a limit-conformance exception carried at full incurred until cession is confirmed.`;
+        // Only the rows the extract reported above retention are exceptions.
+        // A claim that simply reached the retention is not a data problem.
+        const flagged = recon.exceptions.filter((e) => e.defectId === 'paid-over-limit').length;
+        return (
+          `${fmt.int(all)} claim${all === 1 ? '' : 's'} across the book ${all === 1 ? 'sits' : 'sit'} at the ${fmt.money(p.retention)} per-claim retention` +
+          `${cur ? `, ${fmt.int(cur)} of them in ${p.currentYear}` : ` — none in ${p.currentYear}`}. ` +
+          (flagged
+            ? `${fmt.int(flagged)} of them arrived on the extract above retention and ${flagged === 1 ? 'is' : 'are'} carried at full incurred until cession is confirmed.`
+            : '')
+        );
       })(),
     ]),
   ]);
@@ -554,7 +588,7 @@ function decisions(p, recon) {
     });
   }
 
-  if (cur.pending) {
+  if (recon.summary.pendingImpact) {
     items.unshift({
       ask: 'Confirm cession on the claims sitting at the per-claim retention',
       detail: `${p.currentYear} is reported at ${fmt.pct(cur.projectedPct, 1)} of aggregate with those claims carried at full incurred, because nobody has confirmed the excess layer responds. Confirmed, the year projects ${fmt.pct(cur.resolvedPct, 1)}${cur.breach && !cur.resolvedBreach ? ' and the projected breach disappears' : ''}. This is the cheapest item on the list — it is a call to the fronting carrier, not a capital decision — and it is first because the position reported above moves ${fmt.money(Math.abs(cur.pending))} on the answer.`,
@@ -645,7 +679,7 @@ export function buildMemo(p, recon, config) {
     activity(p),
     erosion(p),
     reserves(p),
-    layers(p),
+    layers(p, recon),
     capital(p),
     materiality(p),
     dataQuality(p, recon),

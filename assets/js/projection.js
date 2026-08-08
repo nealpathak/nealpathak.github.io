@@ -247,6 +247,26 @@ export function project(ctx) {
   );
   const factors = developmentFactors(triangle, tailFactor);
 
+  /* --- Expected ultimate, for Bornhuetter-Ferguson ---
+   *
+   * Chain ladder is least stable exactly where this program needs it most: the
+   * current year sits at six months with a cumulative factor near 1.9, and the
+   * driving 6→12 step rests on three observations. Everything the memo says
+   * about a data error being magnified by the development factor is the standard
+   * argument against relying on chain ladder at that maturity.
+   *
+   * So a second method. The prior is this book's own mature years, trended to
+   * current cost level — not an assumed loss ratio, and not an industry figure.
+   * BF then credits actual experience only to the extent the year has developed,
+   * which is what stops a thin, young diagonal from driving the answer. */
+  const mature = triangle.filter((t) => t.age >= 30);
+  const priorBasis = mature.length ? mature : triangle;
+  const expectedUltimate =
+    priorBasis.reduce((s, t) => {
+      const u = t.triangleLatest * factors.cdf(t.age) + t.excludedIncurred;
+      return s + u * Math.pow(1 + trend, currentYear - t.year);
+    }, 0) / priorBasis.length;
+
   /* --- Per-year position --- */
 
   const years = triangle.map((t) => {
@@ -257,20 +277,43 @@ export function project(ctx) {
      * derived from a smaller base is the quiet kind of wrong: the two numbers
      * differ by the excluded claims, and the memo would print one in the
      * triangle and the other in the erosion table, two sections apart. */
-    const ultimate = t.triangleLatest * cdf + t.excludedIncurred;
+    const chainLadder = t.triangleLatest * cdf + t.excludedIncurred;
+
+    /* Bornhuetter-Ferguson: reported incurred, plus the unreported share of an
+     * expected ultimate. Detrended back to this year's cost level so the prior
+     * is stated on the same basis as the year it is applied to. */
+    const pctReported = 1 / cdf;
+    const yearPrior = expectedUltimate / Math.pow(1 + trend, currentYear - t.year);
+    const bornhuetterFerguson = t.latest + (1 - pctReported) * yearPrior;
+
+    /* Selection. Mature years have enough development that the triangle speaks
+     * for itself; young years do not, and that is the whole reason BF exists.
+     * Selecting rather than blending everywhere keeps the choice legible: a
+     * reader can see which method drove which year. */
+    const method = t.age >= 24 ? 'Chain ladder' : 'Bornhuetter-Ferguson';
+    const ultimate = method === 'Chain ladder' ? chainLadder : bornhuetterFerguson;
+
+    const low = Math.min(chainLadder, bornhuetterFerguson);
+    const high = Math.max(chainLadder, bornhuetterFerguson);
     const ibnr = ultimate - t.latest;
 
     // The same projection run on the unreconciled feed, so the cost of skipping
     // reconciliation is a number on the page rather than an assertion.
     const naiveLatest = recon.naiveTotals[t.year] ?? t.latest;
-    const naiveUltimate = naiveLatest * cdf;
+    const naiveUltimate =
+      method === 'Chain ladder'
+        ? naiveLatest * cdf
+        : naiveLatest + (1 - pctReported) * yearPrior;
 
     /* And the same projection if every held exception for this year resolves
      * as proposed. The reported figure is the conservative reading; this is
      * the other end of the range the board is being asked to close. */
     const pending = recon.pendingByYear?.[t.year] || 0;
     const resolvedLatest = t.latest + pending;
-    const resolvedUltimate = (t.triangleLatest + pending) * cdf + t.excludedIncurred;
+    const resolvedUltimate =
+      method === 'Chain ladder'
+        ? (t.triangleLatest + pending) * cdf + t.excludedIncurred
+        : resolvedLatest + (1 - pctReported) * yearPrior;
 
     /* Losses trended to current-year cost level, for comparability across
      * policy years. This is trending, not on-levelling — on-level restates
@@ -304,6 +347,14 @@ export function project(ctx) {
         ...rowTrace(t.rows),
       }),
       naiveUltimate,
+      chainLadder,
+      bornhuetterFerguson,
+      method,
+      low,
+      high,
+      lowPct: low / aggregate,
+      highPct: high / aggregate,
+      pctReported,
       trended,
       pending,
       resolvedLatest,
@@ -388,11 +439,20 @@ export function project(ctx) {
     // Everything reconciliation removed from the current year, from all causes.
     reportedDelta: (recon.naiveTotals[currentYear] ?? 0) - current.latest.value,
     projectedDelta: current.naiveUltimate - current.ultimate.value,
-    // The single duplicate, isolated. The development factor is what turns a
-    // data error into a materially larger projection error.
+    // The single duplicate, isolated, and what each method would have done with
+    // it. Chain ladder multiplies a reported-incurred error by the full
+    // development factor; Bornhuetter-Ferguson passes it through roughly
+    // one-for-one, because it only credits reported experience to the extent the
+    // year has developed. That difference is the argument for the method.
     heroReported,
     heroProjected: heroReported * current.cdf,
     magnification: current.cdf,
+    selectedMethod: current.method,
+    chainLadderPct: current.chainLadder / aggregate,
+    chainLadderNaivePct:
+      ((recon.naiveTotals[currentYear] ?? current.latest.value) * current.cdf) / aggregate,
+    chainLadderNaiveBreach:
+      (recon.naiveTotals[currentYear] ?? current.latest.value) * current.cdf > aggregate,
     naivePct: current.naiveProjectedPct,
     correctedPct: current.projectedPct,
     flipsBreach: current.naiveBreach && !current.breach,
@@ -467,6 +527,7 @@ export function project(ctx) {
     capital,
     correction,
     quarter,
+    expectedUltimate,
     sizeOfLoss: cached('sizeOfLoss', recon, () => sizeOfLossDistribution(triangle)),
     watchList,
     materialityFloor,

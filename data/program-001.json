@@ -8,7 +8,7 @@
     "seed": 20260630,
     "synthetic": true,
     "syntheticNote": "Every entity, claim, and figure on this page is generated from the seed above. Nothing derives from any real book of business.",
-    "$comment": "Parameters and planted anomalies only. The ~1,900-claim population is synthesized deterministically at load time by assets/js/generate.js, which keeps this file reviewable and keeps the interesting rows explicit."
+    "$comment": "Parameters and planted anomalies only. The ~600-claim population is synthesized deterministically at load time by assets/js/generate.js, which keeps this file reviewable and keeps the interesting rows explicit."
   },
   "program": {
     "captive": "Meridian Assurance, Inc.",
@@ -29,7 +29,7 @@
     ],
     "annualAggregate": 7500000,
     "excessAttachment": 500000,
-    "fundedSurplus": 11200000,
+    "fundedSurplus": 15600000,
     "currentPolicyYear": 2026,
     "policyYears": [
       2023,
@@ -126,16 +126,23 @@
     "severity": {
       "logMean": 8.55,
       "logSigma": 1.85,
-      "cap": 500000
+      "cap": 500000,
+      "$comment": "Severity applies to claims that pay indemnity. Closed-no-indemnity claims draw from the expense-only distribution below."
     },
     "coverageMix": {
       "PL": 0.71,
       "GL": 0.29
     },
     "reportLagMonths": {
-      "median": 3.5,
-      "sigma": 0.85,
-      "max": 30
+      "PL": {
+        "median": 11.0,
+        "sigma": 0.9
+      },
+      "GL": {
+        "median": 2.5,
+        "sigma": 0.7
+      },
+      "max": 60
     },
     "developmentPattern": [
       {
@@ -172,32 +179,72 @@
       {
         "year": 2023,
         "inception": "2023-01-01",
-        "claimCount": 520,
+        "claimCount": 172,
         "trueUltimate": 5100000,
-        "closedShare": 0.94
+        "closedShare": 0.74
       },
       {
         "year": 2024,
         "inception": "2024-01-01",
-        "claimCount": 545,
+        "claimCount": 179,
         "trueUltimate": 5720000,
-        "closedShare": 0.86
+        "closedShare": 0.57
       },
       {
         "year": 2025,
         "inception": "2025-01-01",
-        "claimCount": 578,
+        "claimCount": 186,
         "trueUltimate": 6280000,
-        "closedShare": 0.68
+        "closedShare": 0.34
       },
       {
         "year": 2026,
         "inception": "2026-01-01",
-        "claimCount": 265,
+        "claimCount": 88,
         "trueUltimate": 6950000,
-        "closedShare": 0.31
+        "closedShare": 0.11
       }
-    ]
+    ],
+    "closedNoIndemnity": {
+      "share": 0.56,
+      "logMean": 7.05,
+      "logSigma": 1.05,
+      "$comment": "Expense-only claims. 56% is mid-range for healthcare PL."
+    },
+    "paymentPattern": [
+      {
+        "ageMonths": 6,
+        "paidShare": 0.08
+      },
+      {
+        "ageMonths": 12,
+        "paidShare": 0.2
+      },
+      {
+        "ageMonths": 18,
+        "paidShare": 0.32
+      },
+      {
+        "ageMonths": 24,
+        "paidShare": 0.45
+      },
+      {
+        "ageMonths": 30,
+        "paidShare": 0.58
+      },
+      {
+        "ageMonths": 36,
+        "paidShare": 0.68
+      },
+      {
+        "ageMonths": 42,
+        "paidShare": 0.76
+      }
+    ],
+    "expenseShare": {
+      "paying": 0.32,
+      "cnp": 1.0
+    }
   },
   "assumptions": [
     {
@@ -247,9 +294,9 @@
   ],
   "method": {
     "reserving": {
-      "name": "Incurred chain ladder",
-      "description": "Age-to-age factors are computed from this program's own incurred development triangle, then applied to project each policy year to ultimate. A judgment tail factor is applied beyond the oldest observed age.",
-      "citation": "Standard actuarial reserving method. See Casualty Actuarial Society, 'Estimating Unpaid Claims Using Basic Techniques' (Friedland), Ch. 7.",
+      "name": "Incurred chain ladder and Bornhuetter-Ferguson",
+      "description": "Age-to-age factors are computed from this program's own incurred development triangle and chained into a cumulative factor. Mature policy years are projected on the chain ladder. Young years are projected on Bornhuetter-Ferguson, using an expected ultimate derived from this program's own mature years trended to current cost level, because a cumulative factor near 1.9 applied to a half-developed diagonal is the least stable place a chain ladder can be asked to work. A judgment tail factor is applied beyond the oldest observed age.",
+      "citation": "Standard actuarial reserving methods. See Casualty Actuarial Society, 'Estimating Unpaid Claims Using Basic Techniques' (Friedland), Ch. 7 and Ch. 9.",
       "citationUrl": "https://www.casact.org/sites/default/files/2021-02/Estimating_Unpaid_Claims_Using_Basic_Techniques_Third_Edition_Friedland.pdf",
       "derivedFrom": "this program's own triangle"
     },

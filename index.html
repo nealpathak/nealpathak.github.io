@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Claims-to-capital — where AI runs the work, and where it does not</title>
-<meta name="description" content="An operating design for a captive insurance program: which steps run autonomously, which keep a human in the loop, and which stay human. One node is built and running on synthetic data.">
+<title>Claims-to-capital — where AI runs the work, and where it stops</title>
+<meta name="description" content="A captive insurance program mapped step by step: what runs unattended, what a human approves, what stays human. One step is built and running on synthetic data.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Claims-to-capital — where AI runs the work, and where it does not">
-<meta property="og:description" content="An operating design for a captive insurance program, with the line between autonomous and human drawn explicitly at every step.">
+<meta property="og:title" content="Claims-to-capital — where AI runs the work, and where it stops">
+<meta property="og:description" content="A captive insurance program mapped step by step, with one step built and running.">
 <meta property="og:url" content="https://nealpathak.github.io/">
 <meta property="og:image" content="https://nealpathak.github.io/assets/og.svg">
 <meta name="twitter:card" content="summary_large_image">
@@ -19,10 +19,12 @@
 </head>
 <body>
 
+<a class="skip" href="#main">Skip to content</a>
+
 <div class="disclosure">
   <div class="disclosure__inner">
-    <strong>Demonstration environment.</strong>
-    <span>Deterministic synthetic program. No live model calls, no backend, nothing leaves your browser.</span>
+    <strong>Demonstration.</strong>
+    <span>Synthetic program, computed in your browser. No backend, no model calls, no data leaves the tab.</span>
   </div>
 </div>
 
@@ -30,133 +32,103 @@
   <div class="masthead__inner">
     <a class="masthead__mark" href="./">Claims-to-capital</a>
     <nav class="masthead__nav" aria-label="Primary">
-      <a href="#thesis" aria-current="page">The line</a>
-      <a href="#backbone">The backbone</a>
-      <a href="#where">Where the model is</a>
-      <a href="program/">Worked example</a>
+      <a href="#map">The map</a>
+      <a href="program/">The worked step</a>
     </nav>
   </div>
 </header>
 
-<main class="page">
+<main id="main">
 
-  <section class="section" id="thesis">
-    <p class="eyebrow">Operating design for regulated work</p>
-    <h1>AI can run workflows.<br>It cannot run a business.</h1>
-    <p class="lede">
-      Certain workflows run without a human. Processes run with one in the loop.
-      Businesses do not run themselves, and a board being told otherwise is being sold something.
-    </p>
-    <p>
-      So the useful question is not whether the technology works. It is <em>where the line sits</em> —
-      which steps can be handed over, which need a person to confirm before anything moves, and which
-      should never leave human hands regardless of what the tooling can do. That question has an answer,
-      and the answer can be written down, argued with, and tested.
-    </p>
-    <p>
-      What follows is one operating design for a captive insurance program, with the line drawn
-      explicitly at every step. One node of it is built and running below.
-    </p>
-  </section>
+  <section class="hero">
+    <div class="page hero__inner">
+      <div class="hero__lead">
+        <h1>AI can run workflows.<br>It can't run a business.</h1>
+        <p class="lede">
+          The useful question is which is which, and nobody selling you a platform
+          will answer it in writing.
+        </p>
+        <p>
+          Below is a captive insurance program broken into fourteen operations, each
+          marked for how much autonomy it can carry. Disagree with any marker and
+          you're disagreeing with something specific. One of the fourteen is built
+          and running.
+        </p>
+        <p class="hero__cta">
+          <a class="btn btn--primary" href="program/">See the built one</a>
+        </p>
+      </div>
 
-  <section class="section" id="levels">
-    <h2>Three levels, and what earns each one</h2>
-    <p>
-      The distinction that matters in insurance and legal work is not how capable a system is.
-      It is what happens when it is wrong — and whether the answer is defensible to a regulator,
-      a court, or a board.
-    </p>
-    <div class="levels" id="levels-out"></div>
-    <p class="small muted">
-      A step earns autonomy by being mechanical, checkable, and cheap to re-run — not by being
-      easy. Some of the hardest computation on this page runs unattended. Some of the simplest
-      judgment does not.
-    </p>
-  </section>
-
-  <section class="section" id="backbone">
-    <h2>The claims-to-capital backbone</h2>
-    <p>
-      Six stages, from a claim arriving to a board approving the capital position behind it.
-      Every operation is marked. The claim being made here is falsifiable: move any of these
-      markers and you are disagreeing with something specific.
-    </p>
-    <div class="backbone" id="backbone-out">
-      <p class="muted" id="boot-status">Loading the operating design…</p>
-      <noscript>
-        <p><strong>This page needs scripts enabled.</strong> The operating design is
-        rendered in your browser from a data file in the repository — there is no
-        server doing it for you, which is also why nothing you do here is
-        transmitted anywhere.</p>
-      </noscript>
+      <aside class="hero__proof" aria-label="What the built step produces">
+        <p class="eyebrow">The built step produces this</p>
+        <div class="proof">
+          <div class="proof__row">
+            <span class="proof__label">Quarterly board memo</span>
+            <span class="proof__val" id="proof-sections">10 sections</span>
+          </div>
+          <div class="proof__row">
+            <span class="proof__label">Drafted from</span>
+            <span class="proof__val" id="proof-rows">—</span>
+          </div>
+          <div class="proof__row">
+            <span class="proof__label">Data faults caught</span>
+            <span class="proof__val" id="proof-exceptions">—</span>
+          </div>
+          <div class="proof__row">
+            <span class="proof__label">Held for a human</span>
+            <span class="proof__val" id="proof-held">—</span>
+          </div>
+          <div class="proof__row proof__row--wide">
+            <span class="proof__label">Every figure opens its own derivation</span>
+          </div>
+        </div>
+        <p class="small muted">Figures read live from the worked step.</p>
+      </aside>
     </div>
   </section>
 
-  <section class="section" id="where">
-    <h2>Where the model actually is</h2>
-    <p>
-      A fair objection, and worth answering before it gets asked in a room: much of what is
-      marked <em>autonomous</em> above is not a model at all. Schema mapping, date normalization,
-      chain-ladder arithmetic — software has done that since the nineties, and calling it AI
-      would be the exact overclaiming this page is arguing against.
-    </p>
-    <p>
-      The model-shaped work sits in three places, and all three are marked
-      <em>human-in-the-loop</em> rather than autonomous: resolving that two records with different
-      identifiers and different spellings are the same claim; reading a claim file against a policy
-      form to surface which provisions are in play; and drafting the board narrative from computed
-      values. Those are the steps where judgment is being approximated, which is precisely why none
-      of them decides anything.
-    </p>
-    <p>
-      So the argument here is not about which model you use. It is that the governance
-      architecture — declared mappings, exceptions that are held rather than applied, figures that
-      carry their derivation, a log of what was asserted and who agreed — is what makes any of it
-      safe to put in front of a board. That architecture is model-agnostic on purpose. Swap the
-      matcher for something better and every control around it still holds.
-    </p>
-    <p class="small muted">
-      The worked example runs deterministically with no live model calls, so it behaves identically
-      every time it is presented and no data leaves the browser. That is a property of the
-      demonstration, not a claim about the architecture.
-    </p>
+  <section class="section" id="map">
+    <div class="page">
+      <h2>Fourteen operations, three levels</h2>
+      <div class="levels" id="levels-out"></div>
+      <div class="backbone" id="backbone-out">
+        <p class="muted" id="boot-status">Loading the map…</p>
+        <noscript>
+          <p><strong>Scripts are required.</strong> The map and the worked step are
+          rendered in your browser from data files in this repository, which is also
+          why nothing you do here is transmitted anywhere.</p>
+        </noscript>
+      </div>
+    </div>
   </section>
 
-  <section class="section" id="why">
-    <h2>Why traceability is the whole thing</h2>
-    <p>
-      In this industry the objection is never <em>can it do the work</em>. It is
-      <em>what happens when it is wrong, and can I defend it</em>. A figure a system produces
-      is worth nothing to a board that cannot see what produced it.
-    </p>
-    <p>
-      So in the worked example the load-bearing figures link to the rows that produced them, every
-      automated resolution is logged rather than applied silently, and exceptions that would flatter
-      the numbers are held rather than taken. The governance panel records what the system asserted
-      and who had to agree — including one conclusion it reached that was wrong, and what caught it.
-    </p>
-    <p>
-      That last part is deliberate, and it is the part most demonstrations leave out.
-    </p>
-    <p style="margin-top:2rem">
-      <a class="btn btn--primary" href="program/" style="text-decoration:none;display:inline-block">
-        Open the worked example →
-      </a>
-    </p>
-    <p class="small muted">
-      Aggregate erosion, reserve development, and a quarterly board capacity memo that assembles
-      itself — on a synthetic 600-claim professional liability program.
-    </p>
+  <section class="section" id="close">
+    <div class="page narrow">
+      <h2>Two things worth saying plainly</h2>
+      <p>
+        <strong>Most of what runs unattended here is not a model.</strong> Schema mapping and
+        chain-ladder arithmetic are ordinary software. The model-shaped work is matching records,
+        reading a claim against a policy form, and drafting the narrative. All three are marked
+        human-in-the-loop, because that is where judgment is being approximated.
+      </p>
+      <p>
+        <strong>The controls are the product.</strong> Declared mappings, exceptions held rather
+        than applied, figures that carry their derivation, a log of who agreed to what. Swap the
+        model and all of it still holds.
+      </p>
+      <p class="hero__cta">
+        <a class="btn btn--primary" href="program/">Open the worked step</a>
+      </p>
+    </div>
   </section>
 
 </main>
 
 <footer class="site-foot">
   <div class="page">
-    <p class="small muted" style="max-width:70ch">
-      Static site, no build step, no backend. Every figure in the worked example is computed in the
-      browser from a seeded synthetic program; nothing derives from any real book of business, and
-      no data is transmitted anywhere.
+    <p class="small muted">
+      Static site, no build step, no backend. Every figure is computed from a seeded synthetic
+      program. Nothing derives from any real book of business.
     </p>
   </div>
 </footer>

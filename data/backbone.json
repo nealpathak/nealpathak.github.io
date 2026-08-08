@@ -1,30 +1,28 @@
 {
   "meta": {
     "title": "Claims-to-capital operating backbone",
-    "note": "Every operation is marked at one of three levels. The claim being made is about where the line sits, not that the line can be removed."
+    "note": "Every operation carries a level. The claim is about where the line sits, not that it can be removed."
   },
-
   "levels": [
     {
       "id": "autonomous",
       "label": "Autonomous",
       "badge": "badge--auto",
-      "definition": "Runs without a human in the path. Deterministic, verifiable, and cheap to re-run. A human audits the output, but nothing waits on one."
+      "definition": "Runs without a person in the path. Deterministic, checkable, cheap to re-run. Someone audits the output; nothing waits on them."
     },
     {
       "id": "loop",
       "label": "Human-in-the-loop",
       "badge": "badge--loop",
-      "definition": "The system does the work and proposes a result. A human confirms, corrects, or rejects before it moves downstream. The work is drafted, not decided."
+      "definition": "The system does the work and proposes a result. A person confirms, corrects or rejects it before anything moves downstream."
     },
     {
       "id": "human",
       "label": "Human",
       "badge": "badge--human",
-      "definition": "Stays with a person. The system may assemble the record and surface the considerations, but the judgment and the accountability do not move."
+      "definition": "Stays with a person. The system can assemble the record and lay out the considerations. The judgment and the accountability do not move."
     }
   ],
-
   "stages": [
     {
       "id": "intake",
@@ -33,21 +31,21 @@
         {
           "label": "Ingest and schema normalization",
           "level": "autonomous",
-          "does": "Reads loss runs and register extracts in whatever shape they arrive, maps them onto the program's canonical schema, and normalizes dates, statuses, and coverage codes.",
-          "why": "Purely mechanical and fully checkable. The mapping is deterministic, and every transformation is reversible to the source row."
+          "does": "Reads loss runs and register extracts in whatever shape they arrive. Maps them to the program schema and normalizes dates, statuses and coverage codes.",
+          "why": "Mechanical and fully checkable. The mapping is declared, and every transformation traces back to its source row."
         },
         {
           "label": "Identity and entity resolution",
           "level": "loop",
-          "does": "Detects the same claim arriving under different identifiers, and the same insured arriving under different spellings. Proposes merges.",
-          "why": "Auto-merging a near-match claim number is exactly as dangerous as leaving the duplicate. High recall, no autonomy: every proposed merge is held for confirmation.",
+          "does": "Finds the same claim arriving under different numbers, and the same insured under different spellings. Proposes merges.",
+          "why": "A wrong merge costs as much as a missed duplicate. High recall, no autonomy: every merge waits for a person.",
           "emphasis": true
         },
         {
           "label": "Policy year and coverage assignment",
           "level": "autonomous",
-          "does": "Assigns each claim to a policy year and coverage part from occurrence and report dates against the coverage basis.",
-          "why": "Rule-driven from the policy terms. Claims-made and occurrence bases are unambiguous once the dates are clean — and the dates were cleaned upstream."
+          "does": "Assigns each claim to a policy year and coverage part from its dates and the coverage basis.",
+          "why": "Rule-driven from the policy terms. Claims-made and occurrence are unambiguous once the dates are clean, and cleaning them happens upstream."
         }
       ]
     },
@@ -58,14 +56,14 @@
         {
           "label": "Coverage issue identification",
           "level": "loop",
-          "does": "Reads the claim file against the policy form and surfaces the provisions in play, the facts that bear on them, and the open questions.",
-          "why": "The retrieval and assembly are reliable. The weighing is not. It produces the memo a coverage analyst would have spent three hours assembling, and stops there."
+          "does": "Reads the claim file against the policy form. Surfaces the provisions in play, the facts that bear on them, and the open questions.",
+          "why": "Finding the relevant provisions is reliable. Weighing them is not. It assembles the file and stops."
         },
         {
           "label": "Coverage determination",
           "level": "human",
           "does": "Decides whether the claim is covered, in part or at all, and on what terms.",
-          "why": "A coverage position is a legal judgment the carrier will be held to. It does not move, and no efficiency argument should move it."
+          "why": "A coverage position is a legal judgment the carrier will be held to. No efficiency argument should move it."
         }
       ]
     },
@@ -77,21 +75,21 @@
           "label": "Erosion and development computation",
           "level": "autonomous",
           "worked": true,
-          "does": "Tracks paid and incurred against the per-occurrence retention and the annual aggregate, and builds the development triangle.",
-          "why": "Arithmetic on reconciled data. The only failure mode is bad input, which is why intake carries the exception gate."
+          "does": "Tracks paid and incurred against the per-claim retention and the annual aggregate. Builds the development triangle.",
+          "why": "Arithmetic on reconciled data. The only failure mode is bad input, which is what the exception gate upstream is for."
         },
         {
           "label": "Case reserve setting",
           "level": "loop",
-          "does": "Proposes a case reserve from claim characteristics and the development pattern of comparable claims.",
-          "why": "The adjuster knows things the record does not — venue, counsel, how the plaintiff presents. The proposal anchors, the adjuster decides."
+          "does": "Proposes a case reserve from the claim's characteristics and how comparable claims developed.",
+          "why": "The adjuster knows things the record does not: venue, opposing counsel, how the plaintiff presents. The proposal anchors. The adjuster decides."
         },
         {
           "label": "IBNR and ultimate projection",
           "level": "autonomous",
           "worked": true,
-          "does": "Applies chain-ladder factors derived from the program's own triangle to project each policy year to ultimate.",
-          "why": "The method is standard and the factors are derived, not asserted. Judgment enters only through the tail factor, which is exposed as an explicit input rather than buried."
+          "does": "Projects each policy year to ultimate using factors derived from the program's own triangle.",
+          "why": "Standard method, derived factors. Judgment enters through the tail, which sits on the page as a control instead of inside the code."
         }
       ]
     },
@@ -102,14 +100,14 @@
         {
           "label": "Funding requirement calculation",
           "level": "autonomous",
-          "does": "Converts projected ultimate liabilities and the target capital margin into a required funding position by quarter.",
-          "why": "Deterministic given the projection and the margin policy. Both inputs are visible and adjustable."
+          "does": "Converts projected ultimate liabilities and the target margin into a required funding position by quarter.",
+          "why": "Deterministic once the projection and the margin policy are set. Both are visible and both are adjustable."
         },
         {
           "label": "Funding trigger and capital call",
           "level": "human",
           "does": "Decides whether to call capital, adjust the funding schedule, or restructure at renewal.",
-          "why": "It moves money and it involves the parent. The system's job is to make the number defensible early enough that the decision is not made under time pressure."
+          "why": "It moves money and it involves the parent. The system's job is to make the number defensible early, while there is still time to argue about it."
         }
       ]
     },
@@ -120,14 +118,14 @@
         {
           "label": "Invoice review against billing guidelines",
           "level": "loop",
-          "does": "Checks counsel invoices line by line against the billing guidelines — block billing, staffing ratios, rate changes, duplicate entries, non-billable tasks — and proposes the adjustment.",
-          "why": "Flagging a line against a written rule is mechanical. Short-paying a firm is not: it is a contract position and a relationship decision, and a system that takes it unattended will eventually take it wrong against counsel you need. The review runs on every line; the deduction waits for a person."
+          "does": "Checks counsel invoices line by line against the guidelines: block billing, staffing ratios, rate changes, duplicate entries, non-billable tasks. Proposes the adjustment.",
+          "why": "Flagging a line against a written rule is mechanical. Short-paying a firm is a contract position and a relationship call. The review runs on every line. The deduction waits."
         },
         {
           "label": "Counsel assignment and strategy",
           "level": "human",
           "does": "Selects counsel and sets litigation strategy and settlement authority.",
-          "why": "Relationship and judgment, informed by performance data the system can supply but should not act on."
+          "why": "Relationship and judgment. The system can supply the performance data and should not act on it."
         }
       ]
     },
@@ -139,15 +137,15 @@
           "label": "Board memo drafting",
           "level": "loop",
           "worked": true,
-          "does": "Assembles the quarterly capacity memo — position, movement, projection, exceptions — with every figure linked to the rows that produced it.",
-          "why": "The assembly is mechanical and the narrative is templated from computed values. A human owns it before it goes out, and traceability is what makes that review possible in an hour instead of a week.",
+          "does": "Assembles the quarterly capacity memo: position, movement, projection, exceptions. Every figure links to the rows behind it.",
+          "why": "Assembly is mechanical and the narrative is templated from computed values. A person owns it before it goes out.",
           "emphasis": true
         },
         {
           "label": "Board decision",
           "level": "human",
-          "does": "Approves the renewal structure, the funding position, and the capacity plan.",
-          "why": "Always. The entire point of the traceability is to make this decision better informed, not to make it somewhere else."
+          "does": "Approves the renewal structure, the funding position and the capacity plan.",
+          "why": "Always. The traceability exists to make this decision better informed, not to relocate it."
         }
       ]
     }

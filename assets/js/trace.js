@@ -1,12 +1,15 @@
 /* The governance log.
  *
- * Every step the pipeline took, what it asserted, how confident it was, and
- * who had to agree before it moved on. Built from the actual run rather than
- * written alongside it — if the reconciliation finds a different number of
- * duplicates, this log says so.
+ * Every step the pipeline took, what it asserted, what it applied and what it
+ * declined to apply, and who had to agree before it moved on. Built from the
+ * actual run rather than written alongside it — if reconciliation finds a
+ * different number of duplicates, this log says so.
  *
- * The entry that matters most is the one where the system was wrong. A log
- * that only records successes is a marketing artifact.
+ * The entry that matters most is the one where the first reading was wrong.
+ * A log that only records successes is a marketing artifact.
+ *
+ * No confidence percentages here. The only calibrated score on this site is the
+ * matcher's, and it appears once, beside the threshold it failed to clear.
  */
 
 import { el, fmt, badge } from './render.js';
@@ -27,6 +30,8 @@ export function buildTrace(recon, p, config) {
   const dupes = byDefect('dup-claimno');
   const temporal = [...byDefect('report-before-occurrence'), ...byDefect('null-reserve-date')];
   const limits = byDefect('paid-over-limit');
+
+  const entriesBefore = 14;
 
   const entries = [
     {
@@ -58,7 +63,7 @@ export function buildTrace(recon, p, config) {
       stage: 'Intake',
       level: 'autonomous',
       title: 'Entity resolution',
-      assertion: `${fmt.int(entities.length)} rows named an insured under a spelling other than its canonical form. Resolved on a normalized key that ignores punctuation, casing, and legal suffixes. Left alone, this insured's experience would split across three apparent entities and understate its loss ratio in every one.`,
+      assertion: `${fmt.int(entities.length)} rows named an insured under a spelling other than its canonical form. Resolved on a normalized key that ignores punctuation, casing, and legal suffixes. Left alone, this insured's experience splits across three apparent entities and understates its loss ratio in all of them.`,
       metrics: [['Rows resolved', fmt.int(entities.length)]],
       outcome: 'passed',
     },
@@ -75,7 +80,7 @@ export function buildTrace(recon, p, config) {
       stage: 'Intake',
       level: 'loop',
       title: 'Temporal integrity',
-      assertion: `${fmt.int(byDefect('report-before-occurrence').length)} rows reported a claim before it occurred — a transposition at entry, which on claims-made coverage can also land the claim in the wrong policy year. ${fmt.int(byDefect('null-reserve-date').length)} reserve movements carry no effective date and cannot be placed in a development period.`,
+      assertion: `${fmt.int(byDefect('report-before-occurrence').length)} rows reported a claim before it occurred — usually a transposition at entry. On claims-made coverage it can also land the claim in the wrong policy year. ${fmt.int(byDefect('null-reserve-date').length)} reserve movements carry no effective date and cannot be placed in a development period.`,
       metrics: [['Date inversions', fmt.int(byDefect('report-before-occurrence').length)], ['Undated reserves', fmt.int(byDefect('null-reserve-date').length)]],
       outcome: 'held',
     },
@@ -136,9 +141,11 @@ export function buildTrace(recon, p, config) {
       stage: 'Funding',
       level: 'human',
       title: 'Capital call decision',
-      assertion:
-        'Not taken by the system. Calling capital moves money and involves the parent. The system\'s job is to make the number defensible early enough that the decision is not made under time pressure.',
-      metrics: [['Status', 'For the board']],
+      assertion: `The requirement is computed and the gap is quantified. Nothing further happened: no call was drafted, no funding schedule was altered, and nothing went to the parent. The pipeline stops at a number and a line on the agenda.`,
+      metrics: [
+        ['Status', 'For the board'],
+        [p.capital.adequate ? 'Surplus' : 'Gap', fmt.money(Math.abs(p.capital.surplus))],
+      ],
       outcome: 'human',
     },
     {
@@ -154,9 +161,8 @@ export function buildTrace(recon, p, config) {
       stage: 'Reporting',
       level: 'human',
       title: 'Board decision',
-      assertion:
-        'Always. The point of the traceability is to make this decision better informed, not to make it somewhere else.',
-      metrics: [['Status', 'For the board']],
+      assertion: `${config.memo.sections.length} sections, ${fmt.int(entriesBefore)} logged steps and a full row-level derivation arrive with the memo. What does not arrive is a recommendation the system has already acted on — every figure above is still reversible at this point, and that is the property that makes the pack worth reading rather than worth signing.`,
+      metrics: [['Status', 'For the board'], ['Reversible', 'Yes — nothing has been executed']],
       outcome: 'human',
     },
   ];

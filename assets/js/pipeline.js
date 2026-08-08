@@ -21,6 +21,54 @@ function mount(id, node) {
   host.replaceChildren(node);
 }
 
+/* ---------- The result, before any of the machinery ----------
+ * A reader who scrolls no further should still leave with the finding and the
+ * one number that changed it.
+ */
+
+function renderHeadline(p, recon) {
+  const cur = p.current;
+  const tone = cur.projectedPct > 1 ? 'alert' : cur.projectedPct > 0.9 ? 'warn' : 'ok';
+
+  const tile = (label, value, note, cls = '') =>
+    el('div', { class: `stat ${cls}` }, [
+      el('div', { class: 'stat__label', text: label }),
+      el('div', { class: 'stat__value', text: value }),
+      el('div', { class: 'stat__note', text: note }),
+    ]);
+
+  return el('div', { class: 'stat-row' }, [
+    tile(
+      `${p.currentYear} aggregate consumed`,
+      fmt.pct(cur.projectedPct, 1),
+      cur.headroom >= 0
+        ? `${fmt.money(cur.headroom)} left at expiry`
+        : `Over by ${fmt.money(-cur.headroom)}`,
+      `stat--${tone}`
+    ),
+    tile(
+      'Funding ratio',
+      fmt.pct(p.capital.ratio, 1),
+      p.capital.adequate
+        ? `${fmt.money(p.capital.surplus)} above target`
+        : `${fmt.money(-p.capital.surplus)} short`,
+      p.capital.adequate ? '' : 'stat--warn'
+    ),
+    tile(
+      'Caught before the board saw it',
+      fmt.money(p.correction.heroReported),
+      'One claim counted twice under two numbers',
+      'stat--alert'
+    ),
+    tile(
+      'Held for a human',
+      fmt.int(recon.summary.heldNotApplied),
+      'Not applied; figures stay conservative',
+      'stat--loop'
+    ),
+  ]);
+}
+
 /* ---------- Stage 1: Ingest ---------- */
 
 function renderIngest(synth, config) {
@@ -68,10 +116,10 @@ function renderIngest(synth, config) {
 
   return el('div', { class: 'stack-lg' }, [
     el('p', { class: 'lede' }, [
-      `${fmt.int(synth.counts.rawRows)} rows arrive from two systems that agree on almost nothing: different field names, different date formats, different words for the same claim status.`,
+      `${fmt.int(synth.counts.rawRows)} rows from two systems that agree on almost nothing. Different field names, different date formats, different words for the same claim status.`,
     ]),
     el('p', { class: 'small muted' }, [
-      'Nothing here is cleaned yet. This is the feed as it lands — including the defects, which are planted deliberately and are the same defects real loss runs carry.',
+      'Nothing here is cleaned yet. This is the feed as it lands, defects included. The defects are planted on purpose and are the ones real loss runs carry.',
     ]),
     el('div', { class: 'sources' }, samples),
   ]);
@@ -109,7 +157,7 @@ function renderReconcile(recon, config) {
     el('div', { class: 'stat stat--loop' }, [
       el('div', { class: 'stat__label', text: 'Held for a human' }),
       el('div', { class: 'stat__value', text: fmt.int(s.heldNotApplied) }),
-      el('div', { class: 'stat__note', text: 'not applied — figures carry the conservative reading' }),
+      el('div', { class: 'stat__note', text: 'not applied; figures stay conservative' }),
     ]),
   ]);
 
@@ -181,7 +229,7 @@ function renderReconcile(recon, config) {
   );
 
   return el('div', { class: 'stack-lg' }, [
-    el('p', { class: 'lede', text: 'Nothing is silently fixed. Every transformation either follows a stated mapping rule and is logged, or becomes an exception a human confirms before it moves downstream.' }),
+    el('p', { class: 'lede', text: 'Nothing is silently fixed. Every transformation either follows a stated rule and gets logged, or becomes an exception someone confirms before it moves on.' }),
     summaryTiles,
     el('div', { class: 'stack' }, groupNodes),
     el('div', {}, [
@@ -239,10 +287,6 @@ function renderAssumptions(config, state, onChange) {
   });
 
   return el('div', { class: 'assumptions' }, [
-    el('div', { class: 'assumptions__head' }, [
-      el('h4', { text: 'Assumptions' }),
-      el('p', { class: 'small muted', text: 'Every figure downstream recomputes. Nothing on this page is a stored result.' }),
-    ]),
     el('div', { class: 'assumptions__grid' }, controls),
   ]);
 }
@@ -292,7 +336,7 @@ function renderAnalyze(p) {
   );
 
   return el('div', { class: 'stack-lg' }, [
-    el('p', { class: 'lede', text: 'Incurred chain ladder. Age-to-age factors come from this program\'s own triangle; the tail is the single judgment input, and it is a control rather than a constant.' }),
+    el('p', { class: 'lede', text: 'Age-to-age factors come from this program\'s own triangle. The tail is the one judgment input, and it sits on the page as a control.' }),
     bars,
     el('p', { class: 'small muted', text: 'Projected consumption of each policy year\'s annual aggregate. The vertical rule is the aggregate.' }),
     position,
@@ -313,7 +357,7 @@ function renderAnalyze(p) {
             ]),
           ]),
           el('p', { class: 'small muted' }, [
-            `A duplicated ${fmt.money(c.heroReported)} of incurred at ${p.current.age} months becomes ${fmt.money(c.heroProjected)} of projected ultimate, because the development factor of ${fmt.factor(c.magnification)} multiplies the error along with everything else. `,
+            `A duplicated ${fmt.money(c.heroReported)} of incurred at ${p.current.age} months becomes ${fmt.money(c.heroProjected)} of projected ultimate. The development factor of ${fmt.factor(c.magnification)} multiplies the error with everything else. `,
             'Data quality problems do not stay the size they arrive at.',
           ]),
         ])
@@ -384,8 +428,8 @@ async function init() {
 
     const state = Object.fromEntries(config.assumptions.map((a) => [a.id, a.value]));
 
-    mount('stage-ingest', renderIngest(synth, config));
-    mount('stage-reconcile', renderReconcile(recon, config));
+    mount('stage-ingest-out', renderIngest(synth, config));
+    mount('stage-reconcile-out', renderReconcile(recon, config));
 
     /* The memo is discarded and rebuilt on every input, which closes any trace
      * panel the presenter has open and drops focus to the body. The natural
@@ -413,6 +457,7 @@ async function init() {
       const open = memoHost ? openTraceKeys(memoHost) : new Set();
 
       const p = project({ synth, recon, assumptions: state });
+      mount('headline', renderHeadline(p, recon));
       mount('stage-analyze-out', renderAnalyze(p));
       mount('stage-memo', buildMemo(p, recon, config));
       mount('stage-govern', renderTrace(buildTrace(recon, p, config), recon, p));
@@ -434,6 +479,19 @@ async function init() {
     }
 
     mount('assumptions', renderAssumptions(config, state, schedule));
+
+    /* Presenting live means dragging sliders to make a point and then needing
+     * the baseline back before the next one. Reloading the page loses your
+     * scroll position halfway down a long memo. */
+    const reset = document.getElementById('reset-assumptions');
+    if (reset) {
+      reset.addEventListener('click', () => {
+        for (const a of config.assumptions) state[a.id] = a.value;
+        mount('assumptions', renderAssumptions(config, state, schedule));
+        recompute();
+      });
+    }
+
     recompute();
     trackStage();
 

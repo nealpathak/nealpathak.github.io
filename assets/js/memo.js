@@ -62,31 +62,31 @@ function execSummary(p, recon) {
       (h) => inlineTraced(cur.latest, 'money', h),
       '. Developed to ultimate, the year projects ',
       (h) => inlineTraced(cur.ultimate, 'money', h),
-      ' — ',
+      ', or ',
       (h) => inlineTraced(t(cur.projectedPct, `Projected ultimate of ${fmt.money(cur.ultimate.value)} against an aggregate of ${fmt.money(p.aggregate)}`, cur.ultimate.trace.rows, cur.ultimate.trace.rowCount), 'percent', h),
-      cur.headroom >= 0 ? ' of the aggregate, leaving ' : ' of the aggregate, breaching it by ',
+      cur.headroom >= 0 ? ' of the aggregate. That leaves ' : ' of the aggregate, over by ',
       (h) => inlineTraced(t(Math.abs(cur.headroom), `Annual aggregate less projected ultimate for policy year ${p.currentYear}`, cur.ultimate.trace.rows, cur.ultimate.trace.rowCount), 'money', h),
-      cur.headroom >= 0 ? ' of headroom.' : '.',
+      cur.headroom >= 0 ? ' at expiry.' : ' at expiry.',
     ]),
 
     para([
-      `Projected consumption has risen in every policy year on the book: ${trend}. `,
-      'That trend, rather than any single claim, is the reason this memo recommends a change to the renewal structure.',
+      `Projected consumption has risen every year on the book: ${trend}. `,
+      'No single claim explains that. The trend is why this memo asks the board to look at the renewal structure.',
     ]),
 
     p.correction.exception
       ? para([
           'Identity resolution found one claim reported twice under different numbers, worth ',
           (h) => inlineTraced(t(p.correction.heroReported, `Full incurred on the duplicate row flagged by identity resolution: ${p.correction.exception.title}`), 'money', h),
-          ' of double-counted incurred. Left in, the year would read ',
+          ' of double-counted incurred. Left in, the year reads ',
           (h) => inlineTraced(t(p.correction.naivePct, `Projected ultimate on the unreconciled feed, on the selected method, against the annual aggregate`), 'percent', h),
-          ` of aggregate rather than ${fmt.pct(p.correction.correctedPct, 1)}. `,
-          'On a chain ladder it would have been worse: the development factor of ',
-          `${fmt.factor(p.correction.magnification)} at ${p.current.age} months multiplies the error along with everything else, turning ${fmt.money(p.correction.heroReported)} of bad data into `,
+          ` of aggregate instead of ${fmt.pct(p.correction.correctedPct, 1)}. `,
+          'A chain ladder would have made it worse. The development factor of ',
+          `${fmt.factor(p.correction.magnification)} at ${p.current.age} months multiplies the error with everything else, turning ${fmt.money(p.correction.heroReported)} of bad data into `,
           (h) => inlineTraced(t(p.correction.heroProjected, `Duplicated incurred of ${fmt.money(p.correction.heroReported)} multiplied by the age-to-ultimate factor of ${fmt.factor(p.correction.magnification)}`), 'money', h),
           ` of projected ultimate and reporting ${fmt.pct(p.correction.chainLadderNaivePct, 1)}`,
-          p.correction.chainLadderNaiveBreach ? ' — a projected breach that is not there. ' : '. ',
-          'Bornhuetter-Ferguson is selected for this year partly for that reason: it credits reported experience only to the extent the year has developed, so neither a thin diagonal nor an error in it drives the answer.',
+          p.correction.chainLadderNaiveBreach ? ', a projected breach that is not there. ' : '. ',
+          'That is part of why this year is projected on Bornhuetter-Ferguson. It credits reported experience only as far as the year has developed, so a thin diagonal cannot drive the answer, and neither can an error inside one.',
         ])
       : null,
 
@@ -104,10 +104,10 @@ function execSummary(p, recon) {
           'If every held exception resolves as proposed, ',
           `${p.currentYear} projects `,
           (h) => inlineTraced(t(p.current.resolvedUltimate, `Triangle incurred adjusted by the ${fmt.money(p.current.pending)} of held exceptions for ${p.currentYear}, developed at ${fmt.factor(p.current.cdf)}`), 'money', h),
-          ` instead — ${fmt.pct(p.current.resolvedPct, 1)} of aggregate. `,
+          `, or ${fmt.pct(p.current.resolvedPct, 1)} of aggregate. `,
           p.current.breach && !p.current.resolvedBreach
-            ? 'The difference straddles the aggregate: confirming cession is what moves this year from a projected breach to headroom, and it is a phone call to the fronting carrier rather than a capital decision.'
-            : 'The gap between the two is the size of the question the board is being asked to close.',
+            ? 'The difference straddles the aggregate. Confirming cession moves this year from a projected breach to headroom, and it is a call to the fronting carrier, not a capital decision.'
+            : 'That gap is the size of the question in front of the board.',
         ])
       : null,
 
@@ -116,7 +116,7 @@ function execSummary(p, recon) {
       (h) => inlineTraced(p.capital.funded, 'money', h),
       ' of funded surplus against a required position of ',
       (h) => inlineTraced(p.capital.required, 'money', h),
-      ` — a funding ratio of ${fmt.pct(p.capital.ratio, 1)}, `,
+      `. That is a funding ratio of ${fmt.pct(p.capital.ratio, 1)}, `,
       p.capital.adequate
         ? `a surplus of ${fmt.money(p.capital.surplus)}.`
         : `a shortfall of ${fmt.money(-p.capital.surplus)}.`,
@@ -261,10 +261,10 @@ function erosion(p) {
     dataTable(cols, rows),
     node,
     el('p', { class: 'small muted memo__note' }, [
-      el('strong', { text: 'Read the trended column, not the projected one, for experience. ' }),
-      `Projected consumption rises partly because younger years carry larger development factors — ${p.currentYear} is at ${p.current.age} months and ${p.years[0].year} is finished. `,
-      `The trended column restates each year's ultimate at ${p.currentYear} cost level using the loss trend assumption, which is the only column on this table where the four years are comparable. `,
-      'Erosion is shown on an incurred basis throughout; contractual erosion of the aggregate is on paid, and the paid position is in the reserves section below.',
+      el('strong', { text: 'For experience, read the trended column, not the projected one. ' }),
+      `Projected consumption rises partly because younger years carry bigger development factors. ${p.currentYear} is at ${p.current.age} months and ${p.years[0].year} is finished. `,
+      `The trended column restates each year at ${p.currentYear} cost level, and it is the only column here where the four years are comparable. `,
+      'Erosion is shown on an incurred basis. Contractual erosion of the aggregate is on paid, and the paid position is in the reserves section below.',
     ]),
     (() => {
       const cur = p.current;
@@ -277,10 +277,10 @@ function erosion(p) {
         `As a cross-check, reported incurred for ${p.currentYear} annualised on a straight run-rate is `,
         (h) => inlineTraced(t(p.annualisedReported, `Reported incurred of ${fmt.money(cur.latest.value)} at ${cur.age} months, scaled to twelve months on a straight run-rate. Deliberately crude — it ignores development entirely.`), 'money', h),
         `, ${fmt.pct(relative, 1)} ${direction} the chain-ladder projection of ${fmt.money(cur.ultimate.value)}. `,
-        `Treat that agreement as arithmetic coincidence rather than corroboration: annualising a ${cur.age}-month figure multiplies it by ${naiveMultiple.toFixed(2)}, and the development factor at this age happens to be ${fmt.factor(cur.cdf)}. `,
-        'The two answer different questions. The run-rate assumes claims keep arriving and developing at the first-half rate; the triangle says roughly ',
-        `${fmt.pct(1 - 1 / cur.cdf, 0)} of this year's eventual cost has not been reported yet, and that the remainder arrives on a curve rather than a line. `,
-        'At any other valuation age the two diverge sharply, which is why the run-rate is a sanity check and not a method.',
+        'The closeness is coincidence, not corroboration. ',
+        `Annualising a ${cur.age}-month figure multiplies it by ${naiveMultiple.toFixed(2)}. The development factor at this age happens to be ${fmt.factor(cur.cdf)}. `,
+        `The triangle says about ${fmt.pct(1 - 1 / cur.cdf, 0)} of this year's eventual cost has not been reported yet, and that the rest arrives on a curve. `,
+        'At any other valuation age the two answers diverge. The run-rate is a sanity check, not a method.',
       ], 'memo__para--note');
     })(),
   ]);
@@ -380,12 +380,10 @@ function reserves(p) {
     ),
     el('p', { class: 'small muted memo__note' }, [
       'Two methods, because one is not enough at this maturity. ',
-      `The chain ladder is credible once a year has developed — by ${p.years[0].year}'s age it is reading a book that is ${fmt.pct(p.years[0].pctReported, 0)} reported. `,
-      `At ${p.current.age} months ${p.currentYear} is only ${fmt.pct(p.current.pctReported, 0)} reported, so a cumulative factor of ${fmt.factor(p.current.cdf)} is being applied to a thin diagonal whose driving step rests on ${p.factors.steps[0].years.length} observations. `,
-      'Bornhuetter-Ferguson uses an expected ultimate of ',
-      fmt.money(p.expectedUltimate),
-      ` — this program's own mature years trended to ${p.currentYear} cost level, not an industry loss ratio — and credits actual experience only in proportion to development. `,
-      'Younger years take BF, mature years take the chain ladder, and the spread between them is shown rather than hidden inside a single number.',
+      `The chain ladder is credible once a year has developed. At ${p.years[0].year}'s age it is reading a book that is ${fmt.pct(p.years[0].pctReported, 0)} reported. `,
+      `${p.currentYear} is ${fmt.pct(p.current.pctReported, 0)} reported at ${p.current.age} months, so a factor of ${fmt.factor(p.current.cdf)} is being applied to a thin diagonal, and its driving step rests on ${p.factors.steps[0].years.length} observations. `,
+      `Bornhuetter-Ferguson starts from an expected ultimate of ${fmt.money(p.expectedUltimate)}, taken from this program's own mature years trended to ${p.currentYear} cost level. Not an industry loss ratio. It then credits actual experience in proportion to development. `,
+      'Mature years take the chain ladder, young years take BF, and the spread sits in its own column instead of inside one number.',
     ]),
 
     el('h4', { class: 'memo__subheading', text: 'Position by policy year' }),
@@ -418,7 +416,7 @@ function layers(p, recon) {
   return section('layers', 'Size-of-loss distribution', [
     dataTable(cols, rows),
     el('p', { class: 'small muted memo__note' }, [
-      'Each claim is assigned wholly to one band by its total incurred. This is a size-of-loss distribution, not a layer analysis — a layer analysis would slice every claim across the bands beneath it and produce different numbers entirely. ',
+      'Each claim sits wholly in one band, by total incurred. This is a size-of-loss distribution, not a layer analysis. A layer analysis slices every claim across the bands beneath it and produces different numbers. ',
       (() => {
         const all = top.totalCount;
         const cur = topCur.count;
@@ -689,9 +687,9 @@ export function buildMemo(p, recon, config) {
       el('p', { class: 'small muted' }, [
         'Figures shown in ',
         el('span', { class: 'trace', style: 'cursor:default', text: 'this style' }),
-        ' open the method that produced them and the rows they were computed from. ',
-        'That covers the load-bearing figures — the position, the projection, the capital numbers — not every cell in every table. ',
-        'Where an aggregate spans hundreds of claims, the panel names the full row count and shows the largest contributors rather than all of them.',
+        ' open the method that produced them and the rows behind them. ',
+        'That covers the load-bearing figures: the position, the projection, the capital numbers. It is not every cell in every table. ',
+        'Where an aggregate spans hundreds of claims, the panel states the full row count and lists the largest contributors.',
       ]),
     ]),
   ]);

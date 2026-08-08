@@ -41,9 +41,6 @@ export const fmt = {
       'July', 'August', 'September', 'October', 'November', 'December'];
     return `${d} ${months[m - 1]} ${y}`;
   },
-  dateShort(iso) {
-    return iso || '—';
-  },
 };
 
 const FORMATTERS = {
@@ -158,7 +155,7 @@ export function traced(figure, kind, opts = {}) {
     counted > 0
       ? el('p', { class: 'small muted', style: 'margin-bottom:0.5rem' }, [
           shown < counted
-            ? `Computed from ${fmt.int(counted)} rows. The ${shown} largest contributors are shown.`
+            ? `Computed from ${fmt.int(counted)} rows. The ${shown} largest are shown.`
             : `Computed from ${fmt.int(counted)} row${counted === 1 ? '' : 's'}.`,
         ])
       : null,

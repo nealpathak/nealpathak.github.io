@@ -138,7 +138,13 @@ export function traced(figure, kind, opts = {}) {
   const shown = (trace.rows || []).length;
   const counted = trace.rowCount || 0;
 
-  const panel = el('div', { class: 'trace__source', id: panelId, hidden: true, role: 'region' }, [
+  const panel = el('div', {
+    class: 'trace__source',
+    id: panelId,
+    hidden: true,
+    role: 'region',
+    'aria-labelledby': id,
+  }, [
     el('p', { class: 'small', style: 'margin-bottom:0.5rem' }, [
       el('strong', { text: 'How this was computed. ' }),
       trace.method || '—',
@@ -174,14 +180,6 @@ export function inlineTraced(figure, kind, host) {
 }
 
 /* ---------- Components ---------- */
-
-export function statTile(label, value, opts = {}) {
-  return el('div', { class: `stat ${opts.tone ? `stat--${opts.tone}` : ''}` }, [
-    el('div', { class: 'stat__label', text: label }),
-    el('div', { class: 'stat__value' }, [value]),
-    opts.note ? el('div', { class: 'stat__note', text: opts.note }) : null,
-  ]);
-}
 
 export function dataTable(columns, rows, opts = {}) {
   const head = el(

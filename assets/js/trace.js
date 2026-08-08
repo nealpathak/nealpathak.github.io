@@ -9,7 +9,7 @@
  * that only records successes is a marketing artifact.
  */
 
-import { el, fmt, badge, dataTable } from './render.js';
+import { el, fmt, badge } from './render.js';
 
 const LEVEL_TONE = { autonomous: 'auto', loop: 'loop', human: 'human' };
 const LEVEL_LABEL = {

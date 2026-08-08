@@ -9,7 +9,7 @@
  * whose every assertion can be audited in two clicks is a different object.
  */
 
-import { el, frag, fmt, traced, inlineTraced, dataTable, badge } from './render.js';
+import { el, fmt, traced, inlineTraced, dataTable, badge } from './render.js';
 
 /** Wrap a value with its provenance so it can be rendered as a traced figure. */
 function t(value, method, rows = [], rowCount = null) {

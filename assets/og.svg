@@ -3,7 +3,7 @@
   <rect x="0" y="0" width="1200" height="10" fill="#1a5490"/>
   <text x="80" y="150" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#646b7a" letter-spacing="3">CLAIMS-TO-CAPITAL</text>
   <text x="80" y="270" font-family="Georgia,'Times New Roman',serif" font-size="76" font-weight="600" fill="#16181d">AI can run workflows.</text>
-  <text x="80" y="360" font-family="Georgia,'Times New Roman',serif" font-size="76" font-weight="600" fill="#16181d">It cannot run a business.</text>
+  <text x="80" y="360" font-family="Georgia,'Times New Roman',serif" font-size="76" font-weight="600" fill="#16181d">It can't run a business.</text>
   <rect x="80" y="430" width="180" height="44" rx="5" fill="#e8f2ec" stroke="#1f6b45"/>
   <text x="102" y="459" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="600" fill="#1f6b45">AUTONOMOUS</text>
   <rect x="280" y="430" width="290" height="44" rx="5" fill="#f7f0e2" stroke="#8a5a12"/>

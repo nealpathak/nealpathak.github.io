@@ -189,8 +189,6 @@
   margin: var(--space-lg) 0;
 }
 
-.assumptions__head h4 { font-size: var(--text-md); margin-bottom: var(--space-3xs); }
-
 .assumptions__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -743,7 +741,7 @@ tr[data-assumption='true'] {
   .site-foot,
   .assumptions { display: none; }
 
-  .stage:not(#stage-4) { display: none; }
+  .stage, .controls, #how { display: none; }
 
   body { background: #fff; }
 

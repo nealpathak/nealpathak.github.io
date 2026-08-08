@@ -604,7 +604,12 @@ function decisions(p, recon) {
 
   items.push({
     ask: 'Note the tail factor as a judgment input',
-    detail: `The method derives every age-to-age factor from the program's own triangle. The tail beyond 42 months cannot be fitted from ${p.years.length} policy years and is set at ${fmt.factor(p.factors.tailFactor)} by judgment. At a tail of 1.000 the ${p.currentYear} projection falls; at a heavier tail it rises. The board should be satisfied with that assumption specifically, because it moves every year on the book.`,
+    detail:
+      `Every age-to-age factor is derived from the program's own triangle. The tail beyond 42 months cannot be fitted from ${p.years.length} policy years, so it is set at ${fmt.factor(p.factors.tailFactor)} by judgment. ` +
+      (p.factors.tailFactor <= 1.0005
+        ? 'At 1.000 it assumes development is complete at the oldest observed age. The reporting pattern says it is not, so this is the least conservative setting available. '
+        : 'A lighter tail lowers every projection on this page and a heavier one raises them. ') +
+      'The board should sign off on this number specifically, because it moves all four policy years at once.',
     tone: 'human',
   });
 

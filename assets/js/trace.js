@@ -31,8 +31,6 @@ export function buildTrace(recon, p, config) {
   const temporal = [...byDefect('report-before-occurrence'), ...byDefect('null-reserve-date')];
   const limits = byDefect('paid-over-limit');
 
-  const entriesBefore = 14;
-
   const entries = [
     {
       stage: 'Intake',
@@ -161,7 +159,7 @@ export function buildTrace(recon, p, config) {
       stage: 'Reporting',
       level: 'human',
       title: 'Board decision',
-      assertion: `${config.memo.sections.length} sections, ${fmt.int(entriesBefore)} logged steps and a full row-level derivation arrive with the memo. What does not arrive is a recommendation the system has already acted on — every figure above is still reversible at this point, and that is the property that makes the pack worth reading rather than worth signing.`,
+      assertion: `The memo, the exception register and a row-level derivation for every load-bearing figure arrive together. What does not arrive is a decision already taken. Every figure above is still open to challenge, and nothing has been executed on the strength of it.`,
       metrics: [['Status', 'For the board'], ['Reversible', 'Yes — nothing has been executed']],
       outcome: 'human',
     },

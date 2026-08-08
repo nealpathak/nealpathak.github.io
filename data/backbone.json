@@ -76,6 +76,7 @@
         {
           "label": "Erosion and development computation",
           "level": "autonomous",
+          "worked": true,
           "does": "Tracks paid and incurred against the per-occurrence retention and the annual aggregate, and builds the development triangle.",
           "why": "Arithmetic on reconciled data. The only failure mode is bad input, which is why intake carries the exception gate."
         },
@@ -88,6 +89,7 @@
         {
           "label": "IBNR and ultimate projection",
           "level": "autonomous",
+          "worked": true,
           "does": "Applies chain-ladder factors derived from the program's own triangle to project each policy year to ultimate.",
           "why": "The method is standard and the factors are derived, not asserted. Judgment enters only through the tail factor, which is exposed as an explicit input rather than buried."
         }
@@ -117,9 +119,9 @@
       "operations": [
         {
           "label": "Invoice review against billing guidelines",
-          "level": "autonomous",
-          "does": "Checks counsel invoices line by line against the billing guidelines — block billing, staffing ratios, rate changes, duplicate entries, non-billable tasks.",
-          "why": "The guidelines are written rules and the invoice is structured data. Disputed lines route to a human; the other ninety percent do not need one."
+          "level": "loop",
+          "does": "Checks counsel invoices line by line against the billing guidelines — block billing, staffing ratios, rate changes, duplicate entries, non-billable tasks — and proposes the adjustment.",
+          "why": "Flagging a line against a written rule is mechanical. Short-paying a firm is not: it is a contract position and a relationship decision, and a system that takes it unattended will eventually take it wrong against counsel you need. The review runs on every line; the deduction waits for a person."
         },
         {
           "label": "Counsel assignment and strategy",
@@ -136,6 +138,7 @@
         {
           "label": "Board memo drafting",
           "level": "loop",
+          "worked": true,
           "does": "Assembles the quarterly capacity memo — position, movement, projection, exceptions — with every figure linked to the rows that produced it.",
           "why": "The assembly is mechanical and the narrative is templated from computed values. A human owns it before it goes out, and traceability is what makes that review possible in an hour instead of a week.",
           "emphasis": true

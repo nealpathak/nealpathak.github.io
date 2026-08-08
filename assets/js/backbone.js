@@ -28,16 +28,31 @@ function renderStages(stages, levels) {
         el('span', { class: 'bstage__label', text: stage.label }),
       ]),
       ...stage.operations.map((op) =>
-        el('div', { class: 'bop', 'data-emphasis': op.emphasis ? 'true' : null }, [
-          el('div', {}, [
-            el('p', { class: 'bop__label', text: op.label }),
-            el('p', { class: 'bop__does', text: op.does }),
-            el('p', { class: 'bop__why', text: op.why }),
-          ]),
-          el('div', {}, [
-            el('span', { class: `badge badge--${TONE[op.level]}`, text: labelOf[op.level] }),
-          ]),
-        ])
+        el(
+          'div',
+          {
+            class: 'bop',
+            'data-emphasis': op.emphasis ? 'true' : null,
+            'data-worked': op.worked ? 'true' : null,
+          },
+          [
+            el('div', {}, [
+              el('p', { class: 'bop__label' }, [
+                op.label,
+                // The map claims one node is built. Saying which one is the
+                // difference between a diagram and a demonstration.
+                op.worked
+                  ? el('a', { class: 'bop__worked', href: 'program/' }, ['Built →'])
+                  : null,
+              ]),
+              el('p', { class: 'bop__does', text: op.does }),
+              el('p', { class: 'bop__why', text: op.why }),
+            ]),
+            el('div', {}, [
+              el('span', { class: `badge badge--${TONE[op.level]}`, text: labelOf[op.level] }),
+            ]),
+          ]
+        )
       ),
     ])
   );

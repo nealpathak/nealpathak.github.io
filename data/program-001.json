@@ -1,0 +1,224 @@
+{
+  "meta": {
+    "id": "program-001",
+    "title": "Meridian Assurance Ltd.",
+    "subtitle": "Single-parent captive — professional and general liability",
+    "valuationDate": "2026-06-30",
+    "reportingPeriod": "Q2 2026",
+    "seed": 20260630,
+    "synthetic": true,
+    "syntheticNote": "Every entity, claim, and figure on this page is generated from the seed above. Nothing derives from any real book of business.",
+    "$comment": "Parameters and planted anomalies only. The ~1,900-claim population is synthesized deterministically at load time by assets/js/generate.js, which keeps this file reviewable and keeps the interesting rows explicit."
+  },
+
+  "program": {
+    "captive": "Meridian Assurance Ltd.",
+    "domicile": "Vermont",
+    "structure": "Single-parent captive",
+    "parent": "Meridian Health Services Group",
+    "coverages": [
+      { "code": "PL", "label": "Professional Liability", "basis": "Claims-made" },
+      { "code": "GL", "label": "General Liability", "basis": "Occurrence" }
+    ],
+    "retentionPerOccurrence": 500000,
+    "annualAggregate": 7500000,
+    "excessAttachment": 7500000,
+    "fundedSurplus": 11800000,
+    "currentPolicyYear": 2026,
+    "policyYears": [2023, 2024, 2025, 2026]
+  },
+
+  "schema": {
+    "canonicalFields": [
+      "claimNo", "policyYear", "insuredEntity", "coverageCode", "occurrenceDate",
+      "reportDate", "status", "paidIndemnity", "paidExpense", "caseReserve"
+    ],
+    "coverageCodes": ["PL", "GL"],
+    "statuses": ["OPEN", "CLOSED", "REOPENED"],
+    "entities": [
+      { "canonical": "Calder Diagnostics LLC", "variants": ["Calder Diagnostics, L.L.C.", "CALDER DIAGNOSTICS"], "weight": 0.19 },
+      { "canonical": "Harbor Point Imaging", "variants": [], "weight": 0.16 },
+      { "canonical": "Westlake Therapy Group", "variants": [], "weight": 0.14 },
+      { "canonical": "Ridgemont Surgical Partners", "variants": [], "weight": 0.13 },
+      { "canonical": "Ansel Occupational Health", "variants": [], "weight": 0.12 },
+      { "canonical": "Trellis Home Care Services", "variants": [], "weight": 0.11 },
+      { "canonical": "Bayard Laboratory Services", "variants": [], "weight": 0.09 },
+      { "canonical": "Quintana Rehabilitation", "variants": [], "weight": 0.06 }
+    ],
+    "sourceSystems": [
+      { "id": "TPA-LOSSRUN", "label": "TPA loss run (monthly extract)", "share": 0.68 },
+      { "id": "INTERNAL-REGISTER", "label": "Internal claims register", "share": 0.32 }
+    ]
+  },
+
+  "generation": {
+    "severity": { "logMean": 8.55, "logSigma": 1.85, "cap": 500000 },
+    "coverageMix": { "PL": 0.71, "GL": 0.29 },
+    "reportLagMonths": { "median": 3.5, "sigma": 0.85, "max": 30 },
+    "developmentPattern": [
+      { "ageMonths": 6, "reportedFraction": 0.55 },
+      { "ageMonths": 12, "reportedFraction": 0.72 },
+      { "ageMonths": 18, "reportedFraction": 0.84 },
+      { "ageMonths": 24, "reportedFraction": 0.91 },
+      { "ageMonths": 30, "reportedFraction": 0.955 },
+      { "ageMonths": 36, "reportedFraction": 0.98 },
+      { "ageMonths": 42, "reportedFraction": 1.0 }
+    ],
+    "developmentNoise": 0.06,
+    "policyYears": [
+      { "year": 2023, "inception": "2023-01-01", "claimCount": 520, "trueUltimate": 5100000, "closedShare": 0.94 },
+      { "year": 2024, "inception": "2024-01-01", "claimCount": 545, "trueUltimate": 5720000, "closedShare": 0.86 },
+      { "year": 2025, "inception": "2025-01-01", "claimCount": 578, "trueUltimate": 6280000, "closedShare": 0.68 },
+      { "year": 2026, "inception": "2026-01-01", "claimCount": 265, "trueUltimate": 6950000, "closedShare": 0.31 }
+    ]
+  },
+
+  "assumptions": [
+    {
+      "id": "tailFactor",
+      "label": "Tail factor beyond 42 months",
+      "value": 1.035,
+      "min": 1.0,
+      "max": 1.15,
+      "step": 0.005,
+      "format": "factor",
+      "basis": "illustrative",
+      "note": "Applied beyond the oldest observed development age. No credible tail can be fitted from four policy years — this is a judgment input, not a derived one."
+    },
+    {
+      "id": "severityTrend",
+      "label": "Annual severity trend",
+      "value": 0.065,
+      "min": 0,
+      "max": 0.2,
+      "step": 0.005,
+      "format": "percent",
+      "basis": "illustrative",
+      "note": "Applied to on-level prior years for comparability. Set to zero to see the untrended comparison."
+    },
+    {
+      "id": "annualAggregate",
+      "label": "Annual aggregate (renewal)",
+      "value": 7500000,
+      "min": 5000000,
+      "max": 12000000,
+      "step": 250000,
+      "format": "currency",
+      "basis": "structural",
+      "note": "The decision in front of the board. Move it to see the effect on projected headroom at expiry."
+    },
+    {
+      "id": "capitalMargin",
+      "label": "Target capital margin over projected ultimate",
+      "value": 0.2,
+      "min": 0,
+      "max": 0.6,
+      "step": 0.025,
+      "format": "percent",
+      "basis": "structural",
+      "note": "Surplus held above projected ultimate net liabilities."
+    }
+  ],
+
+  "method": {
+    "reserving": {
+      "name": "Incurred chain ladder",
+      "description": "Age-to-age factors are computed from this program's own incurred development triangle, then applied to project each policy year to ultimate. A judgment tail factor is applied beyond the oldest observed age.",
+      "citation": "Standard actuarial reserving method. See Casualty Actuarial Society, 'Estimating Unpaid Claims Using Basic Techniques' (Friedland), Ch. 7.",
+      "citationUrl": "https://www.casact.org/sites/default/files/2021-02/Estimating_Unpaid_Claims_Using_Basic_Techniques_Third_Edition_Friedland.pdf",
+      "derivedFrom": "this program's own triangle"
+    },
+    "note": "Development factors are derived from the synthetic program's own data, not imported from an external benchmark. Nothing on this page cites an industry figure it cannot show the derivation for."
+  },
+
+  "defects": [
+    {
+      "id": "dup-claimno",
+      "label": "Duplicate claim under variant identifiers",
+      "severity": "critical",
+      "detector": "identityResolution",
+      "description": "The same claim appears in both source systems under a transcribed claim number and a different spelling of the insured entity. Naive ingest treats it as two claims and counts the reserve twice.",
+      "affectsErosion": true,
+      "count": 3
+    },
+    {
+      "id": "null-reserve-date",
+      "label": "Reserve movement with no effective date",
+      "severity": "medium",
+      "detector": "temporalIntegrity",
+      "description": "A case reserve change carries no effective date, so it cannot be assigned to a development period. Excluded from the triangle until dated.",
+      "affectsErosion": false,
+      "count": 14
+    },
+    {
+      "id": "unmapped-coverage",
+      "label": "Coverage code outside the schema",
+      "severity": "low",
+      "detector": "schemaConformance",
+      "description": "Free-text coverage codes from the TPA extract that do not map to the program's canonical codes.",
+      "affectsErosion": false,
+      "count": 22
+    },
+    {
+      "id": "entity-variants",
+      "label": "Insured entity name variants",
+      "severity": "high",
+      "detector": "entityResolution",
+      "description": "One insured appears under three spellings across the two source systems, splitting its experience across three apparent entities and distorting per-entity loss ratios.",
+      "affectsErosion": false,
+      "count": 41
+    },
+    {
+      "id": "paid-over-limit",
+      "label": "Paid exceeding per-occurrence retention",
+      "severity": "critical",
+      "detector": "limitConformance",
+      "description": "Paid plus reserve exceeds the $500,000 per-occurrence retention. Either the excess layer was not applied on the extract, or the claim is genuinely above retention and was not ceded.",
+      "affectsErosion": true,
+      "count": 4
+    },
+    {
+      "id": "report-before-occurrence",
+      "label": "Report date precedes occurrence date",
+      "severity": "medium",
+      "detector": "temporalIntegrity",
+      "description": "Impossible date ordering, usually a data-entry transposition. Distorts report-lag analysis and policy-year assignment on claims-made coverage.",
+      "affectsErosion": false,
+      "count": 9
+    }
+  ],
+
+  "caughtError": {
+    "defectId": "dup-claimno",
+    "claimNumbers": ["PL-2026-00188", "PL-2026-0188"],
+    "entitySpellings": ["Calder Diagnostics, L.L.C.", "CALDER DIAGNOSTICS"],
+    "caseReserve": 340000,
+    "policyYear": 2026,
+    "confidence": 0.72,
+    "narrative": {
+      "assertion": "Ingest read the internal register's PL-2026-0188 as a claim with no match in the TPA extract, and opened it as new. The claim number is one digit short of PL-2026-00188 and the insured is spelled differently in each system, so neither exact-match nor entity-match dedup caught it.",
+      "consequence": "The claim's full incurred — paid indemnity, paid expense, and case reserve — was counted twice in reported incurred for policy year 2026.",
+      "magnification": "Because the error sits at six months of development, the chain ladder multiplies it by the age-to-ultimate factor before it reaches the projection. The projection error is materially larger than the data error.",
+      "decisionImpact": "Uncorrected, projected consumption of the 2026 aggregate reads above 100% — a projected breach, and the board is asked to approve a capital call. Corrected, the year projects inside the aggregate with headroom intact.",
+      "resolution": "Flagged by identity resolution on normalized claim number and fuzzy entity match. Held for human confirmation rather than auto-merged: an auto-merge on a near-match claim number is exactly as dangerous as the duplicate.",
+      "confirmedBy": "Claims operations, confirmed against the TPA's own claim file"
+    }
+  },
+
+  "memo": {
+    "title": "Quarterly Capacity and Reserve Position",
+    "recipient": "Board of Directors, Meridian Assurance Ltd.",
+    "sections": [
+      { "id": "summary", "heading": "Executive summary" },
+      { "id": "overview", "heading": "Program overview" },
+      { "id": "activity", "heading": "Quarterly claim activity" },
+      { "id": "erosion", "heading": "Aggregate erosion and run-rate to expiry" },
+      { "id": "reserves", "heading": "Reserve development and IBNR" },
+      { "id": "layers", "heading": "Layer analysis" },
+      { "id": "capital", "heading": "Capital adequacy and capacity headroom" },
+      { "id": "materiality", "heading": "Materiality flags and watch list" },
+      { "id": "dataQuality", "heading": "Data quality and reconciliation status" },
+      { "id": "decisions", "heading": "Decisions requested" }
+    ]
+  }
+}

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claims-to-capital — where AI runs the work, and where it does not</title>
+<meta name="description" content="An operating design for a captive insurance program: which steps run autonomously, which keep a human in the loop, and which stay human. One node is built and running on synthetic data.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Claims-to-capital — where AI runs the work, and where it does not">
+<meta property="og:description" content="An operating design for a captive insurance program, with the line between autonomous and human drawn explicitly at every step.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a5490'/%3E%3Cpath d='M7 22V10h3.4l3.1 7.6L16.6 10H20v12h-2.6v-7.7L14.6 22h-2.2l-2.8-7.7V22z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/components.css">
+</head>
+<body>
+
+<div class="disclosure">
+  <div class="disclosure__inner">
+    <strong>Demonstration environment.</strong>
+    <span>Deterministic synthetic program. No live model calls, no backend, nothing leaves your browser.</span>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="masthead__mark" href="./">Claims-to-capital</a>
+    <nav class="masthead__nav" aria-label="Primary">
+      <a href="#thesis" aria-current="page">The line</a>
+      <a href="#backbone">The backbone</a>
+      <a href="program/">Worked example</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <section class="section" id="thesis">
+    <p class="eyebrow">Operating design for regulated work</p>
+    <h1>AI can run workflows.<br>It cannot run a business.</h1>
+    <p class="lede">
+      Certain workflows run without a human. Processes run with one in the loop.
+      Businesses do not run themselves, and a board being told otherwise is being sold something.
+    </p>
+    <p>
+      So the useful question is not whether the technology works. It is <em>where the line sits</em> —
+      which steps can be handed over, which need a person to confirm before anything moves, and which
+      should never leave human hands regardless of what the tooling can do. That question has an answer,
+      and the answer can be written down, argued with, and tested.
+    </p>
+    <p>
+      What follows is one operating design for a captive insurance program, with the line drawn
+      explicitly at every step. One node of it is built and running below.
+    </p>
+  </section>
+
+  <section class="section" id="levels">
+    <h2>Three levels, and what earns each one</h2>
+    <p>
+      The distinction that matters in insurance and legal work is not how capable a system is.
+      It is what happens when it is wrong — and whether the answer is defensible to a regulator,
+      a court, or a board.
+    </p>
+    <div class="levels" id="levels-out"></div>
+    <p class="small muted">
+      A step earns autonomy by being mechanical, checkable, and cheap to re-run — not by being
+      easy. Some of the hardest computation on this page runs unattended. Some of the simplest
+      judgment does not.
+    </p>
+  </section>
+
+  <section class="section" id="backbone">
+    <h2>The claims-to-capital backbone</h2>
+    <p>
+      Six stages, from a claim arriving to a board approving the capital position behind it.
+      Every operation is marked. The claim being made here is falsifiable: move any of these
+      markers and you are disagreeing with something specific.
+    </p>
+    <div class="backbone" id="backbone-out">
+      <p class="muted" id="boot-status">Loading the operating design…</p>
+    </div>
+  </section>
+
+  <section class="section" id="why">
+    <h2>Why traceability is the whole thing</h2>
+    <p>
+      In this industry the objection is never <em>can it do the work</em>. It is
+      <em>what happens when it is wrong, and can I defend it</em>. A figure a system produces
+      is worth nothing to a board that cannot see what produced it.
+    </p>
+    <p>
+      So in the worked example every number links to the rows behind it, every automated
+      resolution is logged rather than applied silently, and the governance panel records what the
+      system asserted, how confident it was, and who had to agree. Including one place where it was
+      wrong, and what caught it.
+    </p>
+    <p>
+      That last part is deliberate. A pipeline that only shows its successes is not a pipeline
+      anyone has actually run.
+    </p>
+    <p style="margin-top:2rem">
+      <a class="btn btn--primary" href="program/" style="text-decoration:none;display:inline-block">
+        Open the worked example →
+      </a>
+    </p>
+    <p class="small muted">
+      Aggregate erosion, reserve development, and a quarterly board capacity memo that assembles
+      itself — on a synthetic 1,900-claim professional liability program.
+    </p>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="page">
+    <p class="small muted" style="max-width:70ch">
+      Static site, no build step, no backend. Every figure in the worked example is computed in the
+      browser from a seeded synthetic program; nothing derives from any real book of business, and
+      no data is transmitted anywhere.
+    </p>
+  </div>
+</footer>
+
+<script type="module" src="assets/js/backbone.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+{
+  "meta": {
+    "title": "Claims-to-capital operating backbone",
+    "note": "Every operation is marked at one of three levels. The claim being made is about where the line sits, not that the line can be removed."
+  },
+
+  "levels": [
+    {
+      "id": "autonomous",
+      "label": "Autonomous",
+      "badge": "badge--auto",
+      "definition": "Runs without a human in the path. Deterministic, verifiable, and cheap to re-run. A human audits the output, but nothing waits on one."
+    },
+    {
+      "id": "loop",
+      "label": "Human-in-the-loop",
+      "badge": "badge--loop",
+      "definition": "The system does the work and proposes a result. A human confirms, corrects, or rejects before it moves downstream. The work is drafted, not decided."
+    },
+    {
+      "id": "human",
+      "label": "Human",
+      "badge": "badge--human",
+      "definition": "Stays with a person. The system may assemble the record and surface the considerations, but the judgment and the accountability do not move."
+    }
+  ],
+
+  "stages": [
+    {
+      "id": "intake",
+      "label": "Intake",
+      "operations": [
+        {
+          "label": "Ingest and schema normalization",
+          "level": "autonomous",
+          "does": "Reads loss runs and register extracts in whatever shape they arrive, maps them onto the program's canonical schema, and normalizes dates, statuses, and coverage codes.",
+          "why": "Purely mechanical and fully checkable. The mapping is deterministic, and every transformation is reversible to the source row."
+        },
+        {
+          "label": "Identity and entity resolution",
+          "level": "loop",
+          "does": "Detects the same claim arriving under different identifiers, and the same insured arriving under different spellings. Proposes merges.",
+          "why": "Auto-merging a near-match claim number is exactly as dangerous as leaving the duplicate. High recall, no autonomy: every proposed merge is held for confirmation.",
+          "emphasis": true
+        },
+        {
+          "label": "Policy year and coverage assignment",
+          "level": "autonomous",
+          "does": "Assigns each claim to a policy year and coverage part from occurrence and report dates against the coverage basis.",
+          "why": "Rule-driven from the policy terms. Claims-made and occurrence bases are unambiguous once the dates are clean — and the dates were cleaned upstream."
+        }
+      ]
+    },
+    {
+      "id": "coverage",
+      "label": "Coverage",
+      "operations": [
+        {
+          "label": "Coverage issue identification",
+          "level": "loop",
+          "does": "Reads the claim file against the policy form and surfaces the provisions in play, the facts that bear on them, and the open questions.",
+          "why": "The retrieval and assembly are reliable. The weighing is not. It produces the memo a coverage analyst would have spent three hours assembling, and stops there."
+        },
+        {
+          "label": "Coverage determination",
+          "level": "human",
+          "does": "Decides whether the claim is covered, in part or at all, and on what terms.",
+          "why": "A coverage position is a legal judgment the carrier will be held to. It does not move, and no efficiency argument should move it."
+        }
+      ]
+    },
+    {
+      "id": "reserve",
+      "label": "Reserve",
+      "operations": [
+        {
+          "label": "Erosion and development computation",
+          "level": "autonomous",
+          "does": "Tracks paid and incurred against the per-occurrence retention and the annual aggregate, and builds the development triangle.",
+          "why": "Arithmetic on reconciled data. The only failure mode is bad input, which is why intake carries the exception gate."
+        },
+        {
+          "label": "Case reserve setting",
+          "level": "loop",
+          "does": "Proposes a case reserve from claim characteristics and the development pattern of comparable claims.",
+          "why": "The adjuster knows things the record does not — venue, counsel, how the plaintiff presents. The proposal anchors, the adjuster decides."
+        },
+        {
+          "label": "IBNR and ultimate projection",
+          "level": "autonomous",
+          "does": "Applies chain-ladder factors derived from the program's own triangle to project each policy year to ultimate.",
+          "why": "The method is standard and the factors are derived, not asserted. Judgment enters only through the tail factor, which is exposed as an explicit input rather than buried."
+        }
+      ]
+    },
+    {
+      "id": "funding",
+      "label": "Funding",
+      "operations": [
+        {
+          "label": "Funding requirement calculation",
+          "level": "autonomous",
+          "does": "Converts projected ultimate liabilities and the target capital margin into a required funding position by quarter.",
+          "why": "Deterministic given the projection and the margin policy. Both inputs are visible and adjustable."
+        },
+        {
+          "label": "Funding trigger and capital call",
+          "level": "human",
+          "does": "Decides whether to call capital, adjust the funding schedule, or restructure at renewal.",
+          "why": "It moves money and it involves the parent. The system's job is to make the number defensible early enough that the decision is not made under time pressure."
+        }
+      ]
+    },
+    {
+      "id": "vendor",
+      "label": "Vendor management",
+      "operations": [
+        {
+          "label": "Invoice review against billing guidelines",
+          "level": "autonomous",
+          "does": "Checks counsel invoices line by line against the billing guidelines — block billing, staffing ratios, rate changes, duplicate entries, non-billable tasks.",
+          "why": "The guidelines are written rules and the invoice is structured data. Disputed lines route to a human; the other ninety percent do not need one."
+        },
+        {
+          "label": "Counsel assignment and strategy",
+          "level": "human",
+          "does": "Selects counsel and sets litigation strategy and settlement authority.",
+          "why": "Relationship and judgment, informed by performance data the system can supply but should not act on."
+        }
+      ]
+    },
+    {
+      "id": "reporting",
+      "label": "Reporting",
+      "operations": [
+        {
+          "label": "Board memo drafting",
+          "level": "loop",
+          "does": "Assembles the quarterly capacity memo — position, movement, projection, exceptions — with every figure linked to the rows that produced it.",
+          "why": "The assembly is mechanical and the narrative is templated from computed values. A human owns it before it goes out, and traceability is what makes that review possible in an hour instead of a week.",
+          "emphasis": true
+        },
+        {
+          "label": "Board decision",
+          "level": "human",
+          "does": "Approves the renewal structure, the funding position, and the capacity plan.",
+          "why": "Always. The entire point of the traceability is to make this decision better informed, not to make it somewhere else."
+        }
+      ]
+    }
+  ]
+}

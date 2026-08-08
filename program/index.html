@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aggregate erosion to board memo — a worked example</title>
+<meta name="description" content="Messy loss runs reconciled with exceptions flagged, developed to ultimate by chain ladder, and drafted into a quarterly board capacity memo where every figure links to its source row.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Aggregate erosion to board memo — a worked example">
+<meta property="og:description" content="One node of a claims-to-capital operating design, built and running on a synthetic 1,900-claim captive program.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a5490'/%3E%3Cpath d='M7 22V10h3.4l3.1 7.6L16.6 10H20v12h-2.6v-7.7L14.6 22h-2.2l-2.8-7.7V22z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/base.css">
+<link rel="stylesheet" href="../assets/css/components.css">
+</head>
+<body>
+
+<div class="disclosure">
+  <div class="disclosure__inner">
+    <strong>Demonstration environment.</strong>
+    <span>Deterministic synthetic program — no live model calls, no backend, nothing leaves your browser. Every figure is computed here, in this tab, from a seed in the repository.</span>
+  </div>
+</div>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <a class="masthead__mark" href="../">Claims-to-capital</a>
+    <nav class="masthead__nav" aria-label="Primary">
+      <a href="../#thesis">The line</a>
+      <a href="../#backbone">The backbone</a>
+      <a href="./" aria-current="page">Worked example</a>
+    </nav>
+  </div>
+</header>
+
+<nav class="stepper" aria-label="Pipeline stages">
+  <div class="stepper__inner">
+    <a href="#stage-1">01 · Ingest</a>
+    <a href="#stage-2">02 · Reconcile</a>
+    <a href="#stage-3">03 · Analyze</a>
+    <a href="#stage-4">04 · Draft</a>
+    <a href="#stage-5">05 · Govern</a>
+  </div>
+</nav>
+
+<main class="page">
+
+  <section class="section">
+    <p class="eyebrow">Reserve → Reporting · one node, opened up</p>
+    <h1>Aggregate erosion to board memo</h1>
+    <p class="lede">
+      A synthetic professional liability captive: roughly 1,900 claims across four policy years,
+      arriving from two systems that agree on almost nothing. What follows is every step from
+      that feed to the memo a board reads — and every point where a human has to agree before
+      anything moves.
+    </p>
+    <p class="small muted" style="max-width:70ch">
+      The program, its insureds, and every figure are generated from a seed in this repository.
+      Nothing here derives from any real book of business — not anonymized, not modelled on one.
+      A demonstration that may be shown to one insured cannot contain another's data.
+    </p>
+    <p id="boot-status" class="small">Running the pipeline…</p>
+  </section>
+
+  <section class="stage" id="stage-1">
+    <div class="stage__head">
+      <span class="stage__index">01</span>
+      <h2>Ingest</h2>
+      <span class="badge badge--auto">Autonomous</span>
+    </div>
+    <div id="stage-ingest"></div>
+  </section>
+
+  <section class="stage" id="stage-2">
+    <div class="stage__head">
+      <span class="stage__index">02</span>
+      <h2>Reconcile</h2>
+      <span class="badge badge--loop">Human-in-the-loop</span>
+    </div>
+    <div id="stage-reconcile"></div>
+  </section>
+
+  <section class="stage" id="stage-3">
+    <div class="stage__head">
+      <span class="stage__index">03</span>
+      <h2>Analyze</h2>
+      <span class="badge badge--auto">Autonomous</span>
+    </div>
+    <div id="assumptions"></div>
+    <div id="stage-analyze-out"></div>
+  </section>
+
+  <section class="stage" id="stage-4">
+    <div class="stage__head">
+      <span class="stage__index">04</span>
+      <h2>Draft</h2>
+      <span class="badge badge--loop">Human-in-the-loop</span>
+    </div>
+    <p class="small muted" style="max-width:74ch">
+      The deliverable. Assembled from the computed values above — change an assumption and the
+      sentences change, not only the tables. Every figure in
+      <span class="trace" style="cursor:default">this style</span> opens the method that produced
+      it and the rows it came from.
+    </p>
+    <div id="stage-memo"></div>
+  </section>
+
+  <section class="stage" id="stage-5">
+    <div class="stage__head">
+      <span class="stage__index">05</span>
+      <h2>Govern</h2>
+      <span class="badge badge--human">Human</span>
+    </div>
+    <p class="small muted" style="max-width:74ch">
+      What the system did, what it asserted, how confident it was, and who had to agree.
+      Including the step where it reached the wrong conclusion.
+    </p>
+    <div id="stage-govern"></div>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="page">
+    <p class="small muted" style="max-width:70ch">
+      No build step, no backend, no external requests. The chain-ladder method is standard actuarial
+      practice; the development factors are derived from this program's own triangle rather than
+      imported from any benchmark. The tail factor is a judgment input and is exposed as a control.
+    </p>
+    <p class="small"><a href="../">← Back to the operating design</a></p>
+  </div>
+</footer>
+
+<script type="module" src="../assets/js/pipeline.js"></script>
+</body>
+</html>

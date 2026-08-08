@@ -220,13 +220,23 @@ function erosion(p) {
   return section('erosion', 'Aggregate erosion and run-rate to expiry', [
     dataTable(cols, rows),
     node,
-    para([
-      `As a cross-check on the projection, reported incurred for ${p.currentYear} annualised on a straight run-rate is `,
-      (h) => inlineTraced(t(p.annualisedReported, `Reported incurred of ${fmt.money(p.current.latest.value)} at ${p.current.age} months, annualised on a straight run-rate. Deliberately crude: it ignores development entirely.`), 'money', h),
-      `. That figure reads low against the projected ultimate of ${fmt.money(p.current.ultimate.value)}, and the gap is the point — roughly `,
-      `${fmt.pct(1 - 1 / p.current.cdf, 0)} of this year's eventual cost has not yet been reported. `,
-      'A run-rate view of a young policy year will always understate it.',
-    ], 'memo__para--note'),
+    (() => {
+      const cur = p.current;
+      const naiveMultiple = 12 / cur.age;
+      const gap = p.annualisedReported - cur.ultimate.value;
+      const direction = gap > 0 ? 'above' : 'below';
+      const relative = Math.abs(gap) / cur.ultimate.value;
+
+      return para([
+        `As a cross-check, reported incurred for ${p.currentYear} annualised on a straight run-rate is `,
+        (h) => inlineTraced(t(p.annualisedReported, `Reported incurred of ${fmt.money(cur.latest.value)} at ${cur.age} months, scaled to twelve months on a straight run-rate. Deliberately crude — it ignores development entirely.`), 'money', h),
+        `, ${fmt.pct(relative, 1)} ${direction} the chain-ladder projection of ${fmt.money(cur.ultimate.value)}. `,
+        `Treat that agreement as arithmetic coincidence rather than corroboration: annualising a ${cur.age}-month figure multiplies it by ${naiveMultiple.toFixed(2)}, and the development factor at this age happens to be ${fmt.factor(cur.cdf)}. `,
+        'The two answer different questions. The run-rate assumes claims keep arriving and developing at the first-half rate; the triangle says roughly ',
+        `${fmt.pct(1 - 1 / cur.cdf, 0)} of this year's eventual cost has not been reported yet, and that the remainder arrives on a curve rather than a line. `,
+        'At any other valuation age the two diverge sharply, which is why the run-rate is a sanity check and not a method.',
+      ], 'memo__para--note');
+    })(),
   ]);
 }
 

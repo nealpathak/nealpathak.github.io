@@ -89,14 +89,24 @@ export function buildTriangle(ctx) {
     const atAge = patternAt(pattern, age);
 
     const cells = {};
-    for (const a of AGES) {
-      if (a > age) break;
+    const ladder = AGES.filter((a) => a <= age);
+    for (const a of ladder) {
       if (a === age) {
         cells[a] = triangleLatest;
       } else {
         const base = triangleLatest * (patternAt(pattern, a) / atAge);
         cells[a] = base * (1 + noiseScale * 0.5 * cellNoise(year, a));
       }
+    }
+
+    /* Incurred development is monotonic on this book — a cell cannot be larger
+     * than the one that follows it. Unconstrained noise can invert a pair and
+     * produce an age-to-age factor below 1.0, or a later step larger than an
+     * earlier one, which an actuary reads as adverse development and asks
+     * which claims caused it. There are no such claims: it would be an
+     * artifact. Walk back down the ladder and hold the ordering. */
+    for (let i = ladder.length - 2; i >= 0; i -= 1) {
+      cells[ladder[i]] = Math.min(cells[ladder[i]], cells[ladder[i + 1]]);
     }
 
     triangle.push({
@@ -106,6 +116,11 @@ export function buildTriangle(ctx) {
       rows,
       claimCount: rows.length,
       excludedFromTriangle: rows.length - triangleRows.length,
+      // Incurred on claims held out of the triangle. It still belongs in the
+      // year's total, so it is added back after development rather than being
+      // silently developed by factors it never contributed to.
+      excludedIncurred: latest - triangleLatest,
+      triangleLatest,
       latest,
       paid: sum(rows, (r) => r.paidIndemnity + r.paidExpense),
       caseReserve: sum(rows, (r) => r.caseReserve),
@@ -156,10 +171,17 @@ const BANDS = [
   { id: 'b2', label: '$50k – $100k', min: 50000, max: 100000 },
   { id: 'b3', label: '$100k – $250k', min: 100000, max: 250000 },
   { id: 'b4', label: '$250k – $500k', min: 250000, max: 500000 },
-  { id: 'b5', label: 'At retention', min: 500000, max: Infinity },
+  { id: 'b5', label: 'At or above retention', min: 500000, max: Infinity },
 ];
 
-export function layerAnalysis(triangle) {
+/** Size-of-loss distribution: every claim assigned wholly to one band by its
+ *  total incurred.
+ *
+ *  Deliberately NOT called a layer analysis. A layer analysis slices each claim
+ *  across layers — a $500k claim contributes to every band beneath it — and
+ *  produces entirely different numbers. Labelling this one as the other is the
+ *  kind of thing an actuary corrects out loud. */
+export function sizeOfLossDistribution(triangle) {
   return BANDS.map((band) => {
     const byYear = {};
     let totalIncurred = 0;
@@ -206,7 +228,13 @@ export function project(ctx) {
 
   const years = triangle.map((t) => {
     const cdf = factors.cdf(t.age);
-    const ultimate = t.latest * cdf;
+
+    /* Develop only what the triangle actually contains, then add back the
+     * claims held out of it. Developing the full reported figure by factors
+     * derived from a smaller base is the quiet kind of wrong: the two numbers
+     * differ by the excluded claims, and the memo would print one in the
+     * triangle and the other in the erosion table, two sections apart. */
+    const ultimate = t.triangleLatest * cdf + t.excludedIncurred;
     const ibnr = ultimate - t.latest;
 
     // The same projection run on the unreconciled feed, so the cost of skipping
@@ -214,7 +242,17 @@ export function project(ctx) {
     const naiveLatest = recon.naiveTotals[t.year] ?? t.latest;
     const naiveUltimate = naiveLatest * cdf;
 
-    const onLevel = ultimate * Math.pow(1 + trend, currentYear - t.year);
+    /* And the same projection if every held exception for this year resolves
+     * as proposed. The reported figure is the conservative reading; this is
+     * the other end of the range the board is being asked to close. */
+    const pending = recon.pendingByYear?.[t.year] || 0;
+    const resolvedLatest = t.latest + pending;
+    const resolvedUltimate = (t.triangleLatest + pending) * cdf + t.excludedIncurred;
+
+    /* Losses trended to current-year cost level, for comparability across
+     * policy years. This is trending, not on-levelling — on-level restates
+     * premium to current rate level and has nothing to do with losses. */
+    const trended = ultimate * Math.pow(1 + trend, currentYear - t.year);
 
     return {
       year: t.year,
@@ -235,21 +273,26 @@ export function project(ctx) {
         ...rowTrace(t.rows.filter((r) => r.caseReserve > 0)),
       }),
       ultimate: fig(ultimate, {
-        method: `Reconciled incurred of $${Math.round(t.latest).toLocaleString()} at ${t.age} months, developed to ultimate by a cumulative factor of ${cdf.toFixed(4)} (age-to-age factors from this program's own triangle, tail ${tailFactor.toFixed(3)})`,
+        method: `$${Math.round(t.triangleLatest).toLocaleString()} of triangle incurred at ${t.age} months developed by a cumulative factor of ${cdf.toFixed(4)} (age-to-age factors from this program's own triangle, tail ${tailFactor.toFixed(3)})${t.excludedIncurred > 0 ? `, plus $${Math.round(t.excludedIncurred).toLocaleString()} on claims held out of the triangle for undated reserve movements` : ''}`,
         ...rowTrace(t.rows),
       }),
       ibnr: fig(ibnr, {
-        method: `Projected ultimate less reconciled incurred at ${t.age} months`,
+        method: `Projected ultimate less reconciled incurred at ${t.age} months. Includes development on known claims as well as claims not yet reported.`,
         ...rowTrace(t.rows),
       }),
       naiveUltimate,
-      onLevel,
+      trended,
+      pending,
+      resolvedLatest,
+      resolvedUltimate,
+      resolvedPct: resolvedUltimate / aggregate,
       consumedPct: t.latest / aggregate,
       projectedPct: ultimate / aggregate,
       naiveProjectedPct: naiveUltimate / aggregate,
       headroom: aggregate - ultimate,
       breach: ultimate > aggregate,
       naiveBreach: naiveUltimate > aggregate,
+      resolvedBreach: resolvedUltimate > aggregate,
     };
   });
 
@@ -257,22 +300,32 @@ export function project(ctx) {
 
   /* --- Current-year run-rate cross-check ---
    * Deliberately shown next to the chain-ladder figure. It is the cruder
-   * method, it ignores development, and it will read low. Showing it is how a
-   * reader calibrates how much of the projection is development rather than
-   * experience. */
+   * method and it ignores development entirely. Which direction it misses in
+   * depends on the valuation age, so the memo computes that rather than
+   * asserting it. */
 
   const monthsElapsed = current.age;
   const annualisedReported = (current.latest.value / monthsElapsed) * 12;
 
   /* --- Capital --- */
 
-  const openLiability = sum(years, (y) => y.ultimate.value - y.paid.value);
+  /* Liability retained by the captive is capped at the annual aggregate — above
+   * it, the excess layer responds and the exposure is not the captive's to
+   * fund. Summing gross ultimate would charge the captive for losses it has
+   * bought protection against, and the error grows precisely when the
+   * aggregate is set low, which is the case the slider invites a reader to
+   * test. */
+  const openLiability = sum(years, (y) =>
+    Math.max(0, Math.min(y.ultimate.value, aggregate) - y.paid.value)
+  );
+  const cededAboveAggregate = sum(years, (y) => Math.max(0, y.ultimate.value - aggregate));
   const required = openLiability * (1 + margin);
   const funded = program.fundedSurplus;
 
   const capital = {
+    cededAboveAggregate,
     openLiability: fig(openLiability, {
-      method: 'Projected ultimate across all policy years, less paid to date',
+      method: `Projected ultimate across all policy years, capped at the ${aggregate.toLocaleString()} annual aggregate, less paid to date`,
       rowCount: sum(triangle, (t) => t.claimCount),
       total: openLiability,
       rows: years.map((y) => ({
@@ -306,7 +359,7 @@ export function project(ctx) {
   /* --- Erosion correction attributable to reconciliation --- */
 
   const heroException = recon.heroException;
-  const heroReported = heroException ? Math.abs(heroException.erosionImpact) : 0;
+  const heroReported = heroException ? Math.abs(heroException.appliedImpact) : 0;
 
   const correction = {
     // Everything reconciliation removed from the current year, from all causes.
@@ -381,7 +434,7 @@ export function project(ctx) {
     valuationDate: meta.valuationDate,
     currentYear,
     aggregate,
-    retention: program.retentionPerOccurrence,
+    retention: program.retentionPerClaim,
     assumptions,
     triangle,
     factors,
@@ -391,7 +444,7 @@ export function project(ctx) {
     capital,
     correction,
     quarter,
-    layers: layerAnalysis(triangle),
+    sizeOfLoss: sizeOfLossDistribution(triangle),
     watchList,
     materialityFloor,
     totals: {

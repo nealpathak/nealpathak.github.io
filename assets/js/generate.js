@@ -363,6 +363,29 @@ export function synthesize(config) {
   );
   const heroClaim = candidates[Math.floor(candidates.length / 3)];
 
+  /* The hero is given a specific claim number so the caught-error narrative can
+   * name it. That number has to be free.
+   *
+   * Reconciliation groups duplicates on a key that compares the sequence
+   * segment numerically, so PL-2026-00188 and PL-2026-0188 collapse together —
+   * which is the whole point. But it means any genuine claim already holding
+   * sequence 188 collapses in with them, gets merged away as a duplicate, and
+   * disappears from the book with no exception raised. A demonstration about
+   * data quality silently deleting a real claim is the worst possible bug to
+   * ship, so the number is vacated before it is assigned. */
+  const heroKey = (no) => {
+    const parts = String(no).toUpperCase().split('-');
+    return parts.length < 3 ? String(no) : [...parts.slice(0, -1), String(parseInt(parts[parts.length - 1], 10))].join('|');
+  };
+  const reserved = new Set(hero.claimNumbers.map(heroKey));
+  let nextSeq = Math.max(...claims.map((c) => c.seq)) + 1;
+  for (const c of claims) {
+    if (c === heroClaim || !reserved.has(heroKey(c.claimNo))) continue;
+    c.seq = nextSeq;
+    nextSeq += 1;
+    c.claimNo = `${c.coverageCode}-${c.policyYear}-${String(c.seq).padStart(5, '0')}`;
+  }
+
   const heroPrevIncurred = heroClaim.incurred;
   const heroIncurred = hero.caseReserve + 83000;
   heroClaim.claimNo = hero.claimNumbers[0];
@@ -391,8 +414,8 @@ export function synthesize(config) {
     .slice(0, overLimitCount);
 
   for (const c of atRetention) {
-    const delta = program.retentionPerOccurrence - c.incurred;
-    c.incurred = program.retentionPerOccurrence;
+    const delta = program.retentionPerClaim - c.incurred;
+    c.incurred = program.retentionPerClaim;
     const paid = Math.round(c.incurred * (c.status === 'CLOSED' ? 1 : 0.42));
     c.paidExpense = Math.round(paid * 0.26);
     c.paidIndemnity = paid - c.paidExpense;
@@ -455,7 +478,7 @@ export function synthesize(config) {
   claims
     .filter((c) => c.atRetention)
     .forEach((c, i) => {
-      const inflated = program.retentionPerOccurrence + 40000 + i * 15000;
+      const inflated = program.retentionPerClaim + 40000 + i * 15000;
       const reserve = inflated - c.paidIndemnity - c.paidExpense;
       mark(c, 'paid-over-limit', isTpa(c) ? { reserve } : { CaseReserve: reserve });
     });

@@ -64,9 +64,9 @@ function execSummary(p, recon) {
       (h) => inlineTraced(cur.ultimate, 'money', h),
       ' — ',
       (h) => inlineTraced(t(cur.projectedPct, `Projected ultimate of ${fmt.money(cur.ultimate.value)} against an aggregate of ${fmt.money(p.aggregate)}`, cur.ultimate.trace.rows, cur.ultimate.trace.rowCount), 'percent', h),
-      ' of the aggregate, leaving ',
-      (h) => inlineTraced(t(cur.headroom, `Annual aggregate less projected ultimate for policy year ${p.currentYear}`, cur.ultimate.trace.rows, cur.ultimate.trace.rowCount), 'money', h),
-      ' of headroom.',
+      cur.headroom >= 0 ? ' of the aggregate, leaving ' : ' of the aggregate, breaching it by ',
+      (h) => inlineTraced(t(Math.abs(cur.headroom), `Annual aggregate less projected ultimate for policy year ${p.currentYear}`, cur.ultimate.trace.rows, cur.ultimate.trace.rowCount), 'money', h),
+      cur.headroom >= 0 ? ' of headroom.' : '.',
     ]),
 
     para([
@@ -77,16 +77,43 @@ function execSummary(p, recon) {
     p.correction.exception
       ? para([
           'Reconciliation removed ',
-          (h) => inlineTraced(t(p.correction.reportedDelta, `Incurred removed from the ${p.currentYear} reported figure by reconciliation, across all causes — duplicates merged and over-limit rows capped at the retention`), 'money', h),
-          ' of overstated incurred from the reported figure. One duplicate accounted for ',
-          (h) => inlineTraced(t(p.correction.heroReported, `Full incurred on the duplicate row flagged by identity resolution: ${p.correction.exception.title}`), 'money', h),
-          ' of that, which the development factor would have carried into the projection as ',
+          (h) => inlineTraced(t(p.correction.reportedDelta, `Incurred removed from the ${p.currentYear} reported figure by reconciliation. Duplicate merges only — over-limit claims are carried gross pending confirmation of cession, not removed.`), 'money', h),
+          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
+            ? ' of double-counted incurred from the reported figure, all of it one duplicate — '
+            : ' of double-counted incurred from the reported figure. One duplicate accounted for ',
+          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
+            ? ''
+            : (h) => inlineTraced(t(p.correction.heroReported, `Full incurred on the duplicate row flagged by identity resolution: ${p.correction.exception.title}`), 'money', h),
+          Math.abs(p.correction.reportedDelta - p.correction.heroReported) < 1
+            ? 'which the development factor would have carried into the projection as '
+            : ' of that, which the development factor would have carried into the projection as ',
           (h) => inlineTraced(t(p.correction.heroProjected, `Duplicated incurred of ${fmt.money(p.correction.heroReported)} multiplied by the age-to-ultimate factor of ${fmt.factor(p.correction.magnification)} at ${p.current.age} months`), 'money', h),
           '. Uncorrected, the year would have been reported at ',
           (h) => inlineTraced(t(p.correction.naivePct, `Projected ultimate on the unreconciled feed against the annual aggregate`), 'percent', h),
           p.correction.flipsBreach
-            ? ' of aggregate — a projected breach, and a capital call the program does not need.'
+            ? ' of aggregate, against a reported position that sits inside it.'
             : ' of aggregate.',
+        ])
+      : null,
+
+    // The reported figure is the conservative end of a range, not a point. The
+    // board is being asked to close the other end.
+    p.current.pending
+      ? para([
+          'That reported position is the conservative reading. ',
+          `${fmt.int(recon.summary.heldNotApplied)} exceptions are held and have not been applied. `,
+          (() => {
+            const n = p.sizeOfLoss[p.sizeOfLoss.length - 1].byYear[p.currentYear].count;
+            if (!n) return 'None of them changes this year\'s incurred. ';
+            return `Among them ${fmt.int(n)} claim${n === 1 ? ' is' : 's are'} carried at full incurred because cession above the per-claim retention has not been confirmed. `;
+          })(),
+          'If every held exception resolves as proposed, ',
+          `${p.currentYear} projects `,
+          (h) => inlineTraced(t(p.current.resolvedUltimate, `Triangle incurred adjusted by the ${fmt.money(p.current.pending)} of held exceptions for ${p.currentYear}, developed at ${fmt.factor(p.current.cdf)}`), 'money', h),
+          ` instead — ${fmt.pct(p.current.resolvedPct, 1)} of aggregate. `,
+          p.current.breach && !p.current.resolvedBreach
+            ? 'The difference straddles the aggregate: confirming cession is what moves this year from a projected breach to headroom, and it is a phone call to the fronting carrier rather than a capital decision.'
+            : 'The gap between the two is the size of the question the board is being asked to close.',
         ])
       : null,
 
@@ -105,7 +132,15 @@ function execSummary(p, recon) {
       el('div', { class: `stat stat--${headroomTone}` }, [
         el('div', { class: 'stat__label', text: `Projected ${p.currentYear} consumption` }),
         el('div', { class: 'stat__value', text: fmt.pct(cur.projectedPct, 1) }),
-        el('div', { class: 'stat__note', text: `${fmt.money(cur.headroom)} headroom at expiry` }),
+        // Headroom is not a quantity that goes negative. Past the aggregate it
+        // is a breach, and printing "−$670,043 of headroom" reads as nobody
+        // having proofread the thing the board is being asked to act on.
+        el('div', {
+          class: 'stat__note',
+          text: cur.headroom >= 0
+            ? `${fmt.money(cur.headroom)} headroom at expiry`
+            : `Breaches the aggregate by ${fmt.money(-cur.headroom)}`,
+        }),
       ]),
       el('div', { class: 'stat' }, [
         el('div', { class: 'stat__label', text: 'Reported incurred to date' }),
@@ -119,7 +154,7 @@ function execSummary(p, recon) {
       ]),
       el('div', { class: `stat ${recon.summary.bySeverity.critical ? 'stat--warn' : ''}` }, [
         el('div', { class: 'stat__label', text: 'Exceptions held' }),
-        el('div', { class: 'stat__value', text: fmt.int(recon.summary.held) }),
+        el('div', { class: 'stat__value', text: fmt.int(recon.summary.heldNotApplied) }),
         el('div', { class: 'stat__note', text: `${recon.summary.bySeverity.critical} critical, of ${recon.summary.exceptionCount} raised` }),
       ]),
     ]),
@@ -134,7 +169,7 @@ function overview(p, config) {
     ['Structure', program.structure],
     ['Parent', program.parent],
     ['Coverages', program.coverages.map((c) => `${c.label} (${c.basis.toLowerCase()})`).join('; ')],
-    ['Per-occurrence retention', fmt.money(program.retentionPerOccurrence)],
+    ['Retention', `${fmt.money(program.retentionPerClaim)} per claim (PL) / per occurrence (GL)`],
     ['Annual aggregate', fmt.money(p.aggregate)],
     ['Policy years in force', program.policyYears.join(', ')],
     ['Valuation date', fmt.date(meta.valuationDate)],
@@ -282,7 +317,7 @@ function reserves(p) {
     { label: 'Paid', key: 'paid', num: true },
     { label: 'Case reserves', key: 'case', num: true },
     { label: 'Reported incurred', key: 'incurred', num: true },
-    { label: 'IBNR', key: 'ibnr', num: true },
+    { label: 'IBNR incl. development', key: 'ibnr', num: true },
     { label: 'Projected ultimate', key: 'ultimate', num: true },
   ];
   const ibnrRows = p.years.map((y) => ({
@@ -324,7 +359,7 @@ function layers(p) {
     { label: 'Total incurred', key: 'total', num: true },
   ];
 
-  const rows = p.layers.map((b) => {
+  const rows = p.sizeOfLoss.map((b) => {
     const row = { band: b.label, total: fmt.money(b.totalIncurred) };
     p.triangle.forEach((t2) => {
       const cell = b.byYear[t2.year];
@@ -335,16 +370,19 @@ function layers(p) {
     return row;
   });
 
-  const top = p.layers[p.layers.length - 1];
+  const top = p.sizeOfLoss[p.sizeOfLoss.length - 1];
   const topCur = top.byYear[p.currentYear];
 
-  return section('layers', 'Layer analysis', [
+  return section('layers', 'Size-of-loss distribution', [
     dataTable(cols, rows),
     el('p', { class: 'small muted memo__note' }, [
-      'Claim count and incurred in each severity band, by policy year. ',
-      topCur.count
-        ? `${fmt.int(topCur.count)} claim${topCur.count === 1 ? ' sits' : 's sit'} in ${p.currentYear} at the ${fmt.money(p.retention)} per-occurrence retention; each one is a limit-conformance exception awaiting confirmation of cession.`
-        : 'No claim in the current year has reached the per-occurrence retention.',
+      'Each claim is assigned wholly to one band by its total incurred. This is a size-of-loss distribution, not a layer analysis — a layer analysis would slice every claim across the bands beneath it and produce different numbers entirely. ',
+      (() => {
+        const all = top.totalCount;
+        const cur = topCur.count;
+        if (!all) return 'No claim on the book has reached the per-claim retention.';
+        return `${fmt.int(all)} claim${all === 1 ? '' : 's'} across the book ${all === 1 ? 'sits' : 'sit'} at the ${fmt.money(p.retention)} per-claim retention${cur ? `, ${fmt.int(cur)} of them in ${p.currentYear}` : ''}. Each is a limit-conformance exception carried at full incurred until cession is confirmed.`;
+      })(),
     ]),
   ]);
 }
@@ -431,9 +469,13 @@ function dataQuality(p, recon) {
   return section('dataQuality', 'Data quality and reconciliation status', [
     para([
       `${fmt.int(s.rawRows)} rows arrived across two source systems. Reconciliation raised `,
-      `${fmt.int(s.exceptionCount)} exceptions, resolved ${fmt.int(s.autoResolved)} under stated mapping rules, `,
-      `and held ${fmt.int(s.held)} for human confirmation. `,
-      `${fmt.int(s.removed)} rows were removed as duplicates.`,
+      `${fmt.int(s.exceptionCount)} exceptions. Every one lands in exactly one of three dispositions: `,
+      `${fmt.int(s.appliedUnderRule)} applied under a stated mapping rule and logged, `,
+      `${fmt.int(s.appliedConfirmed)} applied after a person confirmed them, and `,
+      `${fmt.int(s.heldNotApplied)} held and not applied. `,
+      `${fmt.int(s.removed)} rows were removed as duplicates. `,
+      'The held exceptions would move reported incurred by ',
+      `${fmt.money(s.pendingImpact)} if they resolve as proposed. Until they do, the figures above carry the conservative reading.`,
     ]),
 
     el('div', { class: 'chip-row' }, bySeverity),
@@ -458,7 +500,7 @@ function dataQuality(p, recon) {
             el('dt', { text: 'Confirmed by' }),
             el('dd', { text: hero.narrative.confirmedBy }),
             el('dt', { text: 'Match confidence' }),
-            el('dd', { text: `${fmt.pct(hero.confidence, 0)} — below the threshold for automatic merge, which is why it was held` }),
+            el('dd', { text: `${fmt.pct(hero.matchConfidence, 0)} — below the threshold for automatic merge, which is why it was held` }),
           ]),
         ])
       : null,
@@ -484,14 +526,22 @@ function decisions(p, recon) {
   if (!p.capital.adequate) {
     items.push({
       ask: 'Resolve the funding shortfall',
-      detail: `Funded surplus of ${fmt.money(p.capital.funded.value)} sits ${fmt.money(-p.capital.surplus)} below the required position of ${fmt.money(p.capital.required.value)} at the current ${fmt.pct(p.assumptions.capitalMargin, 1)} target margin. The board's options are to fund the difference, to lower the target margin, or to reduce projected ultimate through the renewal structure above.`,
+      detail: `Funded surplus of ${fmt.money(p.capital.funded.value)} sits ${fmt.money(-p.capital.surplus)} below the required position of ${fmt.money(p.capital.required.value)} at the current ${fmt.pct(p.assumptions.capitalMargin, 1)} target margin. The board's options are to fund the difference or to lower the target margin. Note that raising the aggregate does not help here and slightly hurts: the aggregate caps what the captive retains, so a higher one increases retained liability rather than reducing projected ultimate. Reducing ultimate means lowering the per-claim retention or buying protection that attaches lower.`,
       tone: 'warn',
     });
   }
 
-  if (recon.summary.held > 0) {
+  if (cur.pending) {
+    items.unshift({
+      ask: 'Confirm cession on the claims sitting at the per-claim retention',
+      detail: `${p.currentYear} is reported at ${fmt.pct(cur.projectedPct, 1)} of aggregate with those claims carried at full incurred, because nobody has confirmed the excess layer responds. Confirmed, the year projects ${fmt.pct(cur.resolvedPct, 1)}${cur.breach && !cur.resolvedBreach ? ' and the projected breach disappears' : ''}. This is the cheapest item on the list — it is a call to the fronting carrier, not a capital decision — and it is first because the position reported above moves ${fmt.money(Math.abs(cur.pending))} on the answer.`,
+      tone: cur.breach && !cur.resolvedBreach ? 'alert' : 'warn',
+    });
+  }
+
+  if (recon.summary.heldNotApplied > 0) {
     items.push({
-      ask: `Confirm ${fmt.int(recon.summary.held)} exceptions held for human resolution`,
+      ask: `Confirm ${fmt.int(recon.summary.heldNotApplied)} exceptions held for human resolution`,
       detail: `${recon.summary.bySeverity.critical} are critical and bear directly on the aggregate: duplicate identities and claims sitting at the per-occurrence retention whose cession is unconfirmed. None has been auto-resolved. Until they are confirmed, the figures in this memo are the conservative reading.`,
       tone: 'warn',
     });
@@ -555,10 +605,11 @@ export function buildMemo(p, recon, config) {
 
     el('footer', { class: 'memo__foot' }, [
       el('p', { class: 'small muted' }, [
-        'Every figure in this memo is traceable to the rows that produced it. ',
         'Figures shown in ',
         el('span', { class: 'trace', style: 'cursor:default', text: 'this style' }),
-        ' open their own derivation.',
+        ' open the method that produced them and the rows they were computed from. ',
+        'That covers the load-bearing figures — the position, the projection, the capital numbers — not every cell in every table. ',
+        'Where an aggregate spans hundreds of claims, the panel names the full row count and shows the largest contributors rather than all of them.',
       ]),
     ]),
   ]);

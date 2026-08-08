@@ -82,16 +82,32 @@ const FIELD_MAP = {
 
 let exceptionSeq = 0;
 
+/* Every exception lands in exactly one of three dispositions, and the three
+ * partition the set — so the counts on the page add up, and so no exception can
+ * quietly be both "held" and reflected in the figures:
+ *
+ *   autoResolved  applied under a stated mapping rule, and logged
+ *   confirmed     applied because a person confirmed it
+ *   held          NOT applied; its effect is quantified as pendingImpact
+ *
+ * appliedImpact is movement already in the reported figure. pendingImpact is
+ * movement that would happen if a held exception resolves as proposed. Keeping
+ * them in separate fields is what stops the two being conflated.
+ */
 function exception(spec) {
   exceptionSeq += 1;
-  return {
+  const e = {
     id: `EX-${String(exceptionSeq).padStart(3, '0')}`,
-    erosionImpact: 0,
-    requiresHuman: true,
+    appliedImpact: 0,
+    pendingImpact: 0,
     autoResolved: false,
-    confidence: 0.9,
+    confirmed: false,
+    confidence: null,
     ...spec,
   };
+  e.applied = e.autoResolved || e.confirmed;
+  e.requiresHuman = !e.applied;
+  return e;
 }
 
 /* ---------- Main ---------- */
@@ -152,9 +168,7 @@ export function reconcile(synth) {
           proposedAction: resolvable
             ? `Map "${covRaw}" to its canonical code`
             : 'Hold for coverage part assignment by claims operations',
-          requiresHuman: !resolvable,
-          autoResolved: false,
-          confidence: resolvable ? 0.98 : 0.4,
+          autoResolved: resolvable,
         })
       );
     }
@@ -174,9 +188,7 @@ export function reconcile(synth) {
           rowIds: [row.__rowId],
           claimNo: row.claimNo,
           proposedAction: `Resolve to ${canonical}`,
-          requiresHuman: false,
           autoResolved: true,
-          confidence: 0.96,
         })
       );
     }
@@ -192,8 +204,7 @@ export function reconcile(synth) {
           rowIds: [row.__rowId],
           claimNo: row.claimNo,
           proposedAction: 'Swap the two dates and re-derive policy year',
-          requiresHuman: true,
-          confidence: 0.88,
+          autoResolved: true,
         })
       );
       row.__dateSwapped = true;
@@ -210,36 +221,55 @@ export function reconcile(synth) {
             'The reserve cannot be assigned to a development period, so the claim is excluded from the triangle until dated. It still counts toward current incurred — it is the development history that is unusable, not the amount.',
           rowIds: [row.__rowId],
           claimNo: row.claimNo,
-          proposedAction: 'Obtain effective date from the TPA file; exclude from triangle in the interim',
-          requiresHuman: true,
-          confidence: 0.99,
+          proposedAction: 'Obtain effective date from the TPA file; excluded from the triangle in the interim',
         })
       );
       row.__excludeFromTriangle = true;
     }
 
-    // Limit conformance
-    if (row.incurred > program.retentionPerOccurrence) {
+    /* Limit conformance.
+     *
+     * The cap is deliberately NOT applied. Capping this claim at the retention
+     * reduces the amount charged against the aggregate on the assumption that
+     * the excess layer responds — and that assumption is exactly what has not
+     * been confirmed. Applying it would mean the reported position depends on
+     * an unconfirmed cession, which is the aggressive reading, not the
+     * conservative one.
+     *
+     * So the claim stays at full incurred until someone confirms cession, and
+     * the effect of confirming it is quantified separately. The board sees the
+     * conservative number and the size of the question attached to it. */
+    if (row.incurred > program.retentionPerClaim) {
       exceptions.push(
         exception({
           defectId: 'paid-over-limit',
           severity: 'critical',
-          title: `${row.claimNo} exceeds the per-occurrence retention`,
-          detail: `Incurred of $${row.incurred.toLocaleString()} sits above the $${program.retentionPerOccurrence.toLocaleString()} retention. Either the excess layer was not applied on the extract, or the claim genuinely pierced retention and was never ceded. The two have opposite consequences for the aggregate.`,
+          title: `${row.claimNo} exceeds the per-claim retention`,
+          detail: `Incurred of $${row.incurred.toLocaleString()} sits above the $${program.retentionPerClaim.toLocaleString()} retention. Either the excess layer was not applied on the extract, or the claim genuinely pierced retention and was never ceded. The claim is carried at full incurred until cession is confirmed: capping it first would let an unconfirmed recovery reduce the aggregate.`,
           rowIds: [row.__rowId],
           claimNo: row.claimNo,
-          proposedAction: 'Confirm cession status with the fronting carrier before the amount above retention is counted against the aggregate',
+          proposedAction: `Confirm cession with the fronting carrier. If confirmed, $${(row.incurred - program.retentionPerClaim).toLocaleString()} comes off the aggregate.`,
           requiresHuman: true,
-          erosionImpact: -(row.incurred - program.retentionPerOccurrence),
-          confidence: 0.94,
+          applied: false,
+          pendingImpact: -(row.incurred - program.retentionPerClaim),
+          confidence: null,
         })
       );
-      row.__cappedAt = program.retentionPerOccurrence;
+      row.__overLimitBy = row.incurred - program.retentionPerClaim;
     }
 
-    // Policy year from the coverage basis.
-    const anchor = row.coverageCode === 'PL' ? row.reportDate : row.occurrenceDate;
-    row.policyYear = anchor ? Number(anchor.slice(0, 4)) : null;
+    /* Policy year from the coverage basis. A row whose coverage never mapped
+     * has no basis, so it gets no policy year — it must not fall through to
+     * the occurrence basis and quietly reassign a claims-made claim to the
+     * year it happened rather than the year it was reported. */
+    if (row.coverageCode === 'PL') {
+      row.policyYear = row.reportDate ? Number(row.reportDate.slice(0, 4)) : null;
+    } else if (row.coverageCode === 'GL') {
+      row.policyYear = row.occurrenceDate ? Number(row.occurrenceDate.slice(0, 4)) : null;
+    } else {
+      row.policyYear = null;
+      row.__unassigned = true;
+    }
 
     rows.push(row);
   }
@@ -261,8 +291,15 @@ export function reconcile(synth) {
   for (const [key, group] of groups) {
     if (group.length < 2) continue;
 
-    // Keep the row from the system with the fuller record; drop the rest.
-    const sorted = [...group].sort((a, b) => b.incurred - a.incurred);
+    /* Survivorship goes to the system of record — the TPA loss run — not to
+     * whichever row carries the larger number. Keeping the highest incurred
+     * would bias reserves upward on every merge, and no auditor accepts a
+     * dedup rule that only ever rounds in one direction. */
+    const sorted = [...group].sort((a, b) => {
+      const rank = (r) => (r.__system === 'TPA-LOSSRUN' ? 0 : 1);
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      return (b.reserveAsOf || '').localeCompare(a.reserveAsOf || '');
+    });
     const keep = sorted[0];
     const drop = sorted.slice(1);
     drop.forEach((r) => duplicateRowIds.add(r.__rowId));
@@ -287,9 +324,12 @@ export function reconcile(synth) {
         claimNo: numbers[0],
         spellings,
         proposedAction: `Merge onto ${keep.claimNo}, retaining the ${keep.__system} record`,
-        requiresHuman: true,
-        erosionImpact: -doubleCounted,
-        confidence: isHero ? config.caughtError.confidence : 0.91,
+        // Applied because a person confirmed it, not because the matcher was
+        // sure. The match score sat below the auto-merge threshold — that is
+        // why it reached a human at all.
+        confirmed: true,
+        appliedImpact: -doubleCounted,
+        matchConfidence: isHero ? config.caughtError.confidence : 0.91,
         isHero,
         narrative: isHero ? heroNarrative : null,
       })
@@ -308,11 +348,11 @@ export function reconcile(synth) {
         const anchor = out.coverageCode === 'PL' ? out.reportDate : out.occurrenceDate;
         out.policyYear = anchor ? Number(anchor.slice(0, 4)) : null;
       }
-      if (r.__cappedAt) {
-        out.incurredUncapped = r.incurred;
-        out.incurred = r.__cappedAt;
-        out.caseReserve = Math.max(0, r.__cappedAt - r.paidIndemnity - r.paidExpense);
-      }
+      // The over-limit cap is deliberately NOT applied here. See the limit
+      // conformance exception: reducing incurred on an unconfirmed cession
+      // would make the reported position depend on a recovery nobody has
+      // confirmed. The claim stays gross; the effect of confirming is carried
+      // separately as pendingByYear.
       return out;
     });
 
@@ -335,21 +375,44 @@ export function reconcile(synth) {
     bySeverity[e.severity] += 1;
   });
 
+  /* What confirming the held exceptions would do to each policy year. This is
+   * the number the board is actually being asked about: the reported position
+   * is the conservative one, and this is how far it moves if the pending
+   * questions resolve as proposed. */
+  const pendingByYear = {};
+  for (const year of program.policyYears) pendingByYear[year] = 0;
+  const rowYear = new Map(reconciled.map((r) => [r.__rowId, r.policyYear]));
+  for (const e of exceptions) {
+    if (e.applied || !e.pendingImpact) continue;
+    const year = rowYear.get(e.rowIds[0]);
+    if (year in pendingByYear) pendingByYear[year] += e.pendingImpact;
+  }
+
+  const disposition = {
+    appliedUnderRule: exceptions.filter((e) => e.autoResolved).length,
+    appliedConfirmed: exceptions.filter((e) => e.confirmed).length,
+    heldNotApplied: exceptions.filter((e) => !e.applied).length,
+  };
+
   return {
     rows,
     reconciled,
     exceptions,
     duplicateRowIds,
     heroException: exceptions.find((e) => e.isHero) || null,
+    pendingByYear,
     summary: {
       rawRows: rows.length,
       reconciledRows: reconciled.length,
       removed: rows.length - reconciled.length,
+      unassigned: reconciled.filter((r) => r.__unassigned).length,
       exceptionCount: exceptions.length,
       bySeverity,
-      held: exceptions.filter((e) => e.requiresHuman).length,
-      autoResolved: exceptions.filter((e) => e.autoResolved).length,
-      erosionCorrection: sum(exceptions, (e) => e.erosionImpact),
+      ...disposition,
+      // Movement already reflected in the reported figures.
+      appliedImpact: sum(exceptions, (e) => e.appliedImpact),
+      // Movement that would happen if every held exception resolves as proposed.
+      pendingImpact: sum(exceptions, (e) => (e.applied ? 0 : e.pendingImpact)),
     },
     naiveTotals,
     reconciledTotals,

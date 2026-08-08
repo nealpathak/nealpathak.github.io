@@ -100,13 +100,16 @@ function renderReconcile(recon, config) {
     ]),
     el('div', { class: 'stat' }, [
       el('div', { class: 'stat__label', text: 'Auto-resolved under rule' }),
-      el('div', { class: 'stat__value', text: fmt.int(s.autoResolved) }),
+      el('div', { class: 'stat__value', text: fmt.int(s.appliedUnderRule) }),
       el('div', { class: 'stat__note', text: 'logged, not silent' }),
     ]),
-    el('div', { class: 'stat stat--alert' }, [
+    // Amber, not red. Human-in-the-loop is the operating design working, not a
+    // defect count — painting it in the critical colour tells a reader "33
+    // things went wrong" half a second before they read the label.
+    el('div', { class: 'stat stat--loop' }, [
       el('div', { class: 'stat__label', text: 'Held for a human' }),
-      el('div', { class: 'stat__value', text: fmt.int(s.held) }),
-      el('div', { class: 'stat__note', text: 'not applied until confirmed' }),
+      el('div', { class: 'stat__value', text: fmt.int(s.heldNotApplied) }),
+      el('div', { class: 'stat__note', text: 'not applied — figures carry the conservative reading' }),
     ]),
   ]);
 
@@ -128,16 +131,25 @@ function renderReconcile(recon, config) {
                 el('span', { class: 'mono small', text: e.id }),
                 el('strong', { text: e.title }),
                 e.isHero ? badge('Decision-changing', 'alert') : null,
-                e.requiresHuman ? badge('Held', 'warn') : badge('Resolved under rule', 'auto'),
+                e.confirmed
+                  ? badge('Applied — human confirmed', 'auto')
+                  : e.autoResolved
+                    ? badge('Applied under rule', 'auto')
+                    : badge('Held — not applied', 'warn'),
               ]),
               el('p', { class: 'small', text: e.detail }),
               el('p', { class: 'small muted' }, [
                 el('strong', { text: 'Proposed: ' }),
                 e.proposedAction,
-                e.erosionImpact
-                  ? ` · Effect on reported incurred: ${fmt.money(e.erosionImpact)}`
+                e.appliedImpact
+                  ? ` · Already reflected in reported incurred: ${fmt.money(e.appliedImpact)}`
                   : '',
-                ` · Confidence ${fmt.pct(e.confidence, 0)}`,
+                e.pendingImpact
+                  ? ` · If confirmed, moves reported incurred by ${fmt.money(e.pendingImpact)}`
+                  : '',
+                e.matchConfidence
+                  ? ` · Match confidence ${fmt.pct(e.matchConfidence, 0)}`
+                  : '',
               ]),
             ])
           ),

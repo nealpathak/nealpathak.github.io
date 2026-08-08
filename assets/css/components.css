@@ -12,14 +12,18 @@
 .stat {
   background: var(--surface);
   border: 1px solid var(--edge);
-  border-top: 3px solid var(--edge-strong);
+  border-left: 3px solid var(--edge-strong);
   border-radius: var(--radius);
-  padding: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
 }
 
-.stat--ok { border-top-color: var(--ok); }
-.stat--warn { border-top-color: var(--warn); }
-.stat--alert { border-top-color: var(--alert); }
+/* Left rule rather than top: .exception, .callout and .log__entry all already
+ * mark state on the left edge, and a top rule is the most recognizable
+ * card-template tell on the web. */
+.stat--ok { border-left-color: var(--ok); }
+.stat--loop { border-left-color: var(--auto-loop); }
+.stat--warn { border-left-color: var(--warn); }
+.stat--alert { border-left-color: var(--alert); }
 
 .stat__label {
   font-size: var(--text-2xs);
@@ -31,7 +35,7 @@
 
 .stat__value {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   margin: var(--space-2xs) 0;
@@ -84,7 +88,7 @@
 
 .bstage__label {
   font-family: var(--font-display);
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
@@ -183,7 +187,9 @@
   position: sticky;
   top: 0;
   z-index: 20;
+  background: var(--paper);
   background: color-mix(in srgb, var(--paper) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--edge);
   margin-bottom: var(--space-xl);
@@ -346,13 +352,13 @@
 .assumption__value {
   font-size: var(--text-md);
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--ink);
 }
 
 .assumption input[type='range'] {
   width: 100%;
   margin: var(--space-2xs) 0 var(--space-xs);
-  accent-color: var(--accent);
+  accent-color: var(--ink-soft);
 }
 
 .assumption p { margin: 0; max-width: none; }
@@ -384,8 +390,7 @@
 
 .erosion__fill {
   height: 100%;
-  background: var(--accent);
-  opacity: 0.75;
+  background: var(--data-fill);
 }
 
 .erosion__fill.is-breach { background: var(--alert); opacity: 0.8; }
@@ -497,7 +502,7 @@
 }
 
 .memo__subheading {
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   margin: var(--space-lg) 0 var(--space-xs);
   color: var(--ink-soft);
 }
@@ -602,9 +607,9 @@ tr[data-assumption='true'] {
   margin-bottom: var(--space-2xs);
 }
 
-.decisions__head h4 { font-size: var(--text-base); }
+.decisions__head h4 { font-size: var(--text-md); }
 
-.decisions__item p { max-width: 76ch; margin: 0; }
+.decisions__item p { max-width: 62ch; margin: 0; font-size: var(--text-md); }
 
 /* ---------- Governance log ---------- */
 
@@ -717,7 +722,7 @@ tr[data-assumption='true'] {
   color: var(--ink-muted);
 }
 
-.log__title { font-size: var(--text-base); margin-bottom: var(--space-2xs); }
+.log__title { font-size: var(--text-md); margin-bottom: var(--space-2xs); }
 
 .log__body p { max-width: 78ch; margin-bottom: var(--space-xs); }
 
@@ -762,8 +767,7 @@ tr[data-assumption='true'] {
 
 .meter__fill {
   height: 100%;
-  background: var(--accent);
-  opacity: 0.8;
+  background: var(--data-fill);
 }
 
 /* ---------- Boot ---------- */
@@ -815,4 +819,166 @@ tr[data-assumption='true'] {
   .log__body { padding: var(--space-sm); }
   .memo__meta, .callout__meta { grid-template-columns: 1fr; }
   .memo__meta dt, .callout__meta dt { margin-top: var(--space-2xs); }
+}
+
+/* ---------- Scroll affordance on wide tables ----------
+ * Eleven of the tables are wider than a phone. They scroll inside their own
+ * container, which is correct, but iOS overlay scrollbars are invisible until
+ * touched — so a reader sees numeric columns sliced off at the right edge and
+ * concludes the page is broken. The `local` gradients sit on the content and
+ * scroll away; the `scroll` shadows stay pinned and only show while there is
+ * something hidden in that direction.
+ */
+
+.table-wrap {
+  background:
+    linear-gradient(to right, var(--surface) 30%, rgba(255, 255, 255, 0)) left / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, rgba(255, 255, 255, 0)) right / 24px 100% no-repeat local,
+    linear-gradient(to right, rgba(22, 24, 29, 0.13), rgba(22, 24, 29, 0)) left / 12px 100% no-repeat scroll,
+    linear-gradient(to left, rgba(22, 24, 29, 0.13), rgba(22, 24, 29, 0)) right / 12px 100% no-repeat scroll,
+    var(--surface);
+}
+
+.stepper__inner { scrollbar-width: thin; }
+
+.stepper a[aria-current='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* ---------- Backbone: autonomy in a scannable column ----------
+ * The badge is the datum the page invites you to disagree with. Floating it to
+ * the far right of a wide row put half a screen between it and the text it
+ * labels, and stopped the fourteen markers forming a column you can read down.
+ */
+
+@media (min-width: 721px) {
+  .bop {
+    grid-template-columns: 9rem minmax(0, 46rem);
+    gap: var(--space-md) var(--space-lg);
+  }
+  .bop__badge { grid-column: 1; }
+  .bop__body { grid-column: 2; }
+  .bop__does,
+  .bop__why { max-width: none; }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 480px) {
+  /* Nested cards ate 20% of the screen before a word was set: .page padding
+   * plus .memo padding on both sides. Let the memo run to the page edge. */
+  .memo {
+    margin-inline: calc(-1 * var(--space-md));
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .stat { padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-md); }
+  .stat__value { font-size: var(--text-xl); }
+}
+
+/* ---------- Print ----------
+ * This is a board memo. Someone will print it. Without this they get the
+ * sticky nav stamped over the content and every wide table clipped at its
+ * container edge — overflow does not reflow onto paper, the columns are simply
+ * gone. Print the memo, open every derivation, drop the chrome.
+ */
+
+@media print {
+  .disclosure,
+  .masthead,
+  .stepper,
+  .site-foot,
+  .assumptions { display: none; }
+
+  .stage:not(#stage-4) { display: none; }
+
+  body { background: #fff; }
+
+  .memo {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    background: none;
+  }
+
+  table { font-size: 9pt; }
+  th { background: none; border-bottom: 1px solid #000; }
+
+  /* Traced figures cannot be clicked on paper, so print them open. */
+  .trace {
+    background: none;
+    border: 0;
+    color: #000;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+
+  .trace__source[hidden] { display: block !important; }
+
+  .memo__section,
+  .decisions__item,
+  .callout { break-inside: avoid; }
+
+  .memo__heading { break-after: avoid; }
+}
+
+/* ---------- Traced figures: read as controls, and say what they belong to ---- */
+
+.trace {
+  padding: 2px 5px;
+  line-height: 1.5;
+  border-bottom-width: 2px;
+  font-family: inherit;
+  font-size: 1em;
+}
+
+/* Mono numerals inside 17px body prose signal terminal, not document.
+ * Tabular figures give the alignment without the change of register. */
+
+.trace__source::before {
+  content: attr(data-figure);
+  display: block;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--accent-deep);
+  margin-bottom: var(--space-2xs);
+}
+
+/* ---------- Memo contents ---------- */
+
+.memo__toc {
+  margin-top: var(--space-md);
+  font-size: var(--text-sm);
+}
+
+.memo__toc ol {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2xs) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3xs) var(--space-md);
+}
+
+.memo__toc a { color: var(--ink-soft); text-decoration: none; }
+.memo__toc a:hover { color: var(--accent); text-decoration: underline; }
+
+.memo__key {
+  margin-top: var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
 }

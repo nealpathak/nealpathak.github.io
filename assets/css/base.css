@@ -109,7 +109,7 @@ hr {
 
 .section {
   padding: var(--space-3xl) 0;
-  border-top: 1px solid var(--edge);
+  border-top: 1px solid var(--edge-strong);
 }
 
 .section:first-of-type {
@@ -361,14 +361,16 @@ hr {
 }
 
 .btn--primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--ink);
+  border-color: var(--ink);
   color: #fff;
+  font-size: var(--text-base);
+  padding: var(--space-sm) var(--space-lg);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--accent-deep);
-  border-color: var(--accent-deep);
+  background: #000;
+  border-color: #000;
 }
 
 /* ---------- Tables ---------- */

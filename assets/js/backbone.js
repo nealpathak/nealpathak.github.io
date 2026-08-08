@@ -36,7 +36,13 @@ function renderStages(stages, levels) {
             'data-worked': op.worked ? 'true' : null,
           },
           [
-            el('div', {}, [
+            // Badge first in source order so it forms a readable column down
+            // the left. The autonomy marker is the claim the page invites you
+            // to disagree with; it should not be a half-screen from its text.
+            el('div', { class: 'bop__badge' }, [
+              el('span', { class: `badge badge--${TONE[op.level]}`, text: labelOf[op.level] }),
+            ]),
+            el('div', { class: 'bop__body' }, [
               el('p', { class: 'bop__label' }, [
                 op.label,
                 // The map claims one node is built. Saying which one is the
@@ -47,9 +53,6 @@ function renderStages(stages, levels) {
               ]),
               el('p', { class: 'bop__does', text: op.does }),
               el('p', { class: 'bop__why', text: op.why }),
-            ]),
-            el('div', {}, [
-              el('span', { class: `badge badge--${TONE[op.level]}`, text: labelOf[op.level] }),
             ]),
           ]
         )

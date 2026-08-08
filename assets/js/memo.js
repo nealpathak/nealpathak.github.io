@@ -161,7 +161,7 @@ function execSummary(p, recon) {
   ]);
 }
 
-function overview(p, config) {
+function overview(p, config, recon) {
   const { program, meta } = config;
   const rows = [
     ['Captive', program.captive],
@@ -173,7 +173,16 @@ function overview(p, config) {
     ['Annual aggregate', fmt.money(p.aggregate)],
     ['Policy years in force', program.policyYears.join(', ')],
     ['Valuation date', fmt.date(meta.valuationDate)],
-    ['Claims on the book', `${fmt.int(p.totals.claims)} reconciled`],
+    // The subtraction an actuary does out loud: rows in, less duplicates, less
+    // anything that could not be assigned a policy year. It has to close.
+    [
+      'Claims on the book',
+      `${fmt.int(p.totals.claims)} assigned to a policy year` +
+        (recon.summary.unassigned
+          ? `, plus ${fmt.int(recon.summary.unassigned)} held pending coverage assignment`
+          : ''),
+    ],
+    ['Retroactive date', `${fmt.date(program.retroDate)} (professional liability, claims-made)`],
   ];
 
   return section('overview', 'Program overview', [
@@ -235,6 +244,7 @@ function erosion(p) {
     { label: 'Consumed', key: 'consumed', num: true },
     { label: 'Factor', key: 'cdf', num: true },
     { label: 'Projected ultimate', key: 'ultimate', num: true },
+    { label: `Trended to ${p.currentYear}`, key: 'trended', num: true },
     { label: 'Projected', key: 'projected', num: true },
     { label: 'Headroom', key: 'headroom', num: true },
   ];
@@ -248,13 +258,20 @@ function erosion(p) {
     consumed: fmt.pct(y.consumedPct, 1),
     cdf: fmt.factor(y.cdf),
     ultimate: traced(y.ultimate, 'money', { host }),
+    trended: fmt.money(y.trended),
     projected: fmt.pct(y.projectedPct, 1),
-    headroom: fmt.money(y.headroom),
+    headroom: y.headroom >= 0 ? fmt.money(y.headroom) : `(${fmt.money(-y.headroom)})`,
   }));
 
   return section('erosion', 'Aggregate erosion and run-rate to expiry', [
     dataTable(cols, rows),
     node,
+    el('p', { class: 'small muted memo__note' }, [
+      el('strong', { text: 'Read the trended column, not the projected one, for experience. ' }),
+      `Projected consumption rises partly because younger years carry larger development factors — ${p.currentYear} is at ${p.current.age} months and ${p.years[0].year} is finished. `,
+      `The trended column restates each year's ultimate at ${p.currentYear} cost level using the loss trend assumption, which is the only column on this table where the four years are comparable. `,
+      'Erosion is shown on an incurred basis throughout; contractual erosion of the aggregate is on paid, and the paid position is in the reserves section below.',
+    ]),
     (() => {
       const cur = p.current;
       const naiveMultiple = 12 / cur.age;
@@ -393,8 +410,14 @@ function capital(p) {
 
   const rows = [
     { item: 'Projected ultimate, all policy years', amount: fmt.money(p.totals.ultimate) },
+    // Without this line the three figures below stop subtracting the moment the
+    // aggregate is moved below a policy year's projection — a capital table
+    // whose consecutive rows don't add up is the most catchable error here.
+    ...(c.cededAboveAggregate > 0
+      ? [{ item: 'Less projected losses above the annual aggregate', amount: fmt.money(-c.cededAboveAggregate) }]
+      : []),
     { item: 'Less paid to date', amount: fmt.money(-p.totals.paid) },
-    { item: 'Open liability', amount: traced(c.openLiability, 'money', { host }) },
+    { item: 'Open liability retained', amount: traced(c.openLiability, 'money', { host }) },
     { item: `Target capital margin (${fmt.pct(p.assumptions.capitalMargin, 1)})`, amount: fmt.money(c.required.value - c.openLiability.value) },
     { item: 'Required funded position', amount: traced(c.required, 'money', { host }) },
     { item: 'Funded surplus', amount: traced(c.funded, 'money', { host }) },
@@ -590,10 +613,35 @@ export function buildMemo(p, recon, config) {
         el('dt', { text: 'Status' }),
         el('dd', {}, [badge('Human-in-the-loop — awaiting sign-off', 'loop')]),
       ]),
+
+      /* The key belongs at the top. Buried in the footer it sat six thousand
+       * pixels below the first traced figure, so a reader who was sent the link
+       * rather than walked through it scrolled past three dozen of them without
+       * knowing they open. */
+      el('p', { class: 'memo__key' }, [
+        'Figures shown in ',
+        el('span', { class: 'trace', style: 'cursor:default', text: 'this style' }),
+        ' open the method that produced them and the rows behind them.',
+      ]),
+
+      // Board memos have contents pages. Having one makes this more of a
+      // document, not less — and the memo is 39% of a very long page.
+      el('nav', { class: 'memo__toc', 'aria-label': 'Memo contents' }, [
+        el('span', { class: 'eyebrow', style: 'margin:0', text: 'Contents' }),
+        el(
+          'ol',
+          {},
+          memo.sections.map((sec, i) =>
+            el('li', {}, [
+              el('a', { href: `#memo-${sec.id}` }, [`${String(i + 1).padStart(2, '0')} ${sec.heading}`]),
+            ])
+          )
+        ),
+      ]),
     ]),
 
     execSummary(p, recon),
-    overview(p, config),
+    overview(p, config, recon),
     activity(p),
     erosion(p),
     reserves(p),

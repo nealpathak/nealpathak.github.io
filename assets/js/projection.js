@@ -23,12 +23,31 @@ function sum(list, fn) {
   return list.reduce((s, x) => s + fn(x), 0);
 }
 
+/* Reconciliation does not depend on the assumptions, so everything derived
+ * only from it is the same on every recompute. Caching against the recon
+ * object keeps a slider drag from re-walking 1,900 rows and re-sorting twenty
+ * arrays to take the top eight of each. */
+const derivedCache = new WeakMap();
+
+function cached(key, owner, build) {
+  let store = derivedCache.get(owner);
+  if (!store) {
+    store = new Map();
+    derivedCache.set(owner, store);
+  }
+  if (!store.has(key)) store.set(key, build());
+  return store.get(key);
+}
+
+const traceCache = new WeakMap();
+
 /** The rows behind a figure. Aggregates over hundreds of claims cite the
  *  largest contributors and the full count rather than pretending a reader
  *  wants 265 rows — but the count is stated so nothing looks cherry-picked. */
 function rowTrace(rows, limit = 8) {
+  if (traceCache.has(rows)) return traceCache.get(rows);
   const sorted = [...rows].sort((a, b) => b.incurred - a.incurred);
-  return {
+  const out = {
     rowCount: rows.length,
     total: sum(rows, (r) => r.incurred),
     rows: sorted.slice(0, limit).map((r) => ({
@@ -42,6 +61,8 @@ function rowTrace(rows, limit = 8) {
       rowId: r.__rowId,
     })),
   };
+  traceCache.set(rows, out);
+  return out;
 }
 
 /* ---------- Triangle ---------- */
@@ -215,13 +236,15 @@ export function project(ctx) {
   const trend = assumptions.severityTrend;
   const margin = assumptions.capitalMargin;
 
-  const triangle = buildTriangle({
-    recon,
-    program,
-    valuationMs,
-    pattern: synth.pattern,
-    noiseScale: synth.config.generation.developmentNoise,
-  });
+  const triangle = cached('triangle', recon, () =>
+    buildTriangle({
+      recon,
+      program,
+      valuationMs,
+      pattern: synth.pattern,
+      noiseScale: synth.config.generation.developmentNoise,
+    })
+  );
   const factors = developmentFactors(triangle, tailFactor);
 
   /* --- Per-year position --- */
@@ -273,7 +296,7 @@ export function project(ctx) {
         ...rowTrace(t.rows.filter((r) => r.caseReserve > 0)),
       }),
       ultimate: fig(ultimate, {
-        method: `$${Math.round(t.triangleLatest).toLocaleString()} of triangle incurred at ${t.age} months developed by a cumulative factor of ${cdf.toFixed(4)} (age-to-age factors from this program's own triangle, tail ${tailFactor.toFixed(3)})${t.excludedIncurred > 0 ? `, plus $${Math.round(t.excludedIncurred).toLocaleString()} on claims held out of the triangle for undated reserve movements` : ''}`,
+        method: `$${Math.round(t.triangleLatest).toLocaleString('en-US')} of triangle incurred at ${t.age} months developed by a cumulative factor of ${cdf.toFixed(4)} (age-to-age factors from this program's own triangle, tail ${tailFactor.toFixed(3)})${t.excludedIncurred > 0 ? `, plus $${Math.round(t.excludedIncurred).toLocaleString('en-US')} on claims held out of the triangle for undated reserve movements` : ''}`,
         ...rowTrace(t.rows),
       }),
       ibnr: fig(ibnr, {
@@ -325,7 +348,7 @@ export function project(ctx) {
   const capital = {
     cededAboveAggregate,
     openLiability: fig(openLiability, {
-      method: `Projected ultimate across all policy years, capped at the ${aggregate.toLocaleString()} annual aggregate, less paid to date`,
+      method: `Projected ultimate across all policy years, capped at the $${aggregate.toLocaleString('en-US')} annual aggregate, less paid to date`,
       rowCount: sum(triangle, (t) => t.claimCount),
       total: openLiability,
       rows: years.map((y) => ({
@@ -340,7 +363,7 @@ export function project(ctx) {
       })),
     }),
     required: fig(required, {
-      method: `Open liability of $${Math.round(openLiability).toLocaleString()} plus a target capital margin of ${(margin * 100).toFixed(1)}%`,
+      method: `Open liability of $${Math.round(openLiability).toLocaleString('en-US')} plus a target capital margin of ${(margin * 100).toFixed(1)}%`,
       rowCount: 0,
       total: required,
       rows: [],
@@ -402,13 +425,13 @@ export function project(ctx) {
     };
   }
 
-  const thisQuarter = windowStats(quarterStart(vY, qIndex), meta.valuationDate);
+  const thisQuarter = cached('q', recon, () => windowStats(quarterStart(vY, qIndex), meta.valuationDate));
   const priorQuarter =
     qIndex > 1
-      ? windowStats(
+      ? cached('qPrior', recon, () => windowStats(
           quarterStart(vY, qIndex - 1),
           new Date(Date.UTC(vY, (qIndex - 1) * 3, 0)).toISOString().slice(0, 10)
-        )
+        ))
       : null;
 
   const quarter = {
@@ -444,7 +467,7 @@ export function project(ctx) {
     capital,
     correction,
     quarter,
-    sizeOfLoss: sizeOfLossDistribution(triangle),
+    sizeOfLoss: cached('sizeOfLoss', recon, () => sizeOfLossDistribution(triangle)),
     watchList,
     materialityFloor,
     totals: {

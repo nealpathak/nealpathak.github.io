@@ -21,13 +21,18 @@ export const fmt = {
     return `${sign}$${Math.round(abs)}`;
   },
   pct(n, dp = 1) {
-    return `${((Number(n) || 0) * 100).toFixed(dp)}%`;
+    // An em dash rather than 0%. These formatters are fed by field lookups, and
+    // a rename that silently coerces undefined to zero puts a plausible wrong
+    // number on a board memo instead of raising anything.
+    if (n === null || n === undefined || Number.isNaN(Number(n))) return '—';
+    return `${(Number(n) * 100).toFixed(dp)}%`;
   },
   factor(n) {
     return (Number(n) || 0).toFixed(4);
   },
   int(n) {
-    return Math.round(Number(n) || 0).toLocaleString('en-US');
+    if (n === null || n === undefined || Number.isNaN(Number(n))) return '—';
+    return Math.round(Number(n)).toLocaleString('en-US');
   },
   date(iso) {
     if (!iso) return '—';
@@ -92,13 +97,13 @@ let traceSeq = 0;
 function sourceTable(trace) {
   const rows = trace.rows || [];
   const head = el('tr', {}, [
-    el('th', { text: 'Claim' }),
-    el('th', { text: 'Insured' }),
-    el('th', { text: 'Cov' }),
-    el('th', { text: 'Status' }),
-    el('th', { class: 'num', text: 'Paid' }),
-    el('th', { class: 'num', text: 'Reserve' }),
-    el('th', { class: 'num', text: 'Incurred' }),
+    el('th', { scope: 'col', text: 'Claim' }),
+    el('th', { scope: 'col', text: 'Insured' }),
+    el('th', { scope: 'col', text: 'Cov' }),
+    el('th', { scope: 'col', text: 'Status' }),
+    el('th', { scope: 'col', class: 'num', text: 'Paid' }),
+    el('th', { scope: 'col', class: 'num', text: 'Reserve' }),
+    el('th', { scope: 'col', class: 'num', text: 'Incurred' }),
   ]);
 
   const body = rows.map((r) =>
@@ -144,6 +149,7 @@ export function traced(figure, kind, opts = {}) {
     hidden: true,
     role: 'region',
     'aria-labelledby': id,
+    'data-figure': format(figure.value, kind),
   }, [
     el('p', { class: 'small', style: 'margin-bottom:0.5rem' }, [
       el('strong', { text: 'How this was computed. ' }),
@@ -185,7 +191,7 @@ export function dataTable(columns, rows, opts = {}) {
   const head = el(
     'tr',
     {},
-    columns.map((c) => el('th', { class: c.num ? 'num' : null, text: c.label }))
+    columns.map((c) => el('th', { scope: 'col', class: c.num ? 'num' : null, text: c.label }))
   );
 
   const body = rows.map((r) => {

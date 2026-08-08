@@ -21,12 +21,16 @@
   /* Ink */
   --ink: #16181d;
   --ink-soft: #3d434e;
-  --ink-muted: #6a7180;
-  --ink-faint: #949aa6;
+  --ink-muted: #646b7a;
+  --ink-faint: #7c8390;
 
   /* Rules and edges */
   --edge: #e2e2dd;
   --edge-strong: #c8c9c3;
+
+  /* Data ink. Charts, meters and bars are quantities, not claims — they get a
+   * neutral so the accent can keep meaning exactly one thing. */
+  --data-fill: #5b6472;
 
   /* Accent — traceability only. */
   --accent: #1a5490;

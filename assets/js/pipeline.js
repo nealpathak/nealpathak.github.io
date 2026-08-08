@@ -44,7 +44,7 @@ function renderIngest(synth, config) {
       el('p', { class: 'small muted', text: `${fmt.int((bySystem.get(sys.id) || []).length)} rows` }),
       el('div', { class: 'table-wrap' }, [
         el('table', {}, [
-          el('thead', {}, el('tr', {}, keys.map((k) => el('th', { class: 'mono', text: k })))),
+          el('thead', {}, el('tr', {}, keys.map((k) => el('th', { scope: 'col', class: 'mono', text: k })))),
           el(
             'tbody',
             {},
@@ -196,7 +196,11 @@ function renderReconcile(recon, config) {
 
 function renderAssumptions(config, state, onChange) {
   const controls = config.assumptions.map((a) => {
-    const out = el('output', { class: 'assumption__value mono', text: format(state[a.id], a.format) });
+    const out = el('output', {
+      class: 'assumption__value mono',
+      for: `assume-${a.id}`,
+      text: format(state[a.id], a.format),
+    });
     const input = el('input', {
       type: 'range',
       id: `assume-${a.id}`,
@@ -204,12 +208,17 @@ function renderAssumptions(config, state, onChange) {
       max: a.max,
       step: a.step,
       value: state[a.id],
+      // Without this a screen reader announces "7500000" and "0.065" rather
+      // than "$7,500,000" and "6.5%" — the raw slider value, not the figure.
+      'aria-valuetext': format(state[a.id], a.format),
       'aria-describedby': `assume-${a.id}-note`,
     });
 
     input.addEventListener('input', () => {
       state[a.id] = Number(input.value);
-      out.textContent = format(state[a.id], a.format);
+      const shown = format(state[a.id], a.format);
+      out.textContent = shown;
+      input.setAttribute('aria-valuetext', shown);
       onChange();
     });
 
@@ -312,16 +321,64 @@ function renderAnalyze(p) {
   ]);
 }
 
+/* ---------- Wayfinding ----------
+ * The page is roughly seventeen thousand pixels tall and stage 04 alone is two
+ * fifths of it. Without a current marker a reader eight thousand pixels in has
+ * no idea where they are or how much is left.
+ */
+
+function trackStage() {
+  const links = [...document.querySelectorAll('.stepper a')];
+  const stages = links
+    .map((a) => ({ a, section: document.querySelector(a.getAttribute('href')) }))
+    .filter((s) => s.section);
+  if (!stages.length || typeof IntersectionObserver === 'undefined') return;
+
+  const visible = new Set();
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) visible.add(e.target);
+        else visible.delete(e.target);
+      }
+      const current = stages.find((s) => visible.has(s.section));
+      for (const s of stages) {
+        if (s === current) s.a.setAttribute('aria-current', 'true');
+        else s.a.removeAttribute('aria-current');
+      }
+    },
+    { rootMargin: '-15% 0px -70% 0px' }
+  );
+
+  stages.forEach((s) => observer.observe(s.section));
+}
+
 /* ---------- Boot ---------- */
 
 async function init() {
   const status = document.getElementById('boot-status');
+
+  /* The load and the render get separate handling on purpose. A single catch
+   * around both reports every render failure as "could not load the program
+   * data" — which sends whoever is debugging in exactly the wrong direction,
+   * and in front of an audience reads as the demo being broken for reasons
+   * nobody understands. */
+  let config;
   try {
-    const config = await fetch('../data/program-001.json').then((r) => {
+    config = await fetch('../data/program-001.json').then((r) => {
       if (!r.ok) throw new Error(`program-001.json: ${r.status}`);
       return r.json();
     });
+  } catch (err) {
+    console.error(err);
+    if (status) {
+      status.textContent =
+        `Could not load the program data (${err.message}). If you opened this file directly, serve it over a local server instead.`;
+    }
+    return;
+  }
 
+  try {
     const synth = synthesize(config);
     const recon = reconcile(synth);
 
@@ -330,11 +387,37 @@ async function init() {
     mount('stage-ingest', renderIngest(synth, config));
     mount('stage-reconcile', renderReconcile(recon, config));
 
+    /* The memo is discarded and rebuilt on every input, which closes any trace
+     * panel the presenter has open and drops focus to the body. The natural
+     * demo gesture is exactly that sequence — "here are the rows behind this
+     * number, now watch what happens when the board raises the aggregate" — so
+     * the open set is captured by figure label and reapplied afterwards. */
+    function openTraceKeys(root) {
+      return new Set(
+        [...root.querySelectorAll('.trace[aria-expanded="true"]')].map(
+          (b) => `${b.closest('.memo__section')?.id || ''}:${b.textContent}`
+        )
+      );
+    }
+
+    function restoreTraces(root, keys) {
+      if (!keys.size) return;
+      for (const btn of root.querySelectorAll('.trace[aria-expanded]')) {
+        const key = `${btn.closest('.memo__section')?.id || ''}:${btn.textContent}`;
+        if (keys.has(key)) btn.click();
+      }
+    }
+
     function recompute() {
+      const memoHost = document.getElementById('stage-memo');
+      const open = memoHost ? openTraceKeys(memoHost) : new Set();
+
       const p = project({ synth, recon, assumptions: state });
       mount('stage-analyze-out', renderAnalyze(p));
       mount('stage-memo', buildMemo(p, recon, config));
       mount('stage-govern', renderTrace(buildTrace(recon, p, config), recon, p));
+
+      if (memoHost) restoreTraces(memoHost, open);
     }
 
     /* Debounced on a timer rather than requestAnimationFrame. rAF does not fire
@@ -352,19 +435,15 @@ async function init() {
 
     mount('assumptions', renderAssumptions(config, state, schedule));
     recompute();
+    trackStage();
 
     if (status) status.remove();
     document.body.dataset.ready = 'true';
   } catch (err) {
     console.error(err);
     if (status) {
-      status.replaceChildren(
-        el('p', { class: 'small' }, [
-          el('strong', { text: 'Could not load the program data. ' }),
-          String(err.message || err),
-          ' — if you are opening this file directly, run it through a local server instead.',
-        ])
-      );
+      status.textContent =
+        `The program data loaded, but a stage failed to render: ${err.message || err}. This is a bug in the page, not a data problem.`;
     }
   }
 }

@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { Input } from './src/input.js';
 import { buildWorld } from './src/world.js';
 import { LEVELS } from './src/levels.js';
-import { Player } from './src/player.js';
+import { Player, bearing } from './src/player.js';
 import { Weapon } from './src/weapon.js';
 import { Horde } from './src/zombies.js';
 import { Campaign } from './src/campaign.js';
@@ -18,6 +18,7 @@ import { Hud } from './src/hud.js';
 import { Sfx } from './src/audio.js';
 import { Fx } from './src/fx.js';
 import * as progress from './src/progress.js';
+import * as config from './src/settings.js';
 
 const STEP = 1 / 60;
 const MAX_FRAME = 0.25;
@@ -28,6 +29,7 @@ const panels = {
   start: document.getElementById('panel-start'),
   brief: document.getElementById('panel-brief'),
   draft: document.getElementById('panel-draft'),
+  settings: document.getElementById('panel-settings'),
   pause: document.getElementById('panel-pause'),
   dead: document.getElementById('panel-dead'),
   won: document.getElementById('panel-won'),
@@ -73,13 +75,15 @@ const campaign = new Campaign({
 const player = new Player(camera, campaign.stats);
 
 const horde = new Horde({
-  onPlayerHit: (dmg) => {
+  onPlayerHit: (dmg, z) => {
     if (player.dead) return;
     const died = player.damage(dmg);
     hud.hurt();
+    if (z) hud.hurtFrom(bearing(player.pos.x, player.pos.z, player.yaw, z.pos.x, z.pos.z));
     sfx.hurt();
     if (died) die();
   },
+  onGrowl: (z) => sfx.growl(z.pos.x, 1.4, z.pos.z),
   onKill: (z, headshot) => {
     campaign.kills++;
     campaign.levelKills++;
@@ -108,7 +112,73 @@ let state = 'menu';          // menu | brief | playing | paused | dead | draft |
 let chosenDifficulty = 'standard';
 let deathTimer = 0;
 let alpha = 0;
+let settingsReturn = 'start';
+let lastFov = 0;
 const shootTargets = [];
+
+const settings = config.load();
+
+function applySettings({ recompile = false } = {}) {
+  input.applySettings(settings);
+  sfx.setVolume(settings.volume);
+  renderer.shadowMap.enabled = settings.shadows;
+  horde.setBlobShadows(!settings.shadows);
+  // Toggling shadows after materials have compiled needs them rebuilt, or the
+  // scene keeps rendering with the old shader program.
+  if (recompile && world) {
+    world.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+  }
+}
+
+function buildSettingsPanel() {
+  const box = document.getElementById('settings-fields');
+  box.textContent = '';
+
+  for (const f of config.SCHEMA) {
+    const wrap = document.createElement('div');
+    wrap.className = 'field';
+    wrap.innerHTML = '<div class="field-head"><span></span><output></output></div>';
+    wrap.querySelector('span').textContent = f.label;
+    const out = wrap.querySelector('output');
+    out.textContent = f.format(settings[f.id]);
+
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = f.min; range.max = f.max; range.step = f.step;
+    range.value = settings[f.id];
+    range.setAttribute('aria-label', f.label);
+    range.addEventListener('input', () => {
+      settings[f.id] = parseFloat(range.value);
+      out.textContent = f.format(settings[f.id]);
+      applySettings();
+      config.save(settings);
+    });
+    wrap.appendChild(range);
+    box.appendChild(wrap);
+  }
+
+  for (const t of config.TOGGLES) {
+    const label = document.createElement('label');
+    label.className = 'check';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!settings[t.id];
+    cb.addEventListener('change', () => {
+      settings[t.id] = cb.checked;
+      applySettings({ recompile: true });
+      config.save(settings);
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(t.label));
+    box.appendChild(label);
+    if (t.note) {
+      const note = document.createElement('div');
+      note.className = 'field-note';
+      note.textContent = t.note;
+      box.appendChild(note);
+    }
+  }
+}
 
 function setPanel(name) {
   for (const [key, el] of Object.entries(panels)) el.hidden = key !== name;
@@ -292,6 +362,18 @@ if (saved && saved.levelIndex > 0) {
   }
 }
 
+function openSettings(returnTo) {
+  settingsReturn = returnTo;
+  setPanel('settings');
+}
+
+document.getElementById('btn-settings')
+  .addEventListener('click', () => openSettings('start'));
+document.getElementById('btn-settings-pause')
+  .addEventListener('click', () => openSettings('pause'));
+document.getElementById('btn-settings-back')
+  .addEventListener('click', () => setPanel(settingsReturn));
+
 document.getElementById('btn-start').addEventListener('click', () => newRun(chosenDifficulty));
 document.getElementById('btn-brief').addEventListener('click', startLevel);
 document.getElementById('btn-resume').addEventListener('click', () => {
@@ -336,11 +418,16 @@ function simulate(dt, wantFire) {
 
   weapon.step(dt, {
     wantFire: wantFire && !player.dead,
+    wantAim: input.aiming && !player.dead,
     camera,
     targets: shootTargets,
     horde,
     speed: Math.hypot(player.vel.x, player.vel.z),
   });
+
+  // Aiming costs movement and scales look speed with the zoom.
+  player.aimScale = weapon.moveScale;
+  input.aimFactor = weapon.lookScale;
 }
 
 // --- frame -----------------------------------------------------------------
@@ -378,7 +465,9 @@ function frame(now) {
     hud.setHealth(player.health, player.maxHealth);
     hud.setAmmo(weapon.mag, weapon.reserve, weapon.reloading > 0);
     hud.setRemaining(campaign.toSpawn + horde.aliveCount);
+    hud.setTime(campaign.elapsed);
     hud.tick(dt);
+    sfx.setListener(camera);
 
     if (state === 'dead') {
       deathTimer -= dt;
@@ -402,6 +491,14 @@ function render() {
       canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
+    lastFov = 0;                 // force the projection to rebuild below
+  }
+
+  // Field of view is the setting scaled by how far the sights are up.
+  const fov = settings.fov * weapon.fovScale;
+  if (Math.abs(fov - lastFov) > 0.01) {
+    lastFov = fov;
+    camera.fov = fov;
     camera.updateProjectionMatrix();
   }
 
@@ -415,6 +512,10 @@ function render() {
   renderer.clearDepth();
   renderer.render(weapon.scene, weapon.camera);
 }
+
+buildSettingsPanel();
+applySettings();
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 hud.show(false);
 setPanel('start');

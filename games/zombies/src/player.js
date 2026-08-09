@@ -28,6 +28,22 @@ const PITCH_LIMIT = Math.PI / 2 - 0.02;
 const _wish = new THREE.Vector3();
 const _flat = new THREE.Vector3();
 
+/**
+ * Screen bearing of a world point relative to where the player is looking:
+ * 0 is dead ahead, positive is to the right, ±π is behind.
+ *
+ * Forward is (-sin yaw, -cos yaw) and right is (cos yaw, -sin yaw), which is
+ * exactly the pair of sign conventions that is easy to get backwards — hence
+ * living here as one tested function rather than inline at the call site.
+ */
+export function bearing(px, pz, yaw, tx, tz) {
+  const dx = tx - px, dz = tz - pz;
+  const sin = Math.sin(yaw), cos = Math.cos(yaw);
+  const fwd = dx * -sin + dz * -cos;
+  const right = dx * cos + dz * -sin;
+  return Math.atan2(right, fwd);
+}
+
 export class Player {
   constructor(camera, stats) {
     this.camera = camera;
@@ -48,6 +64,7 @@ export class Player {
     this.bobAmount = 0;
     this.sprinting = false;
     this.extraPitch = 0;     // recoil, written by the weapon each frame
+    this.aimScale = 1;       // movement penalty while sighted, from the weapon
     this.shake = 0;          // decaying impulse, set when hit
   }
 
@@ -110,9 +127,12 @@ export class Player {
       _wish.normalize();
     }
 
-    this.sprinting = input.down('ShiftLeft') || input.down('ShiftRight');
+    // You can't sprint while sighted — the two requests contradict each other.
+    this.sprinting = (input.down('ShiftLeft') || input.down('ShiftRight'))
+      && this.aimScale > 0.9;
     // Sprinting only pays off going forwards; backpedalling stays slow.
-    const top = ((this.sprinting && f > 0) ? SPRINT : WALK) * this.stats.moveScale;
+    const top = ((this.sprinting && f > 0) ? SPRINT : WALK)
+      * this.stats.moveScale * this.aimScale;
 
     _flat.set(this.vel.x, 0, this.vel.z);
     const speed = _flat.length();

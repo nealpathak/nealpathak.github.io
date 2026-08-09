@@ -11,7 +11,8 @@ pre{line-height:1.7}</style>
 import * as THREE from 'three';
 import { buildWorld } from './src/world.js';
 import { LEVELS, campaignSize } from './src/levels.js';
-import { Player } from './src/player.js';
+import { Player, bearing } from './src/player.js';
+import * as config from './src/settings.js';
 import { Weapon } from './src/weapon.js';
 import { Horde, TYPES, MAX_ALIVE } from './src/zombies.js';
 import { Campaign } from './src/campaign.js';
@@ -374,6 +375,253 @@ while (!player.dead) player.damage(25);
 sim(60 * 3);
 ok('a dead player takes no further damage', playerHits === hitsAtDeath && player.health === 0);
 ok('the horde keeps moving during the death cam', horde.pool.some((z) => z.active));
+
+// ===========================================================================
+head('settings');
+
+const defs = config.defaults();
+ok('defaults are in range', config.SCHEMA.every((f) => defs[f.id] >= f.min && defs[f.id] <= f.max));
+ok('sensitivity is a multiplier on the base', defs.sensitivity === 1 && config.BASE_SENSITIVITY > 0);
+ok('a corrupt stored value is clamped, not honoured', (() => {
+  localStorage.setItem('nightshift.settings.v1', JSON.stringify({ sensitivity: 9999, fov: -40, volume: 12 }));
+  const s = config.load();
+  const inRange = config.SCHEMA.every((f) => s[f.id] >= f.min && s[f.id] <= f.max);
+  localStorage.removeItem('nightshift.settings.v1');
+  return inRange;
+})(), 'a stored sensitivity of 9999 would make the game unplayable');
+ok('settings round-trip through storage', (() => {
+  const s = config.defaults(); s.fov = 95; s.invertY = true;
+  config.save(s);
+  const back = config.load();
+  localStorage.removeItem('nightshift.settings.v1');
+  return back.fov === 95 && back.invertY === true;
+})());
+ok('a wrong-typed stored value falls back to the default', (() => {
+  localStorage.setItem('nightshift.settings.v1', JSON.stringify({ shadows: 'yes please' }));
+  const s = config.load();
+  localStorage.removeItem('nightshift.settings.v1');
+  return s.shadows === true;
+})());
+
+// ===========================================================================
+head('aim down sights');
+
+loadLevel(0); player.reset();
+const hipFov = weapon.fovScale, hipMove = weapon.moveScale;
+ok('hip fire is the neutral state', hipFov === 1 && hipMove === 1 && weapon.aimT === 0);
+
+const aimCtx = () => ({ wantFire: false, wantAim: true, camera, targets: [], horde, speed: 0 });
+for (let i = 0; i < 60; i++) weapon.step(STEP, aimCtx());
+ok('sights come up within a second', weapon.aimT > 0.98, `aimT=${weapon.aimT.toFixed(3)}`);
+ok('aiming narrows the field of view', weapon.fovScale < 1, `fov ×${weapon.fovScale.toFixed(2)}`);
+ok('aiming costs movement speed', weapon.moveScale < 0.7, `move ×${weapon.moveScale.toFixed(2)}`);
+ok('look speed scales with the zoom', weapon.lookScale === weapon.fovScale);
+ok('recoil is softer when sighted', (() => {
+  weapon.punch = 1;
+  const sighted = weapon.viewPunch;
+  const saveT = weapon.aimT; weapon.aimT = 0;
+  const hip = weapon.viewPunch;
+  weapon.aimT = saveT; weapon.punch = 0;
+  return sighted < hip;
+})());
+
+for (let i = 0; i < 60; i++) weapon.step(STEP, { ...aimCtx(), wantAim: false });
+ok('releasing returns to the hip', weapon.aimT === 0 && weapon.fovScale === 1);
+
+// You cannot sight a weapon you are loading.
+weapon.mag = 0; weapon.reserve = 40; weapon.startReload();
+for (let i = 0; i < 20; i++) weapon.step(STEP, aimCtx());
+ok('reloading blocks aiming', weapon.aimT === 0 && weapon.wantAim === false);
+weapon.reloading = 0; weapon.mag = weapon.magSize;
+
+// Sprint and aim contradict each other.
+player.reset(); player.aimScale = 1;
+keys.add('KeyW'); keys.add('ShiftLeft');
+let m0 = player.pos.clone(); sim(60);
+const freeSprint = player.pos.distanceTo(m0);
+player.reset(); player.aimScale = 0.55;
+m0 = player.pos.clone();
+for (let i = 0; i < 60; i++) {
+  player.aimScale = 0.55;    // main rewrites this every step from the weapon
+  world.update(STEP); player.step(STEP, input, world.colliders);
+}
+const aimedSprint = player.pos.distanceTo(m0);
+keys.clear();
+ok('you cannot sprint while sighted', aimedSprint < freeSprint * 0.7 && !player.sprinting,
+  `${aimedSprint.toFixed(2)} vs ${freeSprint.toFixed(2)} m/s`);
+player.aimScale = 1; player.reset();
+
+// ===========================================================================
+head('damage direction');
+
+const near = (a, b, tol = 0.02) => Math.abs(a - b) < tol;
+ok('a zombie dead ahead reads as ahead', near(bearing(0, 0, 0, 0, -5), 0),
+  `${bearing(0, 0, 0, 0, -5).toFixed(3)} rad`);
+ok('a zombie behind reads as behind', near(Math.abs(bearing(0, 0, 0, 0, 5)), Math.PI),
+  `${bearing(0, 0, 0, 0, 5).toFixed(3)} rad`);
+ok('a zombie to the right reads as the right', near(bearing(0, 0, 0, 5, 0), Math.PI / 2),
+  `${bearing(0, 0, 0, 5, 0).toFixed(3)} rad`);
+ok('a zombie to the left reads as the left', near(bearing(0, 0, 0, -5, 0), -Math.PI / 2),
+  `${bearing(0, 0, 0, -5, 0).toFixed(3)} rad`);
+ok('bearing follows the player turning', (() => {
+  // Face east; a zombie due east is now dead ahead rather than to the right.
+  return near(bearing(0, 0, -Math.PI / 2, 5, 0), 0);
+})());
+ok('bearing is independent of distance',
+  near(bearing(0, 0, 0, 3, -3), bearing(0, 0, 0, 30, -30)));
+
+// ===========================================================================
+head('growls');
+
+let growls = 0;
+const listener = new Horde({
+  onPlayerHit: () => {}, onKill: () => {}, onGrowl: () => growls++,
+});
+listener.attachTo(world.scene);
+listener.spawnAt(new THREE.Vector3(0, 0, 6), 500, 0.001, world.colliders, null, 'shambler', 1);
+for (let i = 0; i < 60 * 20; i++) listener.step(STEP, player.pos, world.colliders);
+ok('a nearby zombie growls', growls > 0, `${growls} in 20s`);
+
+growls = 0;
+listener.clear();
+// Far away: outside the 30m audible radius, it should stay quiet.
+listener.spawnAt(new THREE.Vector3(0, 0, -19), 500, 0.0001, world.colliders, null, 'shambler', 1);
+const far = listener.pool.find((z) => z.active);
+far.pos.set(0, 0, -19);
+player.pos.set(0, 0, 19);
+let farGrowls = 0;
+for (let i = 0; i < 60 * 10; i++) {
+  far.pos.set(0, 0, -19);          // pin it; we are testing the distance gate
+  listener.step(STEP, player.pos, world.colliders);
+}
+farGrowls = growls;
+ok('a zombie 38m away stays quiet', farGrowls === 0, `${farGrowls} growls`);
+listener.clear();
+player.reset();
+
+// ===========================================================================
+head('rendering');
+
+// Logic tests can all pass while the screen stays black. This renders real
+// frames to an offscreen context and reads the pixels back.
+{
+  const W = 320, H = 180;
+  const rc = document.createElement('canvas');
+  rc.width = W; rc.height = H;
+  const r = new THREE.WebGLRenderer({ canvas: rc, antialias: false, preserveDrawingBuffer: true });
+  r.setSize(W, H, false);
+  r.setClearColor(0x0a0c10, 1);
+  r.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  loadLevel(0);
+  horde.clear();
+
+  // Shadows only exist under a light that casts, so aim the camera at one
+  // instead of at an arbitrary patch of floor. Standing at the spawn and
+  // hoping is how you "prove" shadows work while looking at nothing.
+  let caster = null;
+  world.scene.traverse((o) => { if (o.isLight && o.castShadow && !caster) caster = o; });
+  ok('the level has a shadow-casting light', !!caster,
+    caster ? `${caster.type} at (${caster.position.x}, ${caster.position.z})` : 'none found');
+
+  const lx = caster ? caster.position.x : 0;
+  const lz = caster ? caster.position.z : 0;
+
+  for (const dx of [-2.5, 0, 2.5]) {
+    horde.spawnAt(new THREE.Vector3(lx + dx, 0, lz), 100, 0.001, world.colliders, null, 'shambler', 1);
+  }
+  horde.render(0);
+  horde.syncForRaycast();
+
+  // Two cameras with different jobs. This one is the player's-eye view at the
+  // spawn: it judges whether the level is bright enough to play in.
+  const cam = new THREE.PerspectiveCamera(78, W / H, 0.05, 220);
+  cam.position.set(LEVELS[0].spawn[0], 1.68, LEVELS[0].spawn[1]);
+  cam.rotation.set(0, 0, 0);
+  cam.updateMatrixWorld();
+
+  // And this one looks straight down at the lamp's pool. A zombie under an
+  // overhead light casts its shadow almost directly beneath itself, where an
+  // eye-level camera cannot see it — from above it's unmissable.
+  const top = new THREE.PerspectiveCamera(70, W / H, 0.05, 220);
+  top.position.set(lx, 6.2, lz);
+  top.rotation.set(-Math.PI / 2, 0, 0);
+  top.updateMatrixWorld();
+
+  const gl = r.getContext();
+  const px = new Uint8Array(W * H * 4);
+  const shoot = (c = cam) => {
+    r.render(world.scene, c);
+    gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    return px.slice();
+  };
+  const stats = (buf) => {
+    let sum = 0, lit = 0, max = 0;
+    for (let i = 0; i < buf.length; i += 4) {
+      const l = (buf[i] + buf[i + 1] + buf[i + 2]) / 3;
+      sum += l; if (l > 8) lit++; if (l > max) max = l;
+    }
+    return { mean: sum / (buf.length / 4), lit: lit / (buf.length / 4), max };
+  };
+  const setShadows = (on) => {
+    r.shadowMap.enabled = on;
+    world.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+  };
+
+  setShadows(true);
+  const withShadow = shoot();
+  const s = stats(withShadow);
+
+  ok('the scene renders something', s.max > 12, `max luma ${s.max}`);
+  ok('the scene is not a black frame', s.mean > 2, `mean luma ${s.mean.toFixed(1)}`);
+  ok('the scene is not blown out', s.mean < 170, `mean luma ${s.mean.toFixed(1)}`);
+  ok('most of the frame is geometry, not void', s.lit > 0.4, `${(s.lit * 100).toFixed(0)}% lit`);
+  note(`${r.info.render.calls} draw calls, ${r.info.render.triangles} triangles with 3 zombies`);
+
+  // If shadows were doing nothing, the two frames would be identical.
+  const withShadowTop = shoot(top);
+  setShadows(false);
+  const noShadow = shoot(top);
+  const withShadow2 = withShadowTop;
+  let diff = 0, darkened = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    const d = noShadow[i] - withShadow2[i];
+    diff += Math.abs(d);
+    if (d > 6) darkened++;             // shadowing can only remove light
+  }
+  const perPixel = diff / (W * H);
+  ok('shadows actually change the image', perPixel > 0.4,
+    `mean red-channel delta ${perPixel.toFixed(2)} per pixel`);
+  ok('shadows darken rather than brighten', darkened / (W * H) > 0.01,
+    `${((darkened / (W * H)) * 100).toFixed(1)}% of pixels lost light`);
+
+  // The view-model pass must draw over a cleared depth buffer.
+  r.autoClear = false;
+  setShadows(true);
+  r.clear();
+  r.render(world.scene, cam);
+  r.clearDepth();
+  r.render(weapon.scene, weapon.camera);
+  gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const withGun = stats(px);
+  ok('the weapon pass renders on top', withGun.mean > s.mean * 0.9,
+    `mean ${withGun.mean.toFixed(1)} vs ${s.mean.toFixed(1)} world-only`);
+
+  // Every level must render without throwing or going black.
+  const dark = [];
+  for (let i = 0; i < LEVELS.length; i++) {
+    loadLevel(i);
+    horde.clear();
+    cam.position.set(LEVELS[i].spawn[0], 1.68, LEVELS[i].spawn[1]);
+    cam.updateMatrixWorld();
+    r.autoClear = true;
+    const st = stats(shoot());
+    if (st.mean < 2 || st.lit < 0.25) dark.push(`${LEVELS[i].name} (${st.mean.toFixed(1)})`);
+  }
+  ok('every level renders a lit frame', dark.length === 0, dark.join(', '));
+
+  r.dispose();
+}
 
 // ===========================================================================
 head('hygiene');

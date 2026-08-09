@@ -22,10 +22,23 @@ export class Hud {
     this.toast = $('toast');
     this.damage = $('damage');
     this.perks = $('perks');
+    this.timer = $('run-timer');
 
     this._last = {};
     this._toastTimer = 0;
     this._damageTimer = 0;
+
+    // A small ring of reusable arcs. Being surrounded is the whole game, so
+    // "something bit me" is useless without "from over there".
+    this.arcs = [];
+    const holder = $('damage-arcs');
+    for (let i = 0; i < 5; i++) {
+      const el = document.createElement('i');
+      el.className = 'arc';
+      holder.appendChild(el);
+      this.arcs.push({ el, life: 0, bearing: 0 });
+    }
+    this._arcCursor = 0;
   }
 
   show(on) { this.root.hidden = !on; }
@@ -113,6 +126,24 @@ export class Hud {
     this._damageTimer = 0.12;
   }
 
+  /**
+   * Point an arc at whatever hit you.
+   * @param {number} bearing radians clockwise from straight ahead
+   */
+  hurtFrom(bearing) {
+    // Reuse the arc already pointing that way rather than stacking two on top
+    // of each other, which just reads as one brighter arc.
+    let slot = this.arcs.find((a) => a.life > 0 && Math.abs(a.bearing - bearing) < 0.35);
+    if (!slot) {
+      slot = this.arcs[this._arcCursor];
+      this._arcCursor = (this._arcCursor + 1) % this.arcs.length;
+    }
+    slot.bearing = bearing;
+    slot.life = 1.1;
+    slot.el.style.transform = `rotate(${bearing}rad)`;
+    slot.el.style.opacity = '1';
+  }
+
   tick(dt) {
     if (this._toastTimer > 0) {
       this._toastTimer -= dt;
@@ -122,11 +153,25 @@ export class Hud {
       this._damageTimer -= dt;
       if (this._damageTimer <= 0) this.damage.classList.remove('on');
     }
+    for (const a of this.arcs) {
+      if (a.life <= 0) continue;
+      a.life -= dt;
+      a.el.style.opacity = a.life <= 0 ? '0' : String(Math.min(1, a.life / 0.5));
+    }
+  }
+
+  setTime(seconds) {
+    const s = Math.floor(seconds);
+    if (this._last.time === s) return;
+    this._last.time = s;
+    this.timer.textContent =
+      `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   }
 
   reset() {
     this._last = {};
     this.toast.classList.remove('show');
     this.damage.classList.remove('on');
+    for (const a of this.arcs) { a.life = 0; a.el.style.opacity = '0'; }
   }
 }

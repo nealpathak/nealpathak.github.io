@@ -17,6 +17,14 @@ const SPREAD_MOVE = 0.010;
 const AMMO_PER_ZOMBIE = 3.2;  // resupply rate; ~2.5 shots kill an average body
 const RESERVE_CAP = 400;
 
+// Aim-down-sights. The gun comes to the centre of the screen, spread collapses,
+// and you give up movement speed for it — the trade that makes aiming a
+// decision rather than a button you hold permanently.
+const AIM_SPEED = 9;          // how fast the transition runs, per second
+const AIM_SPREAD = 0.18;
+const AIM_FOV_SCALE = 0.72;
+const AIM_MOVE_SCALE = 0.55;
+
 const _ray = new THREE.Raycaster();
 const _dirV = new THREE.Vector3();
 const _origin = new THREE.Vector3();
@@ -38,6 +46,8 @@ export class Weapon {
     this.punch = 0;
     this.punchVel = 0;
     this.sway = new THREE.Vector2();
+    this.aimT = 0;         // 0 hip, 1 sighted
+    this.wantAim = false;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(50, 1, 0.01, 12);
@@ -91,6 +101,10 @@ export class Weapon {
     g.rotation.set(0.02, 0.10, 0);
     this.rest = g.position.clone();
     this.restRot = g.rotation.clone();
+    // Sighted pose: centred, raised so the sight line sits on the crosshair,
+    // and pulled slightly closer to the eye.
+    this.aimPos = new THREE.Vector3(0, -0.082, -0.34);
+    this.aimRot = new THREE.Euler(0, 0, 0);
     return g;
   }
 
@@ -169,6 +183,12 @@ export class Weapon {
     this.cooldown -= dt;
     this.flashTime -= dt;
 
+    // You can't sight a weapon you're loading.
+    this.wantAim = !!ctx.wantAim && this.reloading <= 0;
+    const target = this.wantAim ? 1 : 0;
+    this.aimT += (target - this.aimT) * Math.min(1, dt * AIM_SPEED);
+    if (Math.abs(this.aimT - target) < 0.001) this.aimT = target;
+
     if (this.flashTime <= 0) {
       this.flash.material.opacity = 0;
       this.flashLight.intensity = 0;
@@ -224,7 +244,9 @@ export class Weapon {
 
     // --- the shot ---------------------------------------------------------
     ctx.camera.getWorldDirection(_dirV);
-    const spread = (SPREAD_BASE + Math.min(1, ctx.speed / 8) * SPREAD_MOVE) * this.stats.spreadScale;
+    const aimTighten = 1 - (1 - AIM_SPREAD) * this.aimT;
+    const spread = (SPREAD_BASE + Math.min(1, ctx.speed / 8) * SPREAD_MOVE)
+      * this.stats.spreadScale * aimTighten;
     _dirV.x += (Math.random() - 0.5) * spread;
     _dirV.y += (Math.random() - 0.5) * spread;
     _dirV.z += (Math.random() - 0.5) * spread;
@@ -271,30 +293,46 @@ export class Weapon {
     this.sway.x += (0 - this.sway.x) * 0.12;
     this.sway.y += (0 - this.sway.y) * 0.12;
 
-    const bobX = Math.cos(player.bobPhase) * 0.012 * player.bobAmount;
-    const bobY = Math.abs(Math.sin(player.bobPhase)) * 0.010 * player.bobAmount;
+    // Bob and sway fade out as the sights come up, or the gun wanders off the
+    // crosshair exactly when the player asked for precision.
+    const settle = 1 - this.aimT;
+    const bobX = Math.cos(player.bobPhase) * 0.012 * player.bobAmount * settle;
+    const bobY = Math.abs(Math.sin(player.bobPhase)) * 0.010 * player.bobAmount * settle;
 
     const reloadDrop = this.reloading > 0
       ? Math.sin((1 - this.reloading / this.stats.reloadTime) * Math.PI) * 0.14
       : 0;
 
+    const t = this.aimT;
+    const lerp = (a, b) => a + (b - a) * t;
+
     this.model.position.set(
-      this.rest.x + bobX + this.sway.x,
-      this.rest.y - bobY - reloadDrop + this.kick * 0.10,
-      this.rest.z - this.kick * 0.55
+      lerp(this.rest.x, this.aimPos.x) + bobX + this.sway.x * settle,
+      lerp(this.rest.y, this.aimPos.y) - bobY - reloadDrop + this.kick * 0.10,
+      lerp(this.rest.z, this.aimPos.z) - this.kick * 0.55
     );
     this.model.rotation.set(
-      this.restRot.x - this.kick * 0.6 - reloadDrop * 2.2,
-      this.restRot.y + this.sway.y,
-      this.restRot.z + reloadDrop * 0.9
+      lerp(this.restRot.x, this.aimRot.x) - this.kick * 0.6 - reloadDrop * 2.2,
+      lerp(this.restRot.y, this.aimRot.y) + this.sway.y * settle,
+      lerp(this.restRot.z, this.aimRot.z) + reloadDrop * 0.9
     );
 
     this.slide.position.z = -0.14 + Math.max(0, -this.kick) * 0.45;
     void alpha;
   }
 
-  /** Extra pitch from recoil, added to the player's aim. */
-  get viewPunch() { return this.punch * 0.04; }
+  /** Extra pitch from recoil, added to the player's aim. Recoil is softer when
+   *  sighted, which is most of what makes aiming worth the lost speed. */
+  get viewPunch() { return this.punch * 0.04 * (1 - 0.45 * this.aimT); }
+
+  /** World-camera FOV multiplier for the current aim state. */
+  get fovScale() { return 1 - (1 - AIM_FOV_SCALE) * this.aimT; }
+
+  /** Movement multiplier the player should apply while sighted. */
+  get moveScale() { return 1 - (1 - AIM_MOVE_SCALE) * this.aimT; }
+
+  /** Mouse sensitivity multiplier, matched to the zoom. */
+  get lookScale() { return this.fovScale; }
 }
 
 // A soft radial star, generated rather than downloaded.

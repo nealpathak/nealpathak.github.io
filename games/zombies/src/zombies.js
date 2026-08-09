@@ -73,7 +73,10 @@ class Zombie {
     g.add(this.shadow);
 
     this.parts = [this.torso, this.head, this.armL, this.armR, this.legL, this.legR];
-    for (const p of this.parts) p.userData.zombie = this;
+    for (const p of this.parts) {
+      p.userData.zombie = this;
+      p.castShadow = true;
+    }
     this.head.userData.head = true;
 
     g.visible = false;
@@ -106,6 +109,7 @@ class Zombie {
     this.stuck = 0;
     this.side = Math.random() < 0.5 ? 1 : -1;
     this.swing = 0;
+    this.growlT = 1 + Math.random() * 5;
 
     const build = t.scale * this.variation;
     this.radius = RADIUS * t.scale;
@@ -145,7 +149,13 @@ class Zombie {
 }
 
 export class Horde {
-  /** @param {{onPlayerHit:(dmg:number)=>void, onKill:(z:Zombie, headshot:boolean)=>void}} hooks */
+  /**
+   * @param {{
+   *   onPlayerHit:(dmg:number, z:Zombie)=>void,
+   *   onKill:(z:Zombie, headshot:boolean)=>void,
+   *   onGrowl?:(z:Zombie)=>void,
+   * }} hooks
+   */
   constructor(hooks) {
     this.hooks = hooks;
     this.pool = [];
@@ -158,6 +168,12 @@ export class Horde {
    *  how they follow the player from one level to the next. */
   attachTo(scene) {
     for (const z of this.pool) scene.add(z.group);
+  }
+
+  /** Fake contact discs are only wanted when real shadows are switched off —
+   *  with both on you get two shadows pointing different ways. */
+  setBlobShadows(on) {
+    for (const z of this.pool) z.shadow.visible = on;
   }
 
   get aliveCount() {
@@ -209,11 +225,19 @@ export class Horde {
       _dir.set(playerPos.x - z.pos.x, 0, playerPos.z - z.pos.z);
       const dist = _dir.length();
 
+      // Growls are the only warning you get about what's behind you, so they
+      // fire more often the closer a zombie is.
+      z.growlT -= dt * (dist < 12 ? 2 : 1);
+      if (z.growlT <= 0) {
+        z.growlT = 3 + Math.random() * 6;
+        if (dist < 30) this.hooks.onGrowl?.(z);
+      }
+
       if (dist <= z.reach + 0.1) {
         if (z.attackCd <= 0) {
           z.attackCd = ATTACK_COOLDOWN;
           z.swing = 0.35;
-          this.hooks.onPlayerHit(z.damage);
+          this.hooks.onPlayerHit(z.damage, z);
         }
       } else if (dist > 1e-4) {
         _dir.divideScalar(dist);

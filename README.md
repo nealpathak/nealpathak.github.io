@@ -64,6 +64,11 @@ input device. Open it in a browser and read the list:
 It has to mirror the game loop's step order to be worth anything, so if you
 change that order, change it in both places.
 
+The last section renders real frames to an offscreen WebGL context and reads
+the pixels back. Logic tests all pass happily while the screen stays black, and
+"shadows are enabled" is not the same claim as "shadows change the image" — that
+one is checked by rendering the same frame twice and diffing it.
+
 ## Deploying
 
 Push to `main`. GitHub Pages serves the repo root. `.nojekyll` is present so

@@ -29,10 +29,14 @@
       <span id="hitmarker" aria-hidden="true"></span>
     </div>
 
+    <div id="damage-arcs" aria-hidden="true"></div>
+
     <div id="top-left">
       <div id="level-name" class="mono"></div>
       <div id="perks"></div>
     </div>
+
+    <div id="run-timer" class="mono" aria-label="Run time">0:00</div>
 
     <div id="wave-badge" aria-live="polite">
       <span class="label">Wave</span>
@@ -74,16 +78,25 @@
       </fieldset>
 
       <button id="btn-start" class="primary" type="button">New run</button>
+      <button id="btn-settings" class="ghost" type="button">Settings</button>
 
       <dl class="keys">
         <dt class="mono">WASD</dt><dd>Move</dd>
         <dt class="mono">Mouse</dt><dd>Look</dd>
-        <dt class="mono">Click</dt><dd>Fire</dd>
+        <dt class="mono">Left click</dt><dd>Fire</dd>
+        <dt class="mono">Right click</dt><dd>Aim down sights</dd>
         <dt class="mono">R</dt><dd>Reload</dd>
         <dt class="mono">Shift</dt><dd>Sprint</dd>
         <dt class="mono">Space</dt><dd>Jump</dd>
         <dt class="mono">Esc</dt><dd>Pause</dd>
       </dl>
+    </div>
+
+    <!-- settings -->
+    <div id="panel-settings" class="panel" hidden>
+      <h1>Settings</h1>
+      <div id="settings-fields"></div>
+      <button id="btn-settings-back" class="primary" type="button">Back</button>
     </div>
 
     <!-- level briefing -->
@@ -105,6 +118,7 @@
     <div id="panel-pause" class="panel" hidden>
       <h1>Paused</h1>
       <button id="btn-resume" class="primary" type="button">Resume</button>
+      <button id="btn-settings-pause" class="ghost" type="button">Settings</button>
       <p class="muted mono"><a href="/">leave</a></p>
     </div>
 

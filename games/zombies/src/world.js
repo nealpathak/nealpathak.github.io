@@ -56,6 +56,8 @@ export function buildWorld(level) {
     const m = new THREE.Mesh(unit, mat);
     m.scale.set(w, h, d);
     m.position.set(x, y + h / 2, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
     scene.add(m);
     solids.push(m);
     colliders.push({
@@ -70,6 +72,7 @@ export function buildWorld(level) {
   owned.geometries.push(floorGeo);
   const floor = new THREE.Mesh(floorGeo, mats.concrete);
   floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
   scene.add(floor);
   solids.push(floor);
 
@@ -98,8 +101,15 @@ export function buildWorld(level) {
   level.build(solid, mats);
 
   // --- light ---------------------------------------------------------------
-  scene.add(new THREE.HemisphereLight(0x33405a, 0x0d1014, 0.85));
-  const moon = new THREE.DirectionalLight(0x8ea6c8, 0.5);
+  // Spot cones only light what's under them, so the ambient floor has to be
+  // higher than it was with omnidirectional lamps or the yard between pools
+  // goes black and unplayable.
+  scene.add(new THREE.HemisphereLight(0x33405a, 0x0d1014, 1.35));
+
+  // The moon is fill, not key. It deliberately does not cast: at 0.6 against
+  // lamps at 44 its shadow subtracts almost nothing, so it would buy a whole
+  // extra render pass for an invisible result.
+  const moon = new THREE.DirectionalLight(0x8ea6c8, 0.85);
   moon.position.set(-18, 30, -12);
   scene.add(moon);
 
@@ -112,10 +122,28 @@ export function buildWorld(level) {
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
   }));
 
-  const lamps = level.lamps.map(([x, y, z, flicker]) => {
-    const light = new THREE.PointLight(level.lampColor, flicker ? 52 : 44, 34, 2);
+  // Lamps are spotlights aimed at the floor, not point lights. That is both
+  // what a yard lamp physically is and what makes shadows affordable: a spot
+  // needs one 2D shadow map, where a point light needs a six-face cube.
+  // Only the first two cast, to bound the cost at two extra passes.
+  const SHADOW_CASTERS = 2;
+
+  const lamps = level.lamps.map(([x, y, z, flicker], i) => {
+    const light = new THREE.SpotLight(
+      level.lampColor, flicker ? 150 : 125, 42, Math.PI / 2.5, 0.42, 2);
     light.position.set(x, y, z);
+    light.target.position.set(x, 0, z);
     scene.add(light);
+    scene.add(light.target);
+
+    if (i < SHADOW_CASTERS) {
+      light.castShadow = true;
+      light.shadow.mapSize.set(1024, 1024);
+      light.shadow.camera.near = 0.5;
+      light.shadow.camera.far = 36;
+      light.shadow.bias = -0.0022;     // kills acne on the big flat floor
+      light.shadow.normalBias = 0.03;
+    }
 
     const bulb = new THREE.Mesh(bulbGeo, bulbMat);
     bulb.position.copy(light.position);

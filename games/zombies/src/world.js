@@ -1,37 +1,59 @@
-// The arena: a fenced loading dock at night.
+// Builds one level's arena from its definition in levels.js.
 //
-// Everything is built from one unit BoxGeometry that gets scaled, so the whole
-// level costs a handful of materials and no asset downloads. Each solid
-// registers an AABB for collision and a mesh for bullets to stop against.
+// Each call owns everything it creates and hands back a dispose() for it, so
+// stepping through six levels in a run doesn't leak GPU memory. Textures are
+// the exception: they're cached and shared across levels, so they're never
+// disposed here.
 
 import * as THREE from 'three';
+import { grungeMap, ribbedMap, bumpFor, skyTexture } from './textures.js';
 
-export const HALF = 20;          // arena runs -HALF..HALF on X and Z
-const WALL_H = 5;
-const UNIT = new THREE.BoxGeometry(1, 1, 1);
-
-export function buildWorld() {
+export function buildWorld(level) {
   const scene = new THREE.Scene();
-  const night = new THREE.Color(0x0a0c10);
-  scene.background = night;
-  scene.fog = new THREE.FogExp2(0x0a0c10, 0.028);
+  scene.background = skyTexture(level.sky[0], level.sky[1]);
+  scene.fog = new THREE.FogExp2(level.fog, level.fogDensity);
+
+  const HALF = level.half;
+  const WALL_H = 5;
 
   /** @type {{min:{x,y,z},max:{x,y,z}}[]} */
   const colliders = [];
   /** @type {THREE.Mesh[]} */
   const solids = [];
+  const owned = { geometries: [], materials: [] };
+
+  const unit = new THREE.BoxGeometry(1, 1, 1);
+  owned.geometries.push(unit);
+
+  const track = (m) => { owned.materials.push(m); return m; };
 
   const mats = {
-    concrete: new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.95 }),
-    wall:     new THREE.MeshStandardMaterial({ color: 0x2b2e34, roughness: 0.9 }),
-    crate:    new THREE.MeshStandardMaterial({ color: 0x5a4a33, roughness: 0.85 }),
-    container:new THREE.MeshStandardMaterial({ color: 0x7a3b2e, roughness: 0.7, metalness: 0.25 }),
-    steel:    new THREE.MeshStandardMaterial({ color: 0x4a4e55, roughness: 0.55, metalness: 0.5 }),
+    concrete: track(new THREE.MeshStandardMaterial({
+      map: grungeMap(0x3d4046, { seed: 11, speck: 0.13, repeat: 8 }),
+      bumpMap: bumpFor(11, 256, 64, 8), bumpScale: 0.4, roughness: 0.96,
+    })),
+    wall: track(new THREE.MeshStandardMaterial({
+      map: grungeMap(0x2e3138, { seed: 23, speck: 0.10, repeat: 3 }),
+      bumpMap: bumpFor(23, 256, 48, 3), bumpScale: 0.3, roughness: 0.92,
+    })),
+    crate: track(new THREE.MeshStandardMaterial({
+      map: grungeMap(0x5d4c33, { seed: 5, speck: 0.16, streaks: 0.10, repeat: 1 }),
+      bumpMap: bumpFor(5, 256, 32, 1), bumpScale: 0.5, roughness: 0.88,
+    })),
+    container: track(new THREE.MeshStandardMaterial({
+      map: ribbedMap(0x7d3d2f, { pitch: 14, repeat: 2, seed: 31 }),
+      roughness: 0.72, metalness: 0.28,
+    })),
+    steel: track(new THREE.MeshStandardMaterial({
+      map: grungeMap(0x4c5058, { seed: 41, speck: 0.09, streaks: 0.14, repeat: 2 }),
+      bumpMap: bumpFor(41, 256, 40, 2), bumpScale: 0.25,
+      roughness: 0.58, metalness: 0.52,
+    })),
   };
 
-  // solid(): x/z are the centre, y is the *bottom*. Registers collision.
+  /** x/z are the centre, y is the bottom. Draws it and registers collision. */
   function solid(x, z, w, d, h, mat, y = 0) {
-    const m = new THREE.Mesh(UNIT, mat);
+    const m = new THREE.Mesh(unit, mat);
     m.scale.set(w, h, d);
     m.position.set(x, y + h / 2, z);
     scene.add(m);
@@ -43,81 +65,71 @@ export function buildWorld() {
     return m;
   }
 
-  // --- ground ------------------------------------------------------------
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(HALF * 2, HALF * 2),
-    mats.concrete
-  );
+  // --- ground --------------------------------------------------------------
+  const floorGeo = new THREE.PlaneGeometry(HALF * 2, HALF * 2);
+  owned.geometries.push(floorGeo);
+  const floor = new THREE.Mesh(floorGeo, mats.concrete);
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
   solids.push(floor);
 
-  // Painted bay lines, so movement has something to read against.
-  const paint = new THREE.MeshBasicMaterial({ color: 0xb9a06a, transparent: true, opacity: 0.16 });
-  for (let i = -3; i <= 3; i++) {
-    const line = new THREE.Mesh(new THREE.PlaneGeometry(0.18, HALF * 1.5), paint);
+  // Painted bay lines give movement something to read against.
+  const lineGeo = new THREE.PlaneGeometry(0.18, HALF * 1.5);
+  owned.geometries.push(lineGeo);
+  const paint = track(new THREE.MeshBasicMaterial({
+    color: 0xb9a06a, transparent: true, opacity: 0.13,
+  }));
+  const lanes = Math.floor(HALF / 5);
+  for (let i = -lanes; i <= lanes; i++) {
+    const line = new THREE.Mesh(lineGeo, paint);
     line.rotation.x = -Math.PI / 2;
     line.position.set(i * 5, 0.012, 0);
     scene.add(line);
   }
 
-  // --- perimeter ---------------------------------------------------------
-  const T = 1; // wall thickness
+  // --- perimeter -----------------------------------------------------------
+  const T = 1;
   solid(0, -HALF, HALF * 2 + T, T, WALL_H, mats.wall);
-  solid(0,  HALF, HALF * 2 + T, T, WALL_H, mats.wall);
+  solid(0, HALF, HALF * 2 + T, T, WALL_H, mats.wall);
   solid(-HALF, 0, T, HALF * 2 + T, WALL_H, mats.wall);
-  solid( HALF, 0, T, HALF * 2 + T, WALL_H, mats.wall);
+  solid(HALF, 0, T, HALF * 2 + T, WALL_H, mats.wall);
 
-  // --- cover -------------------------------------------------------------
-  // Placed to break sightlines without creating a corner you can hide in
-  // forever — every pocket has at least two ways in.
-  solid(-11,  -8, 6.1, 2.5, 2.6, mats.container);
-  solid( 12,  -6, 2.5, 6.1, 2.6, mats.container);
-  solid( -7,  11, 6.1, 2.5, 2.6, mats.container);
-  solid( 13,  12, 6.1, 2.5, 2.6, mats.container);
+  // --- the level's own geometry --------------------------------------------
+  level.build(solid, mats);
 
-  solid(  0,   0, 3.0, 3.0, 3.2, mats.steel);       // centre block
-  solid(-16,  16, 2.2, 2.2, 2.4, mats.crate);
-  solid( 16, -16, 2.2, 2.2, 2.4, mats.crate);
-  solid( -3, -14, 1.6, 1.6, 1.8, mats.crate);
-  solid(  6,   8, 1.6, 1.6, 1.8, mats.crate);
-
-  for (const x of [-HALF + 6, HALF - 6]) {
-    for (const z of [-HALF + 6, HALF - 6]) {
-      solid(x, z, 0.7, 0.7, WALL_H, mats.steel);    // corner posts
-    }
-  }
-
-  // --- light -------------------------------------------------------------
-  // Dark enough to be night, bright enough that a zombie at 20m is a shape you
-  // can read rather than a rumour.
-  scene.add(new THREE.HemisphereLight(0x33405a, 0x0d1014, 0.95));
-
-  const moon = new THREE.DirectionalLight(0x8ea6c8, 0.55);
+  // --- light ---------------------------------------------------------------
+  scene.add(new THREE.HemisphereLight(0x33405a, 0x0d1014, 0.85));
+  const moon = new THREE.DirectionalLight(0x8ea6c8, 0.5);
   moon.position.set(-18, 30, -12);
   scene.add(moon);
 
-  // Sodium lamps. One of them is on its way out.
-  const lampPositions = [
-    [-12, 4.4, -12], [12, 4.4, 12], [-12, 4.4, 12], [12, 4.4, -12],
-  ];
-  const lamps = lampPositions.map(([x, y, z], i) => {
-    const light = new THREE.PointLight(0xffb457, i === 1 ? 52 : 42, 34, 2);
+  const bulbGeo = new THREE.SphereGeometry(0.18, 8, 6);
+  const haloGeo = new THREE.ConeGeometry(2.4, 4.2, 12, 1, true);
+  owned.geometries.push(bulbGeo, haloGeo);
+  const bulbMat = track(new THREE.MeshBasicMaterial({ color: 0xffe0b0 }));
+  const haloMat = track(new THREE.MeshBasicMaterial({
+    color: level.lampColor, transparent: true, opacity: 0.055,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  }));
+
+  const lamps = level.lamps.map(([x, y, z, flicker]) => {
+    const light = new THREE.PointLight(level.lampColor, flicker ? 52 : 44, 34, 2);
     light.position.set(x, y, z);
     scene.add(light);
 
-    const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.18, 8, 6),
-      new THREE.MeshBasicMaterial({ color: 0xffd9a0 })
-    );
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
     bulb.position.copy(light.position);
     scene.add(bulb);
 
-    return { light, bulb, base: light.intensity, flicker: i === 1 };
+    // Cheap volumetric: an additive cone of haze hanging under the lamp.
+    const halo = new THREE.Mesh(haloGeo, haloMat);
+    halo.position.set(x, y - 2.1, z);
+    scene.add(halo);
+
+    return { light, halo, base: light.intensity, flicker: !!flicker };
   });
 
-  // --- spawns ------------------------------------------------------------
-  // Ring of points just inside the fence. Zombies walk in from the dark.
+  // --- spawns --------------------------------------------------------------
   const spawnPoints = [];
   const r = HALF - 2.5;
   for (let i = 0; i < 20; i++) {
@@ -130,15 +142,23 @@ export function buildWorld() {
     t += dt;
     for (const l of lamps) {
       if (!l.flicker) continue;
-      // Cheap deterministic stutter: two detuned sines gated hard.
+      // Two detuned sines, gated hard — deterministic stutter, no RNG per frame.
       const n = Math.sin(t * 37.3) * Math.sin(t * 11.7);
-      l.light.intensity = n > 0.55 ? l.base * 0.18 : l.base;
+      const on = n <= 0.55;
+      l.light.intensity = on ? l.base : l.base * 0.16;
+      l.halo.visible = on;
     }
   }
 
-  // The level never moves, so resolve its matrices once, here. Bullets can
-  // then be traced against it before the first frame is ever drawn.
+  function dispose() {
+    for (const g of owned.geometries) g.dispose();
+    for (const m of owned.materials) m.dispose();   // shared textures survive
+    scene.clear();
+  }
+
+  // The level never moves, so resolve its matrices once. Bullets can then be
+  // traced against it before the first frame is ever drawn.
   scene.updateMatrixWorld(true);
 
-  return { scene, colliders, solids, spawnPoints, update };
+  return { scene, colliders, solids, spawnPoints, update, dispose, half: HALF };
 }

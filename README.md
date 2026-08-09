@@ -42,6 +42,17 @@ python scripts/serve.py
 Then open <http://localhost:8000>. The server sends `no-store`, so a reload
 always shows the code you just saved — never a stale cached copy.
 
+## Nightshift
+
+`games/zombies/` is a closed campaign, not an endless mode: six hand-authored
+levels, three difficulties, roughly an hour. Dying restarts the level you're on,
+never the run, and progress is saved to `localStorage` at each level boundary.
+
+Replay variety comes from the draft — after every level you pick one of three
+random upgrades from a pool of ten, so two runs diverge quickly. Level and wave
+data all live in `src/levels.js`; every balance number is in `src/upgrades.js`
+or the level's own `enemy` block, so tuning never means touching engine code.
+
 ## Tests
 
 A project that has logic worth breaking gets a `_selftest.html` next to it,

@@ -1,35 +1,42 @@
-// Zombies: a fixed pool, a blocky humanoid, and just enough steering to be
+// Zombies: a fixed pool, three body types, and just enough steering to be
 // menacing.
 //
-// No pathfinding — the yard is open, so they walk straight at you and slide
-// along whatever they bump into. The one bit of cleverness is the unstick
-// nudge: if a zombie has been rubbing against a container without making
-// progress, it picks a side and commits, which reads as "going around" rather
-// than "broken".
+// No pathfinding — the arenas are open enough that they walk straight at you
+// and slide along whatever they bump into. The one bit of cleverness is the
+// unstick nudge: a zombie that has been rubbing against a container without
+// making progress picks a side and commits, which reads as "going around"
+// rather than "broken".
 
 import * as THREE from 'three';
 import { resolve, blocked } from './collide.js';
 
-export const MAX_ALIVE = 28;
+export const MAX_ALIVE = 30;
+
+/**
+ * Body types. Multipliers, not absolutes — the level sets the base and the
+ * difficulty scales it, so a Nightmare brute on level 6 is the same creature as
+ * a Rookie brute on level 1, just further along every axis.
+ */
+export const TYPES = {
+  shambler: { hp: 1.00, speed: 1.00, damage: 1.0, scale: 1.00, skin: 0x6f7d5e, cloth: 0x2c3038 },
+  runner:   { hp: 0.50, speed: 2.05, damage: 0.7, scale: 0.93, skin: 0x8c8a68, cloth: 0x5e2a22 },
+  brute:    { hp: 3.60, speed: 0.60, damage: 1.9, scale: 1.32, skin: 0x515c46, cloth: 0x1f2329 },
+};
 
 const RADIUS = 0.42;
 const HEIGHT = 1.8;
-const REACH = 1.25;          // centre-to-centre distance at which it can hit you
 const ATTACK_DAMAGE = 22;
 const ATTACK_COOLDOWN = 1.15;
-const SEPARATION = 1.05;     // they crowd, but they don't occupy each other
-
 const DEATH_TIME = 1.4;
 
-// One geometry per body part, shared by every zombie.
 const G = {
   torso: new THREE.BoxGeometry(0.56, 0.72, 0.30),
   head:  new THREE.BoxGeometry(0.30, 0.30, 0.30),
   arm:   new THREE.BoxGeometry(0.16, 0.62, 0.18),
   leg:   new THREE.BoxGeometry(0.20, 0.78, 0.22),
 };
-// Arms and legs pivot at the shoulder/hip, so shift the geometry down and
-// rotate the mesh itself.
+// Limbs pivot at the shoulder/hip, so shift the geometry down and rotate the
+// mesh itself.
 G.arm.translate(0, -0.31, 0);
 G.leg.translate(0, -0.39, 0);
 
@@ -38,26 +45,18 @@ const SHADOW_MAT = new THREE.MeshBasicMaterial({
   color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false,
 });
 
-const SKIN_TONES = [0x6f7d5e, 0x7b8465, 0x5f6b52, 0x82805e];
-const CLOTH_TONES = [0x2c3038, 0x3a2f2a, 0x263038, 0x33302b];
+const BASE_EMISSIVE = 0x141a12;   // so silhouettes read outside the lamp pools
 
 const _dir = new THREE.Vector3();
 const _sep = new THREE.Vector3();
+const _tint = new THREE.Color();
 
 class Zombie {
   constructor(index) {
-    // A whisper of emissive on the skin so a silhouette still reads once it
-    // walks out of the lamp pools. Too much and they glow like lanterns.
-    const skin = new THREE.MeshStandardMaterial({
-      color: SKIN_TONES[index % SKIN_TONES.length], roughness: 1,
-      emissive: 0x141a12,
-    });
-    const cloth = new THREE.MeshStandardMaterial({
-      color: CLOTH_TONES[index % CLOTH_TONES.length], roughness: 1,
-    });
+    const skin = new THREE.MeshStandardMaterial({ roughness: 1, emissive: BASE_EMISSIVE });
+    const cloth = new THREE.MeshStandardMaterial({ roughness: 1 });
     this.mats = [skin, cloth];
-    // The hit flash overwrites emissive, so remember what to put back.
-    this.baseEmissive = [0x141a12, 0x000000];
+    this.baseEmissive = [BASE_EMISSIVE, 0x000000];
 
     const g = new THREE.Group();
     this.torso = new THREE.Mesh(G.torso, cloth); this.torso.position.y = 1.06;
@@ -73,7 +72,6 @@ class Zombie {
     this.shadow.position.y = 0.02;
     g.add(this.shadow);
 
-    // Everything the bullet can strike, tagged so we know what it hit.
     this.parts = [this.torso, this.head, this.armL, this.armR, this.legL, this.legR];
     for (const p of this.parts) p.userData.zombie = this;
     this.head.userData.head = true;
@@ -86,25 +84,47 @@ class Zombie {
     this.prev = new THREE.Vector3();
     this.yaw = 0;
     this.phase = Math.random() * Math.PI * 2;
-    this.build = 0.92 + (index % 5) * 0.04;
+    this.variation = 0.94 + (index % 5) * 0.03;
+    this.type = 'shambler';
+    this.radius = RADIUS;
   }
 
-  spawn(x, z, health, speed) {
+  spawn(x, z, health, speed, typeName, damageScale) {
+    const t = TYPES[typeName] || TYPES.shambler;
+    this.type = typeName;
     this.active = true;
     this.dying = false;
     this.deathT = 0;
+    this.maxHealth = health;
     this.health = health;
     this.speed = speed * (0.92 + Math.random() * 0.16);
+    this.damage = ATTACK_DAMAGE * damageScale;
     this.pos.set(x, 0, z);
     this.prev.copy(this.pos);
-    this.attackCd = 0.6;      // brief grace so a spawn-camp isn't instant damage
+    this.attackCd = 0.6;     // grace, so a spawn on top of you isn't instant damage
     this.flash = 0;
     this.stuck = 0;
     this.side = Math.random() < 0.5 ? 1 : -1;
     this.swing = 0;
+
+    const build = t.scale * this.variation;
+    this.radius = RADIUS * t.scale;
+    this.reach = this.radius + 0.36 + 0.47;   // + player radius + arm's length
+
     this.group.visible = true;
-    this.group.scale.setScalar(this.build);
-    for (let i = 0; i < this.mats.length; i++) this.mats[i].emissive.setHex(this.baseEmissive[i]);
+    this.group.scale.setScalar(build);
+
+    // Slight per-zombie hue drift so a wave doesn't look stamped out.
+    const jitter = 0.9 + Math.random() * 0.2;
+    _tint.setHex(t.skin).multiplyScalar(jitter);
+    this.mats[0].color.copy(_tint);
+    _tint.setHex(t.cloth).multiplyScalar(jitter);
+    this.mats[1].color.copy(_tint);
+    for (let i = 0; i < this.mats.length; i++) {
+      this.mats[i].emissive.setHex(this.baseEmissive[i]);
+      this.mats[i].opacity = 1;
+      this.mats[i].transparent = false;
+    }
   }
 
   hit(damage) {
@@ -113,7 +133,7 @@ class Zombie {
     if (this.health <= 0 && !this.dying) {
       this.dying = true;
       this.deathT = 0;
-      return true;   // killed
+      return true;
     }
     return false;
   }
@@ -125,21 +145,19 @@ class Zombie {
 }
 
 export class Horde {
-  /**
-   * @param {THREE.Scene} scene
-   * @param {{onPlayerHit:(dmg:number)=>void, onKill:(z:Zombie, headshot:boolean)=>void}} hooks
-   */
-  constructor(scene, hooks) {
+  /** @param {{onPlayerHit:(dmg:number)=>void, onKill:(z:Zombie, headshot:boolean)=>void}} hooks */
+  constructor(hooks) {
     this.hooks = hooks;
     this.pool = [];
-    for (let i = 0; i < MAX_ALIVE; i++) {
-      const z = new Zombie(i);
-      scene.add(z.group);
-      this.pool.push(z);
-    }
-    /** Meshes worth raycasting against — rebuilt only when the set changes. */
+    for (let i = 0; i < MAX_ALIVE; i++) this.pool.push(new Zombie(i));
     this.hitParts = [];
     this._dirty = true;
+  }
+
+  /** Move every zombie into `scene`. three re-parents on add, so this is also
+   *  how they follow the player from one level to the next. */
+  attachTo(scene) {
+    for (const z of this.pool) scene.add(z.group);
   }
 
   get aliveCount() {
@@ -153,21 +171,21 @@ export class Horde {
     this._dirty = true;
   }
 
-  /** @returns {boolean} whether a zombie was actually placed */
-  spawnAt(point, health, speed, colliders, playerPos) {
+  spawnAt(point, health, speed, colliders, playerPos, type = 'shambler', damageScale = 1) {
     const free = this.pool.find((z) => !z.active);
     if (!free) return false;
 
-    // Nudge around the spawn point until we find somewhere clear, and never
-    // drop one in the player's lap.
+    const t = TYPES[type] || TYPES.shambler;
+    const radius = RADIUS * t.scale;
+
     for (let attempt = 0; attempt < 8; attempt++) {
       const a = Math.random() * Math.PI * 2;
       const r = attempt * 0.6;
       const x = point.x + Math.cos(a) * r;
       const z = point.z + Math.sin(a) * r;
-      if (blocked(x, 0, z, RADIUS, HEIGHT, colliders)) continue;
+      if (blocked(x, 0, z, radius, HEIGHT, colliders)) continue;
       if (playerPos && Math.hypot(x - playerPos.x, z - playerPos.z) < 8) continue;
-      free.spawn(x, z, health, speed);
+      free.spawn(x, z, health, speed, type, damageScale);
       this._dirty = true;
       return true;
     }
@@ -191,48 +209,42 @@ export class Horde {
       _dir.set(playerPos.x - z.pos.x, 0, playerPos.z - z.pos.z);
       const dist = _dir.length();
 
-      if (dist <= REACH + 0.1) {
-        // In range: stop and swing.
+      if (dist <= z.reach + 0.1) {
         if (z.attackCd <= 0) {
           z.attackCd = ATTACK_COOLDOWN;
           z.swing = 0.35;
-          this.hooks.onPlayerHit(ATTACK_DAMAGE);
+          this.hooks.onPlayerHit(z.damage);
         }
       } else if (dist > 1e-4) {
         _dir.divideScalar(dist);
 
-        // Keep out of each other's space.
         _sep.set(0, 0, 0);
         for (const o of this.pool) {
           if (o === z || !o.active || o.dying) continue;
+          const want = z.radius + o.radius + 0.2;
           const dx = z.pos.x - o.pos.x, dz = z.pos.z - o.pos.z;
           const d2 = dx * dx + dz * dz;
-          if (d2 > 1e-6 && d2 < SEPARATION * SEPARATION) {
+          if (d2 > 1e-6 && d2 < want * want) {
             const d = Math.sqrt(d2);
-            _sep.x += (dx / d) * (1 - d / SEPARATION);
-            _sep.z += (dz / d) * (1 - d / SEPARATION);
+            _sep.x += (dx / d) * (1 - d / want);
+            _sep.z += (dz / d) * (1 - d / want);
           }
         }
 
         let vx = _dir.x + _sep.x * 0.9;
         let vz = _dir.z + _sep.z * 0.9;
 
-        // Committed sidestep while stuck on geometry.
-        if (z.stuck > 0.25) {
+        if (z.stuck > 0.25) {                 // committed sidestep
           vx += -_dir.z * z.side * 1.5;
           vz +=  _dir.x * z.side * 1.5;
         }
 
         const len = Math.hypot(vx, vz) || 1;
         const stepLen = z.speed * dt;
-        const tx = z.pos.x + (vx / len) * stepLen;
-        const tz = z.pos.z + (vz / len) * stepLen;
+        z.pos.x += (vx / len) * stepLen;
+        z.pos.z += (vz / len) * stepLen;
+        resolve(z.pos, z.radius, HEIGHT, colliders);
 
-        z.pos.x = tx;
-        z.pos.z = tz;
-        resolve(z.pos, RADIUS, HEIGHT, colliders);
-
-        // Did the world eat most of that step?
         const moved = Math.hypot(z.pos.x - z.prev.x, z.pos.z - z.prev.z);
         if (moved < stepLen * 0.45) {
           z.stuck += dt;
@@ -241,9 +253,8 @@ export class Horde {
           z.stuck = Math.max(0, z.stuck - dt * 1.5);
         }
 
-        z.phase += (moved / dt) * dt * 3.4;
+        z.phase += moved * 3.4;
 
-        // Turn to face travel, but not instantly.
         const want = Math.atan2(_dir.x, _dir.z);
         let delta = want - z.yaw;
         while (delta > Math.PI) delta -= Math.PI * 2;
@@ -268,21 +279,20 @@ export class Horde {
 
       if (z.dying) {
         const t = Math.min(1, z.deathT / DEATH_TIME);
-        g.rotation.x = -t * Math.PI * 0.5;          // pitch forward onto its face
+        g.rotation.x = -t * Math.PI * 0.5;
         g.position.y = -t * 0.35;
         const fade = 1 - Math.max(0, (t - 0.6) / 0.4);
         for (const m of z.mats) { m.transparent = true; m.opacity = fade; }
-        z.shadow.material = SHADOW_MAT;
         continue;
       }
 
+      g.rotation.x = 0;
       for (let i = 0; i < z.mats.length; i++) {
         const m = z.mats[i];
         if (m.opacity !== 1) { m.opacity = 1; m.transparent = false; }
         m.emissive.setHex(z.flash > 0 ? 0x883322 : z.baseEmissive[i]);
       }
 
-      // Shamble: legs out of phase, arms reaching, torso lolling.
       const sw = Math.sin(z.phase);
       z.legL.rotation.x =  sw * 0.55;
       z.legR.rotation.x = -sw * 0.55;
@@ -297,25 +307,12 @@ export class Horde {
     }
   }
 
-  /** Meshes to raycast against. Cached; only rebuilt when the roster changes. */
-  targets() {
-    if (this._dirty) {
-      this.hitParts.length = 0;
-      for (const z of this.pool) {
-        if (z.active && !z.dying) this.hitParts.push(...z.parts);
-      }
-      this._dirty = false;
-    }
-    return this.hitParts;
-  }
-
   /**
-   * Snap the visible transforms to the current simulation state and refresh
-   * world matrices.
+   * Snap visible transforms to the simulation and refresh world matrices.
    *
    * Three only updates matrixWorld inside renderer.render(), which runs after
-   * the simulation step. Without this, a shot is tested against where the
-   * horde stood on the *previous* frame — and on the very first frame, against
+   * the simulation step. Without this a shot is tested against where the horde
+   * stood on the *previous* frame — and on the very first frame, against
    * un-updated identity matrices, i.e. every zombie stacked at the origin.
    */
   syncForRaycast() {
@@ -327,16 +324,24 @@ export class Horde {
     }
   }
 
-  /** Called by the weapon when a raycast lands on one of our parts. */
-  damagePart(part, damage) {
+  targets() {
+    if (this._dirty) {
+      this.hitParts.length = 0;
+      for (const z of this.pool) {
+        if (z.active && !z.dying) this.hitParts.push(...z.parts);
+      }
+      this._dirty = false;
+    }
+    return this.hitParts;
+  }
+
+  damagePart(part, damage, headshotMult) {
     const z = part.userData.zombie;
     if (!z || z.dying) return;
     const headshot = part.userData.head === true;
-    if (z.hit(headshot ? damage * 2.6 : damage)) {
+    if (z.hit(headshot ? damage * headshotMult : damage)) {
       this._dirty = true;
       this.hooks.onKill(z, headshot);
     }
   }
-
-  markDirty() { this._dirty = true; }
 }

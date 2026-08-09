@@ -4,19 +4,18 @@
 // second pass over a cleared depth buffer. That's how shooters keep the weapon
 // from poking through walls or getting sliced by the near plane, and it lets
 // the gun have a different field of view from the world.
+//
+// Every tunable comes from the shared stats object rather than a constant here,
+// because upgrades mutate that object between levels.
 
 import * as THREE from 'three';
 
-const FIRE_INTERVAL = 0.14;
-const RELOAD_TIME = 1.5;
-const MAG_SIZE = 15;
-const START_RESERVE = 90;
-const RESERVE_PER_ROUND = 45;
-const DAMAGE = 34;
 const RANGE = 90;
-
 const SPREAD_BASE = 0.0016;   // radians, standing still
 const SPREAD_MOVE = 0.010;
+
+const AMMO_PER_ZOMBIE = 3.2;  // resupply rate; ~2.5 shots kill an average body
+const RESERVE_CAP = 400;
 
 const _ray = new THREE.Raycaster();
 const _dirV = new THREE.Vector3();
@@ -24,15 +23,16 @@ const _origin = new THREE.Vector3();
 const _tmp = new THREE.Vector3();
 
 export class Weapon {
-  constructor(hooks) {
-    this.hooks = hooks;          // { onShot, onHit, onKill, onDryFire, onReload }
+  /** @param {{onShot,onHit,onImpact,onDryFire,onReload}} hooks */
+  constructor(hooks, stats) {
+    this.hooks = hooks;
+    this.stats = stats;
 
-    this.mag = MAG_SIZE;
-    this.reserve = START_RESERVE;
+    this.mag = stats.magSize;
+    this.reserve = stats.ammoPerLevel;
     this.cooldown = 0;
     this.reloading = 0;
 
-    // Recoil springs. `kick` is the view-model offset, `punch` is view rotation.
     this.kick = 0;
     this.kickVel = 0;
     this.punch = 0;
@@ -53,6 +53,15 @@ export class Weapon {
     this._buildTracers();
   }
 
+  /** Swap in a new stats object after an upgrade. Tops the magazine up to the
+   *  new size rather than leaving a bigger mag mysteriously part-empty. */
+  useStats(stats) {
+    const grew = stats.magSize - this.stats.magSize;
+    this.stats = stats;
+    if (grew > 0) this.mag += grew;
+    this.mag = Math.min(this.mag, stats.magSize);
+  }
+
   _buildModel() {
     const g = new THREE.Group();
     const body = new THREE.MeshStandardMaterial({ color: 0x24262b, roughness: 0.55, metalness: 0.65 });
@@ -70,14 +79,13 @@ export class Weapon {
     box(0.045, 0.045, 0.30, 0, 0.012, -0.36, body);   // barrel shroud
     box(0.026, 0.026, 0.10, 0, 0.012, -0.54, trim);   // muzzle
     this.slide = box(0.070, 0.030, 0.30, 0, 0.058, -0.14, trim);
-    box(0.060, 0.150, 0.09, 0, -0.115, 0.01, grip);   // grip
+    box(0.060, 0.150, 0.09, 0, -0.115, 0.01, grip);
     box(0.055, 0.030, 0.11, 0, -0.055, -0.04, grip);  // magwell
     box(0.014, 0.020, 0.014, 0, 0.082, -0.47, grip);  // front sight
     box(0.040, 0.018, 0.014, 0, 0.082, -0.02, grip);  // rear sight
 
-    // Sat low and to the right, angled slightly inward — reads as "held".
-    // Keep it out of the centre of the screen: this is a shooter, and the
-    // crosshair has to stay the busiest thing you look at.
+    // Low and to the right, canted inward — reads as "held". Kept out of the
+    // centre of the screen: the crosshair has to stay the busiest thing there.
     g.scale.setScalar(0.78);
     g.position.set(0.20, -0.175, -0.46);
     g.rotation.set(0.02, 0.10, 0);
@@ -87,25 +95,23 @@ export class Weapon {
   }
 
   _buildFlash() {
-    const tex = flashTexture();
     this.flash = new THREE.Mesh(
       new THREE.PlaneGeometry(0.34, 0.34),
       new THREE.MeshBasicMaterial({
-        map: tex, transparent: true, blending: THREE.AdditiveBlending,
+        map: flashTexture(), transparent: true, blending: THREE.AdditiveBlending,
         depthWrite: false, opacity: 0,
       })
     );
     this.flash.position.set(0, 0.012, -0.60);
     this.model.add(this.flash);
 
-    // A real light in the world, so the muzzle actually lights the yard.
     this.flashLight = new THREE.PointLight(0xffc37a, 0, 14, 2);
     this.flashTime = 0;
   }
 
   _buildTracers() {
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    geo.translate(0, 0, -0.5);   // pivot at the near end so we can scale to length
+    geo.translate(0, 0, -0.5);   // pivot at the near end, so scale.z is length
     const mat = new THREE.MeshBasicMaterial({
       color: 0xffd9a0, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false,
@@ -118,28 +124,44 @@ export class Weapon {
     }
   }
 
-  /** Tracers live in the world scene, not the view-model scene. */
+  /** Tracers and the muzzle light live in the world scene, not the view-model
+   *  scene. three re-parents on add, so this also handles level changes. */
   attachTo(worldScene) {
     for (const t of this.tracers) worldScene.add(t.mesh);
     worldScene.add(this.flashLight);
   }
 
-  onRoundStart() { this.reserve += RESERVE_PER_ROUND; }
+  /**
+   * Ammunition arrives per wave rather than in one lump at the level start.
+   * A level is 100–320 zombies; no single reserve both covers the last level
+   * and leaves the first one tense. Granting against wave size self-balances
+   * across levels of very different length, and the cap stops a careful player
+   * banking an infinite stockpile through the easy waves.
+   */
+  loadForLevel(ammoScale = 1) {
+    this.mag = this.stats.magSize;
+    this.reserve = Math.round(this.stats.ammoPerLevel * ammoScale);
+  }
+
+  grantWaveAmmo(waveSize, ammoScale = 1) {
+    const grant = Math.round(waveSize * AMMO_PER_ZOMBIE * ammoScale);
+    this.reserve = Math.min(RESERVE_CAP, this.reserve + grant);
+  }
 
   reset() {
-    this.mag = MAG_SIZE;
-    this.reserve = START_RESERVE;
+    this.mag = this.stats.magSize;
     this.reloading = 0;
     this.cooldown = 0;
+    this.kick = this.kickVel = this.punch = this.punchVel = 0;
     for (const t of this.tracers) { t.life = 0; t.mesh.visible = false; }
   }
 
+  get magSize() { return this.stats.magSize; }
   get needsReload() { return this.mag === 0; }
-  get magSize() { return MAG_SIZE; }
 
   startReload() {
-    if (this.reloading > 0 || this.mag === MAG_SIZE || this.reserve === 0) return;
-    this.reloading = RELOAD_TIME;
+    if (this.reloading > 0 || this.mag === this.stats.magSize || this.reserve === 0) return;
+    this.reloading = this.stats.reloadTime;
     this.hooks.onReload();
   }
 
@@ -155,14 +177,13 @@ export class Weapon {
     if (this.reloading > 0) {
       this.reloading -= dt;
       if (this.reloading <= 0) {
-        const want = MAG_SIZE - this.mag;
-        const take = Math.min(want, this.reserve);
+        const take = Math.min(this.stats.magSize - this.mag, this.reserve);
         this.mag += take;
         this.reserve -= take;
       }
     }
 
-    // Recoil springs: critically-ish damped, tuned by feel.
+    // Recoil springs, tuned by feel rather than by physics.
     this.kickVel += (-this.kick * 260 - this.kickVel * 26) * dt;
     this.kick += this.kickVel * dt;
     this.punchVel += (-this.punch * 190 - this.punchVel * 22) * dt;
@@ -189,7 +210,7 @@ export class Weapon {
     }
 
     this.mag--;
-    this.cooldown = FIRE_INTERVAL;
+    this.cooldown = this.stats.fireInterval;
     this.hooks.onShot();
 
     this.kickVel -= 5.2;
@@ -203,7 +224,7 @@ export class Weapon {
 
     // --- the shot ---------------------------------------------------------
     ctx.camera.getWorldDirection(_dirV);
-    const spread = SPREAD_BASE + Math.min(1, ctx.speed / 8) * SPREAD_MOVE;
+    const spread = (SPREAD_BASE + Math.min(1, ctx.speed / 8) * SPREAD_MOVE) * this.stats.spreadScale;
     _dirV.x += (Math.random() - 0.5) * spread;
     _dirV.y += (Math.random() - 0.5) * spread;
     _dirV.z += (Math.random() - 0.5) * spread;
@@ -215,23 +236,22 @@ export class Weapon {
 
     const hits = _ray.intersectObjects(ctx.targets, false);
     const hit = hits.length ? hits[0] : null;
-
-    const end = hit
-      ? hit.point
-      : _tmp.copy(_origin).addScaledVector(_dirV, RANGE).clone();
+    const end = hit ? hit.point : _tmp.copy(_origin).addScaledVector(_dirV, RANGE).clone();
 
     this._tracer(_origin, end, ctx.camera);
 
     if (hit && hit.object.userData.zombie) {
-      ctx.horde.damagePart(hit.object, DAMAGE);
-      this.hooks.onHit(hit.object.userData.head === true);
+      ctx.horde.damagePart(hit.object, this.stats.damage, this.stats.headshotMult);
+      this.hooks.onHit(hit.object.userData.head === true, hit.point, _dirV);
+    } else if (hit) {
+      this.hooks.onImpact(hit.point, _dirV);
     }
   }
 
   _tracer(from, to, camera) {
     const t = this.tracers.find((x) => x.life <= 0) || this.tracers[0];
-    // Start it at the muzzle rather than the eye, or it looks like a laser
-    // fired out of your forehead.
+    // Start at the muzzle, not the eye, or it looks like a laser fired out of
+    // your forehead.
     _tmp.set(0.13, -0.10, 0).applyQuaternion(camera.quaternion).add(from);
     const len = _tmp.distanceTo(to);
     t.mesh.position.copy(_tmp);
@@ -242,15 +262,12 @@ export class Weapon {
     t.life = 0.06;
   }
 
-  /** Called each rendered frame; `bob` and `speed` come from the player. */
   render(alpha, player, aspect) {
     if (this.camera.aspect !== aspect) {
       this.camera.aspect = aspect;
       this.camera.updateProjectionMatrix();
     }
 
-    // Sway lags the mouse a little, so whipping the view throws the gun around.
-    const targetX = -player.yaw;
     this.sway.x += (0 - this.sway.x) * 0.12;
     this.sway.y += (0 - this.sway.y) * 0.12;
 
@@ -258,7 +275,7 @@ export class Weapon {
     const bobY = Math.abs(Math.sin(player.bobPhase)) * 0.010 * player.bobAmount;
 
     const reloadDrop = this.reloading > 0
-      ? Math.sin((1 - this.reloading / RELOAD_TIME) * Math.PI) * 0.14
+      ? Math.sin((1 - this.reloading / this.stats.reloadTime) * Math.PI) * 0.14
       : 0;
 
     this.model.position.set(
@@ -272,10 +289,8 @@ export class Weapon {
       this.restRot.z + reloadDrop * 0.9
     );
 
-    // The slide cycles on every shot.
     this.slide.position.z = -0.14 + Math.max(0, -this.kick) * 0.45;
-
-    void targetX; void alpha;
+    void alpha;
   }
 
   /** Extra pitch from recoil, added to the player's aim. */

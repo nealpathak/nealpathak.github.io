@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nightshift — Neal Pathak</title>
+<meta name="description" content="A round-based first-person zombie survival game. Runs in the browser.">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="./style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "/assets/vendor/three/three.module.min.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="view"></canvas>
+
+  <!-- HUD ------------------------------------------------------------- -->
+  <div id="hud" hidden>
+    <div id="crosshair" aria-hidden="true">
+      <span class="ch ch-t"></span><span class="ch ch-r"></span>
+      <span class="ch ch-b"></span><span class="ch ch-l"></span>
+      <span id="hitmarker" aria-hidden="true"></span>
+    </div>
+
+    <div id="round-badge" aria-live="polite">
+      <span class="label">Round</span>
+      <span id="round-num">1</span>
+    </div>
+
+    <div id="bottom-left">
+      <div id="health-bar"><i id="health-fill"></i></div>
+      <div id="health-num" class="mono">100</div>
+    </div>
+
+    <div id="bottom-right">
+      <div id="ammo" class="mono"><b id="mag">15</b><span id="reserve">/ 90</span></div>
+      <div id="reload-hint" class="mono" hidden>R — reload</div>
+    </div>
+
+    <div id="toast" class="mono" aria-live="polite"></div>
+    <div id="damage" aria-hidden="true"></div>
+  </div>
+
+  <!-- Overlays --------------------------------------------------------- -->
+  <div id="overlay">
+    <div id="panel-start" class="panel">
+      <h1>Nightshift</h1>
+      <p class="muted">The lights went out on the loading dock. Survive the round.</p>
+      <button id="btn-start" class="primary" type="button">Click to play</button>
+      <dl class="keys">
+        <dt class="mono">WASD</dt><dd>Move</dd>
+        <dt class="mono">Mouse</dt><dd>Look</dd>
+        <dt class="mono">Click</dt><dd>Fire</dd>
+        <dt class="mono">R</dt><dd>Reload</dd>
+        <dt class="mono">Shift</dt><dd>Sprint</dd>
+        <dt class="mono">Space</dt><dd>Jump</dd>
+        <dt class="mono">Esc</dt><dd>Pause</dd>
+      </dl>
+    </div>
+
+    <div id="panel-pause" class="panel" hidden>
+      <h1>Paused</h1>
+      <button id="btn-resume" class="primary" type="button">Resume</button>
+      <p class="muted mono"><a href="/">leave</a></p>
+    </div>
+
+    <div id="panel-dead" class="panel" hidden>
+      <h1>You died</h1>
+      <p id="dead-stats" class="muted"></p>
+      <button id="btn-again" class="primary" type="button">Try again</button>
+      <p class="muted mono"><a href="/">leave</a></p>
+    </div>
+
+    <div id="panel-touch" class="panel" hidden>
+      <h1>Nightshift</h1>
+      <p class="muted">This one needs a mouse and keyboard — it locks the pointer
+        to aim. Come back on a desktop.</p>
+      <p class="muted mono"><a href="/">back to the index</a></p>
+    </div>
+
+    <noscript>
+      <div class="panel">
+        <h1>Nightshift</h1>
+        <p class="muted">This is a 3D game; it needs JavaScript.</p>
+      </div>
+    </noscript>
+  </div>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Keep line endings sane regardless of which machine edits the files.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.mp3 binary
+*.ogg binary
+*.wav binary

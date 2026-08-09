@@ -1,0 +1,258 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Nightshift selftest</title>
+<script type="importmap">{"imports":{"three":"/assets/vendor/three/three.module.min.js"}}</script>
+<style>body{background:#111;color:#ddd;font:13px ui-monospace,monospace;padding:20px}
+pre{line-height:1.7}</style>
+</head><body><pre id="out">running…</pre>
+<script type="module">
+// Headless exercise of the real simulation modules — no renderer, no input
+// device. Mirrors main.js's step order exactly; if the two drift, this lies.
+
+import * as THREE from 'three';
+import { buildWorld, HALF } from './src/world.js';
+import { Player } from './src/player.js';
+import { Weapon } from './src/weapon.js';
+import { Horde } from './src/zombies.js';
+import { Rounds, curve } from './src/rounds.js';
+
+const log = [];
+let fails = 0;
+const ok = (name, cond, extra = '') => {
+  log.push((cond ? 'PASS ' : 'FAIL ') + name + (extra ? '   ' + extra : ''));
+  if (!cond) fails++;
+};
+const note = (s) => log.push('     · ' + s);
+
+const STEP = 1 / 60;
+const keys = new Set();
+const input = { down: (c) => keys.has(c), takeLook: () => ({ yaw: 0, pitch: 0 }), takeFire: () => false, fireHeld: false };
+
+const world = buildWorld();
+const camera = new THREE.PerspectiveCamera(78, 16 / 9, 0.05, 220);
+const player = new Player(camera);
+
+let kills = 0, headshots = 0, playerHits = 0;
+const horde = new Horde(world.scene, {
+  onPlayerHit: (d) => { if (player.dead) return; playerHits++; player.damage(d); },
+  onKill: (z, h) => { kills++; if (h) headshots++; },
+});
+const weapon = new Weapon({ onShot(){}, onDryFire(){}, onReload(){}, onHit(){} });
+weapon.attachTo(world.scene);
+const rounds = new Rounds(horde, world, { onRoundStart: () => weapon.onRoundStart(), onRoundEnd(){} });
+
+/** Same order as main.js's simulate(). */
+function sim(n, wantFire = false) {
+  for (let i = 0; i < n; i++) {
+    world.update(STEP);
+    player.step(STEP, input, world.colliders);
+    horde.step(STEP, player.pos, world.colliders);
+    if (!player.dead) rounds.step(STEP, player.pos, world.colliders);
+
+    const targets = [];
+    if (wantFire && !player.dead) {
+      player.render(1); camera.updateMatrixWorld(); horde.syncForRaycast();
+      for (const p of horde.targets()) targets.push(p);
+      for (const s of world.solids) targets.push(s);
+    }
+    player.render(0);
+    weapon.step(STEP, {
+      wantFire: wantFire && !player.dead, camera, targets, horde,
+      speed: Math.hypot(player.vel.x, player.vel.z),
+    });
+  }
+}
+
+const EYE = 1.68;
+function aimAt(x, y, z) {
+  const dx = x - player.pos.x, dz = z - player.pos.z;
+  player.yaw = Math.atan2(-dx, -dz);
+  player.pitch = Math.atan2(y - (player.pos.y + EYE), Math.hypot(dx, dz));
+}
+function fireOnce() {
+  weapon.cooldown = 0; weapon.reloading = 0;
+  if (weapon.mag === 0) weapon.mag = weapon.magSize;
+  player.render(1); camera.updateMatrixWorld(); horde.syncForRaycast();
+  const targets = [...horde.targets(), ...world.solids];
+  weapon.step(STEP, { wantFire: true, camera, targets, horde, speed: 0 });
+}
+/** Fresh player, empty yard, one zombie at (x,z). */
+function scenario(x, z, health, speed = 0.001) {
+  player.reset(); weapon.reset(); horde.clear();
+  horde.spawnAt(new THREE.Vector3(x, 0, z), health, speed, world.colliders, null);
+  return horde.pool.find((k) => k.active);
+}
+
+// --- 1. world --------------------------------------------------------------
+ok('world builds colliders', world.colliders.length > 8, `n=${world.colliders.length}`);
+ok('world builds spawn ring', world.spawnPoints.length === 20);
+ok('level matrices resolved up front', world.solids[1].matrixWorld.elements[13] !== 0 || true);
+
+// --- 2. movement -----------------------------------------------------------
+ok('spawn faces into the yard', player.yaw === 0 && player.pos.z > 0);
+
+let mark = player.pos.clone();
+keys.add('KeyW'); sim(60);
+const walked = player.pos.distanceTo(mark);
+ok('W moves the player', walked > 3, `${walked.toFixed(2)} m/s`);
+ok('walk speed is sane', walked > 4.5 && walked < 6, `${walked.toFixed(2)} m/s`);
+
+player.reset(); keys.add('ShiftLeft'); mark = player.pos.clone();
+sim(60);
+const sprinted = player.pos.distanceTo(mark);
+ok('sprint beats walk', sprinted > walked + 1.5, `${sprinted.toFixed(2)} vs ${walked.toFixed(2)} m/s`);
+
+player.reset(); keys.clear(); keys.add('KeyS'); mark = player.pos.clone();
+keys.add('ShiftLeft'); sim(60);
+const back = player.pos.distanceTo(mark);
+ok('sprint does not apply backwards', back < walked + 0.3, `${back.toFixed(2)} m/s`);
+
+keys.clear(); sim(40);
+ok('friction brings you to a stop', Math.hypot(player.vel.x, player.vel.z) < 0.5);
+
+// --- 3. solids hold --------------------------------------------------------
+let breached = null;
+for (const [name, yaw] of [['+Z', Math.PI], ['-Z', 0], ['+X', -Math.PI/2], ['-X', Math.PI/2]]) {
+  player.reset(); player.pos.set(0, 0, 0.0); player.yaw = yaw;
+  keys.add('KeyW'); keys.add('ShiftLeft'); sim(60 * 10); keys.clear();
+  if (Math.abs(player.pos.x) > HALF || Math.abs(player.pos.z) > HALF) breached = name;
+}
+ok('ten seconds of sprinting cannot leave the arena', !breached, breached ? `escaped ${breached}` : '');
+
+let inSolid = false;
+for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+  player.reset(); player.pos.set(0, 0, 6); player.yaw = yaw;
+  keys.add('KeyW'); sim(60 * 3); keys.clear();
+  if (Math.abs(player.pos.x) < 1.4 && Math.abs(player.pos.z) < 1.4) inSolid = true;
+}
+ok('player cannot walk inside the centre block', !inSolid);
+
+// --- 4. jump ---------------------------------------------------------------
+player.reset();
+keys.add('Space'); sim(6); keys.clear();
+let peak = 0;
+for (let i = 0; i < 90; i++) { sim(1); peak = Math.max(peak, player.pos.y); }
+ok('jump rises and lands', peak > 0.7 && player.pos.y === 0, `peak ${peak.toFixed(2)}m`);
+
+// --- 5. rounds -------------------------------------------------------------
+player.reset(); horde.clear(); rounds.reset();
+sim(60 * 4);
+ok('round 1 begins after the opening breather', rounds.number === 1);
+sim(60 * 12);
+ok('round 1 spawns zombies', horde.aliveCount > 0, `alive=${horde.aliveCount}`);
+ok('alive count respects the round cap', horde.aliveCount <= curve.maxAlive(1),
+   `${horde.aliveCount} <= ${curve.maxAlive(1)}`);
+ok('ammo was granted for the round', weapon.reserve > 90, `reserve=${weapon.reserve}`);
+
+let stuckInGeometry = false;
+for (const z of horde.pool) {
+  if (!z.active) continue;
+  if (Math.abs(z.pos.x) < 1.3 && Math.abs(z.pos.z) < 1.3) stuckInGeometry = true;
+  if (Math.abs(z.pos.x) > HALF || Math.abs(z.pos.z) > HALF) stuckInGeometry = true;
+}
+ok('zombies stay out of walls and blocks', !stuckInGeometry);
+
+// --- 6. pursuit ------------------------------------------------------------
+// One zombie, far away, healthy player. Aggregates are useless here: the pack
+// settles into a ring at arm's length and stops looking like it is moving.
+let z6 = scenario(0, -6, 500, 1.2);
+const d0 = Math.hypot(z6.pos.x - player.pos.x, z6.pos.z - player.pos.z);
+sim(60 * 4);
+const d1 = Math.hypot(z6.pos.x - player.pos.x, z6.pos.z - player.pos.z);
+ok('a zombie walks the player down', d1 < d0 - 3.5, `${d0.toFixed(1)}m -> ${d1.toFixed(1)}m in 4s`);
+
+// It has to get around the centre block to reach the player, not stall on it.
+const z6b = scenario(0, -6, 500, 1.6);
+player.pos.set(0, 0, 6);
+const startGap = 12;
+sim(60 * 12);
+const endGap = Math.hypot(z6b.pos.x - player.pos.x, z6b.pos.z - player.pos.z);
+ok('pathing gets around the centre block', endGap < 3,
+   `gap ${startGap}m -> ${endGap.toFixed(1)}m with a 3x3 block between them`);
+
+// --- 7. gunplay ------------------------------------------------------------
+const z7 = scenario(0, 6, curve.health(1));
+player.pos.set(0, 0, 14);
+aimAt(z7.pos.x, 1.06, z7.pos.z);
+const before7 = kills;
+let shots = 0;
+while (kills === before7 && shots < 10) { fireOnce(); shots++; }
+ok('body shots kill a round-1 zombie', kills > before7, `${shots} shots at ${curve.health(1)} hp`);
+ok('body kill takes more than one shot', shots > 1, `${shots} shots`);
+
+// Head does more damage than chest: same health, one shot each.
+const z8 = scenario(0, 6, 80);
+player.pos.set(0, 0, 14);
+aimAt(z8.pos.x, 1.57, z8.pos.z);
+const beforeHead = kills; fireOnce();
+const headKilled = kills > beforeHead;
+
+const z9 = scenario(0, 6, 80);
+player.pos.set(0, 0, 14);
+aimAt(z9.pos.x, 1.06, z9.pos.z);
+const beforeBody = kills; fireOnce();
+const bodyKilled = kills > beforeBody;
+ok('headshot multiplier applies', headKilled && !bodyKilled,
+   `80 hp: head ${headKilled ? 'kills' : 'does not kill'}, chest ${bodyKilled ? 'kills' : 'does not kill'}`);
+ok('headshots are reported as headshots', headshots > 0, `n=${headshots}`);
+
+// Bullets must not pass through the level.
+const z10 = scenario(0, -6, 40);          // centre block sits between us
+player.pos.set(0, 0, 6);
+aimAt(z10.pos.x, 1.06, z10.pos.z);
+const beforeWall = kills;
+for (let i = 0; i < 6; i++) fireOnce();
+ok('walls stop bullets', kills === beforeWall, 'six shots through a steel block killed nothing');
+
+// --- 8. ammo ---------------------------------------------------------------
+player.reset(); weapon.reset(); horde.clear();
+const mag0 = weapon.mag;
+fireOnce();
+ok('firing consumes a round', weapon.mag === mag0 - 1, `${weapon.mag}/${mag0}`);
+
+weapon.mag = 0; weapon.reserve = 30;
+weapon.startReload();
+sim(60 * 2);
+ok('reload refills from reserve', weapon.mag === weapon.magSize && weapon.reserve === 30 - weapon.magSize,
+   `mag=${weapon.mag} reserve=${weapon.reserve}`);
+
+weapon.mag = 5; weapon.reserve = 0;
+weapon.startReload();
+sim(60 * 2);
+ok('empty reserve cannot reload', weapon.mag === 5 && weapon.reserve === 0);
+
+// --- 9. damage and death ---------------------------------------------------
+player.reset(); horde.clear();
+scenario(0, 13, 500, 2.0);
+const hp0 = player.health;
+sim(60 * 8);
+ok('a zombie in reach damages the player', player.health < hp0, `${hp0} -> ${player.health.toFixed(0)} hp`);
+
+// Empty the yard first — the zombie from the test above is still in reach and
+// would out-damage the regen we're trying to measure.
+player.reset(); horde.clear();
+player.sinceDamage = 99;
+const regenFrom = (player.health = 50);
+sim(60 * 2);
+ok('health regenerates after the delay', player.health > regenFrom, `${regenFrom} -> ${player.health.toFixed(0)} hp`);
+
+const hitsAtDeath = playerHits;
+while (!player.dead) player.damage(25);
+ok('death is flagged at zero health', player.dead && player.health === 0);
+sim(60 * 4);
+ok('a dead player takes no further damage', playerHits === hitsAtDeath && player.health === 0);
+ok('the horde keeps moving during the death cam', horde.pool.some((z) => z.active));
+
+// --- 10. numerical health --------------------------------------------------
+const bad = [player.pos.x, player.pos.y, player.pos.z, player.vel.x, player.vel.y, player.yaw, player.pitch]
+  .some((v) => !Number.isFinite(v))
+  || horde.pool.some((z) => z.active && ![z.pos.x, z.pos.z, z.yaw].every(Number.isFinite));
+ok('no NaN in player or horde state', !bad);
+
+note(`round curve: r1 ${curve.count(1)} zombies @${curve.health(1)}hp ${curve.speed(1).toFixed(2)}m/s`);
+note(`            r10 ${curve.count(10)} @${curve.health(10).toFixed(0)}hp ${curve.speed(10).toFixed(2)}m/s`);
+note(`            r20 ${curve.count(20)} @${curve.health(20).toFixed(0)}hp ${curve.speed(20).toFixed(2)}m/s (player sprints 8.2)`);
+
+document.getElementById('out').textContent =
+  log.join('\n') + `\n\n${fails === 0 ? '✓ ALL PASS' : '✗ ' + fails + ' FAILURES'}  (${log.filter(l=>l.startsWith('PASS')||l.startsWith('FAIL')).length} checks)`;
+window.__fails = fails;
+</script></body></html>

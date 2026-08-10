@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automation ROI &amp; Capacity Model — Neal Pathak</title>
+<meta name="description" content="Model a manual business process end to end: expected-pass costing, cycle time, capacity released, automation sequencing, payback, and sensitivity. Runs entirely in the browser.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<link rel="stylesheet" href="../../assets/css/tool.css">
+<style>
+  /* Column sizing for the step grid — specific to this tool's shape. */
+  #grid th, #grid td { padding: .4rem .45rem; }
+  #grid td.cell-input { padding: .18rem .25rem; }
+  #grid td.cell-input input { width: 56px; }
+  #grid thead th:first-child,
+  #grid tbody td:first-child { min-width: 30px; }
+  #grid thead th:nth-child(2),
+  #grid tbody td:nth-child(2) { min-width: 194px; }
+  #grid thead th:nth-child(3),
+  #grid tbody td:nth-child(3) { min-width: 100px; text-align: left; }
+  #grid tfoot td { min-width: 0; }
+  #grid thead th { line-height: 1.25; }
+  /* Six tiles — keep them in whole rows rather than leaving an orphan. */
+  @media (min-width: 640px) { .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1500px) { .metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  .chart-block + .chart-block { margin-top: 2rem; }
+  .chart-block h3 {
+    font-size: .8125rem; font-weight: 600; margin-bottom: .2rem;
+  }
+  .chart-block .chart-note {
+    font-size: .8125rem; color: var(--ink-muted); margin-bottom: .9rem;
+    max-width: 62ch;
+  }
+  .roles-mini { font-size: .8125rem; }
+  .roles-mini th, .roles-mini td { padding: .3rem .4rem; }
+  .roles-mini th:first-child, .roles-mini td:first-child { min-width: 118px; }
+</style>
+</head>
+<body class="tool">
+<a class="skip-link" href="#workbench">Skip to the model</a>
+
+<header class="masthead">
+  <div class="page masthead__inner">
+    <a class="wordmark" href="../../">Neal Pathak<span> — operations &amp; analytics</span></a>
+    <nav>
+      <a href="../../#tools">Tools</a>
+      <a href="../../#approach">Approach</a>
+      <a href="mailto:nealpathak@icloud.com">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="page tool-head">
+  <p class="eyebrow">Tool 01 — Operations</p>
+  <h1>Automation ROI &amp; Capacity Model</h1>
+  <p class="lede">
+    Cost a manual process the way it actually runs, then test what automating any
+    combination of its steps is worth — in cash, in cycle time, and in capacity
+    returned to the team.
+  </p>
+  <div class="tool-head__actions">
+    <button class="btn btn--primary" id="btn-copy" type="button">Copy executive summary</button>
+    <button class="btn" id="btn-csv" type="button">Export step detail (CSV)</button>
+    <button class="btn btn--ghost" id="btn-reset" type="button">Reset to sample</button>
+  </div>
+</div>
+
+<div class="page">
+  <div class="workbench" id="workbench">
+
+    <aside class="panel workbench__aside">
+      <p class="panel__title">Scenario</p>
+
+      <div class="field">
+        <label for="sample">Process</label>
+        <select id="sample"></select>
+        <span class="hint" id="process-note"></span>
+      </div>
+
+      <div class="control-grid">
+        <div class="field">
+          <label for="volume">Volume / month</label>
+          <input type="number" id="volume" min="0" step="10">
+        </div>
+        <div class="field">
+          <label for="horizon">Horizon (mo)</label>
+          <input type="number" id="horizon" min="6" max="120" step="6">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="swing">Sensitivity swing <span id="swing-label" class="num">±25%</span></label>
+        <input type="range" id="swing" min="5" max="75" step="5" value="25">
+        <span class="hint">Applied one driver at a time, in both directions.</span>
+      </div>
+
+      <hr class="rule">
+
+      <p class="panel__title">Selection <span id="scenario-count" class="num"></span></p>
+      <div class="tool-head__actions" style="margin-top:0">
+        <button class="btn" id="btn-go" type="button">Select payback &lt; 12 mo</button>
+        <button class="btn btn--ghost" id="btn-all" type="button">All</button>
+        <button class="btn btn--ghost" id="btn-none" type="button">None</button>
+      </div>
+
+      <hr class="rule">
+
+      <p class="panel__title">Loaded labour rates</p>
+      <div class="grid-scroll">
+        <table class="grid roles-mini">
+          <thead>
+            <tr><th>Role</th><th>Loaded / yr</th><th>Prod. hrs</th><th>$ / hr</th></tr>
+          </thead>
+          <tbody id="roles"></tbody>
+        </table>
+      </div>
+      <p class="hint">
+        Fully loaded cost divided by productive hours — not salary divided by 2,080.
+        The difference is usually 30–45%.
+      </p>
+    </aside>
+
+    <div>
+      <div class="panel" style="padding-bottom:0">
+        <p class="panel__title">
+          <span id="process-name"></span>
+        </p>
+      </div>
+
+      <dl class="metrics">
+        <div class="metric" id="m-net">
+          <dt>Net at horizon</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+        <div class="metric" id="m-payback">
+          <dt>Payback</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+        <div class="metric" id="m-monthly">
+          <dt>Net monthly saving</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+        <div class="metric" id="m-capacity">
+          <dt>Capacity released</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+        <div class="metric" id="m-cycle">
+          <dt>End-to-end elapsed</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+        <div class="metric" id="m-unit">
+          <dt>Cost per instance</dt>
+          <dd><span class="metric__value">—</span><span class="metric__sub"></span></dd>
+        </div>
+      </dl>
+
+      <div class="panel">
+        <p class="panel__title">
+          Process steps
+          <span style="font-weight:400;text-transform:none;letter-spacing:0">
+            every white cell is editable · scroll right for cost and payback
+          </span>
+        </p>
+        <div class="grid-scroll">
+          <table class="grid" id="grid">
+            <thead>
+              <tr>
+                <th title="Include this step in the automation scenario">On</th>
+                <th>Step</th>
+                <th>Role</th>
+                <th title="Share of instances that reach this step">Applies %</th>
+                <th title="Hands-on minutes per pass">Touch min</th>
+                <th title="Elapsed queue time before the step begins">Queue hrs</th>
+                <th title="Probability the step must be repeated">Rework %</th>
+                <th title="Share of touch time automation removes">Auto %</th>
+                <th title="Share of queue time automation removes">Queue cut %</th>
+                <th title="One-time build cost">Build $</th>
+                <th title="Recurring monthly run cost">Run $/mo</th>
+                <th title="Labour hours per month at current volume">Hrs/mo</th>
+                <th title="Labour cost per month">Cost/mo</th>
+                <th title="Net monthly saving if this step alone were automated">Net/mo</th>
+                <th title="Standalone payback for this step">Payback</th>
+                <th>Call</th>
+              </tr>
+            </thead>
+            <tbody id="steps"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="11">Process total — <span id="f-fte" class="num"></span></td>
+                <td id="f-hours" class="num"></td>
+                <td id="f-cost" class="num"></td>
+                <td id="f-net" class="num" title="Net monthly saving for the selected scenario"></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="chart-block">
+          <h3>Monthly labour hours by step</h3>
+          <p class="chart-note">
+            Grey is today. Navy is the scenario. Hours are costed on expected
+            passes, so a step with rework carries more hours than its touch time
+            alone implies.
+          </p>
+          <div id="chart-hours"></div>
+          <p class="legend">
+            <span><i style="background:var(--ink-faint)"></i>Current</span>
+            <span><i style="background:var(--accent)"></i>Scenario</span>
+          </p>
+        </div>
+
+        <div class="chart-block">
+          <h3>Cumulative net cash position</h3>
+          <p class="chart-note">
+            Build cost lands in month zero; net savings accrue monthly thereafter.
+            The dashed line is breakeven.
+          </p>
+          <div id="chart-cash"></div>
+        </div>
+
+        <div class="chart-block">
+          <h3>Sensitivity — what actually moves the answer</h3>
+          <p class="chart-note">
+            Each driver moved on its own, in both directions, measured against
+            horizon net value. The drivers at the top are the ones worth arguing
+            about in a steering meeting; the ones at the bottom are not. Volume,
+            loaded rate and touch time usually land on identical bars — they are
+            the same lever wearing three different names, and a case that is
+            fragile to one is fragile to all three.
+          </p>
+          <div id="chart-tornado"></div>
+          <p class="legend">
+            <span><i style="background:var(--positive)"></i>Improves horizon net</span>
+            <span><i style="background:var(--signal)"></i>Reduces horizon net</span>
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel__title">Sequencing — every step ranked by standalone payback</p>
+        <div class="grid-scroll">
+          <table class="grid">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Build</th>
+                <th>Run / mo</th>
+                <th>Net / yr</th>
+                <th>Payback</th>
+                <th>Call</th>
+              </tr>
+            </thead>
+            <tbody id="ranked"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="panel__title">Executive summary</p>
+        <pre class="summary-out" id="memo"></pre>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<section class="block block--sunk">
+  <div class="page notes">
+
+    <div class="note">
+      <h2>Why this exists</h2>
+      <p>
+        Most automation proposals fail one of two ways. They are argued on
+        anecdote — <em>this takes forever</em> — with no number attached, or they
+        are argued on a headline savings figure that no one can trace back to a
+        step, a role, or an hour.
+      </p>
+      <p>
+        Both failures have the same root cause: the current state was never costed
+        properly. This model forces that first, then makes the automation case a
+        consequence of it rather than a claim beside it.
+      </p>
+      <p>
+        It also has to be able to say no. Load the low-volume intake sample and
+        most of the build cases stop clearing their hurdle. That result is as
+        useful as the other one.
+      </p>
+    </div>
+
+    <div class="note">
+      <h2>How it works</h2>
+      <ul>
+        <li>
+          <strong>Expected passes.</strong> A step with rework rate <code>x</code>
+          is executed <code>1 / (1 − x)</code> times on average. A 25% rework rate
+          means the step costs a third more than its touch time suggests. This is
+          the single most common omission in a manual-process roll-up.
+        </li>
+        <li>
+          <strong>Loaded rates.</strong> Each role is priced at fully loaded annual
+          cost over productive hours — not salary over 2,080. Understating the rate
+          understates the prize.
+        </li>
+        <li>
+          <strong>Elapsed vs. touch.</strong> Cycle time is queue time plus expected
+          touch time, weighted by how many instances reach each step. The step that
+          costs the most and the step that delays the most are usually not the same
+          step, and the model names both.
+        </li>
+        <li>
+          <strong>Capacity, not headcount.</strong> Savings are expressed as FTE
+          released and as additional volume absorbable at current headcount. What
+          an organisation does with released capacity is a decision, not an output.
+        </li>
+        <li>
+          <strong>Sensitivity.</strong> Each driver is moved on its own, both
+          directions, against horizon net value. The ranking tells you which
+          assumption to go verify before anyone signs anything.
+        </li>
+      </ul>
+    </div>
+
+    <div class="note">
+      <h2>What it assumes</h2>
+      <ul>
+        <li>
+          Automation removes a share of touch time. The residual manual share keeps
+          its original rework rate — deliberately conservative, since automation
+          usually suppresses rework too.
+        </li>
+        <li>
+          Elapsed time is additive. There is no modelling of contention, batching,
+          shift boundaries, or parallel paths. For sequential back-office work this
+          holds well enough; for anything with genuine queueing dynamics it does not.
+        </li>
+        <li>
+          No discount rate is applied. Over 24–36 months at these margins the
+          sequencing does not change, though absolute net would fall modestly.
+        </li>
+        <li>
+          Build and run costs are inputs, not estimates. They are the largest source
+          of error in any case of this shape, which is exactly why they appear in the
+          sensitivity chart.
+        </li>
+        <li>
+          Every dataset here is synthetic. Nothing is derived from any real book of
+          business, claim, matter, or employer.
+        </li>
+        <li>
+          Illustrative modelling only — not actuarial, accounting, or legal advice.
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page site-footer__inner">
+    <span>Neal Pathak — Houston, Texas</span>
+    <span>
+      <a href="mailto:nealpathak@icloud.com">nealpathak@icloud.com</a>
+      · <a href="../../">All tools</a>
+    </span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

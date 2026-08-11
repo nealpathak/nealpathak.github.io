@@ -37,12 +37,17 @@ function niceMax(v) {
 
 /**
  * Horizontal paired bars — one row per item, two bars per row.
+ * `delta` controls the small figure under each row:
+ *   'reduction' — b is expected below a, and the shortfall is the good news
+ *   'variance'  — b above a is favourable, below is not
+ *   'none'      — omit it
  * @param {{label:string, a:number, b:number}[]} rows
- * @param {{aName:string, bName:string, format:(n:number)=>string, title:string}} opts
+ * @param {{format:(n:number)=>string, title:string, delta:string,
+ *          aFill:string, bFill:string, labelWidth:number}} opts
  */
 export function pairedBars(rows, opts = {}) {
   const format = opts.format ?? (n => String(Math.round(n)));
-  const labelW = 200;
+  const labelW = opts.labelWidth ?? 200;
   const valueW = 78;
   const rowH = 34;
   const barH = 11;
@@ -61,8 +66,8 @@ export function pairedBars(rows, opts = {}) {
     }, r.label));
 
     const bars = [
-      { v: r.a, fill: 'var(--ink-faint)', dy: 2 },
-      { v: r.b, fill: 'var(--accent)', dy: 2 + barH + 3 },
+      { v: r.a, fill: opts.aFill ?? 'var(--ink-faint)', dy: 2 },
+      { v: r.b, fill: opts.bFill ?? 'var(--accent)', dy: 2 + barH + 3 },
     ];
     for (const b of bars) {
       const w = Math.max(b.v > 0 ? 1.5 : 0, (b.v / max) * plotW);
@@ -76,11 +81,20 @@ export function pairedBars(rows, opts = {}) {
       x: width, y: y + 14, 'text-anchor': 'end',
       'font-size': 12.5, class: 'chart__value',
     }, format(r.b)));
-    const delta = r.a - r.b;
-    svg.appendChild(el('text', {
-      x: width, y: y + 27, 'text-anchor': 'end', 'font-size': 11,
-      fill: delta > 0 ? 'var(--positive)' : 'var(--ink-faint)',
-    }, delta > 0 ? `−${format(delta)}` : '—'));
+
+    const mode = opts.delta ?? 'reduction';
+    if (mode !== 'none') {
+      const variance = mode === 'variance';
+      const d = variance ? r.b - r.a : r.a - r.b;
+      const good = d > 0;
+      const text = variance
+        ? `${d >= 0 ? '+' : '−'}${format(Math.abs(d))}`
+        : (d > 0 ? `−${format(d)}` : '—');
+      svg.appendChild(el('text', {
+        x: width, y: y + 27, 'text-anchor': 'end', 'font-size': 11,
+        fill: good ? 'var(--positive)' : variance ? 'var(--signal)' : 'var(--ink-faint)',
+      }, text));
+    }
   });
 
   svg.appendChild(el('line', {
@@ -168,6 +182,158 @@ export function cumulativeLine(values, opts = {}) {
       'font-size': 11, fill: 'var(--signal)',
     }, `breakeven M${Math.ceil(opts.breakeven)}`));
   }
+
+  return svg;
+}
+
+/**
+ * Stacked horizontal bars measured against a per-row denominator, so every bar
+ * shares a common "% of limit" axis even when the limits differ by row. A marker
+ * line sits at 100%.
+ * @param {{label:string, segs:number[], denom:number}[]} rows
+ * @param {{names:string[], fills:string[], markerLabel:string,
+ *          format:(n:number)=>string, title:string}} opts
+ */
+export function stackedBars(rows, opts = {}) {
+  const format = opts.format ?? (n => `${Math.round(n * 100)}%`);
+  const fills = opts.fills ?? ['var(--accent)', 'var(--ink-faint)', 'var(--rule-strong)'];
+  const labelW = 74;
+  const valueW = 62;
+  const rowH = 26;
+  const barH = 15;
+  const padT = 6;
+  const padB = 20;
+  const width = 720;
+  const height = padT + rows.length * rowH + padB;
+  const plotW = width - labelW - valueW - 12;
+
+  const shares = rows.map(r => r.segs.reduce((a, b) => a + b, 0) / (r.denom || 1));
+  const max = Math.max(1.06, ...shares) * 1.02;
+  const x = v => labelW + (v / max) * plotW;
+
+  const svg = frame(width, height, opts.title);
+
+  rows.forEach((r, i) => {
+    const y = padT + i * rowH;
+    svg.appendChild(el('text', {
+      x: 0, y: y + barH - 3, 'font-size': 12.5,
+    }, r.label));
+
+    let cursor = 0;
+    r.segs.forEach((v, k) => {
+      const from = cursor / (r.denom || 1);
+      cursor += v;
+      const to = cursor / (r.denom || 1);
+      const w = x(to) - x(from);
+      if (w <= 0.4) return;
+      svg.appendChild(el('rect', {
+        x: x(from), y, width: w, height: barH, fill: fills[k % fills.length],
+      }));
+    });
+
+    const share = shares[i];
+    svg.appendChild(el('text', {
+      x: width, y: y + barH - 3, 'text-anchor': 'end',
+      'font-size': 12.5, class: 'chart__value',
+      fill: share >= 1 ? 'var(--signal)' : share >= 0.85 ? 'var(--ink)' : 'var(--ink-muted)',
+    }, format(share)));
+  });
+
+  // The limit itself.
+  svg.appendChild(el('line', {
+    x1: x(1), y1: padT - 2, x2: x(1), y2: padT + rows.length * rowH,
+    stroke: 'var(--signal)', 'stroke-width': 1.25, 'stroke-dasharray': '4 3',
+  }));
+  svg.appendChild(el('text', {
+    x: x(1), y: height - 6, 'text-anchor': 'middle',
+    'font-size': 11, fill: 'var(--signal)',
+  }, opts.markerLabel ?? 'limit'));
+
+  svg.appendChild(el('line', {
+    x1: labelW, y1: padT - 2, x2: labelW, y2: padT + rows.length * rowH,
+    stroke: 'var(--rule-strong)',
+  }));
+
+  return svg;
+}
+
+/**
+ * Multiple series over a shared categorical x axis. Series flagged `muted` are
+ * drawn as background context; the rest are drawn forward and labelled at their
+ * final point.
+ * @param {{label:string, values:(number|null)[], muted:boolean, dashed:boolean,
+ *          stroke:string}[]} series
+ * @param {{xLabels:string[], format:(n:number)=>string, title:string}} opts
+ */
+export function multiLine(series, opts = {}) {
+  const format = opts.format ?? (n => String(Math.round(n * 100)));
+  const xLabels = opts.xLabels ?? [];
+  const width = 720;
+  const height = 260;
+  const padL = 46, padR = 96, padT = 12, padB = 30;
+  const plotW = width - padL - padR;
+  const plotH = height - padT - padB;
+
+  const all = series.flatMap(s => s.values).filter(v => v !== null && Number.isFinite(v));
+  const top = niceMax(Math.max(0.01, ...all));
+  const n = Math.max(1, xLabels.length - 1);
+
+  const x = i => padL + (i / n) * plotW;
+  const y = v => padT + (1 - v / top) * plotH;
+
+  const svg = frame(width, height, opts.title);
+
+  for (let t = 0; t <= 4; t++) {
+    const v = (top * t) / 4;
+    svg.appendChild(el('line', {
+      x1: padL, y1: y(v), x2: padL + plotW, y2: y(v), stroke: 'var(--rule)',
+    }));
+    svg.appendChild(el('text', {
+      x: padL - 7, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 11,
+    }, format(v)));
+  }
+
+  xLabels.forEach((lab, i) => {
+    svg.appendChild(el('text', {
+      x: x(i), y: height - 10, 'text-anchor': 'middle', 'font-size': 11,
+    }, lab));
+  });
+
+  const ordered = [...series].sort((a, b) => Number(b.muted) - Number(a.muted));
+  for (const s of ordered) {
+    const pts = s.values
+      .map((v, i) => (v === null || !Number.isFinite(v) ? null : [x(i), y(v)]))
+      .filter(Boolean);
+    if (pts.length < 1) continue;
+
+    if (pts.length > 1) {
+      svg.appendChild(el('path', {
+        d: pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(''),
+        fill: 'none',
+        stroke: s.stroke ?? (s.muted ? 'var(--rule-strong)' : 'var(--accent)'),
+        'stroke-width': s.muted ? 1 : 2,
+        'stroke-dasharray': s.dashed ? '5 4' : null,
+        'stroke-linejoin': 'round',
+        opacity: s.muted ? .85 : 1,
+      }));
+    }
+
+    const last = pts[pts.length - 1];
+    if (!s.muted) {
+      svg.appendChild(el('circle', {
+        cx: last[0], cy: last[1], r: 2.75,
+        fill: s.stroke ?? 'var(--accent)',
+      }));
+      svg.appendChild(el('text', {
+        x: Math.min(last[0] + 7, padL + plotW + 6), y: last[1] + 4,
+        'font-size': 11, fill: s.stroke ?? 'var(--accent)',
+      }, s.label));
+    }
+  }
+
+  svg.appendChild(el('line', {
+    x1: padL, y1: padT, x2: padL, y2: padT + plotH, stroke: 'var(--rule-strong)',
+  }));
 
   return svg;
 }

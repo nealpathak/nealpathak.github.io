@@ -17,7 +17,15 @@ tools/<slug>/index.html Tool page
 tools/<slug>/model.js   Pure calculation layer, no DOM
 tools/<slug>/app.js     DOM wiring
 tools/<slug>/samples.js Synthetic sample datasets
+tools/<slug>/memo.js    Plain-text executive summary generation
 ```
+
+## Tools
+
+| Path | What it does |
+| --- | --- |
+| `tools/automation-roi/` | Costs a manual process on expected passes, then scores automation scenarios on cash, cycle time, released capacity, payback, and sensitivity. |
+| `tools/loss-development/` | Chain ladder, Bornhuetter-Ferguson and Benktander on an editable loss triangle, with IBNR, funding adequacy, aggregate erosion, a renewal indication, and a diagnostics pass. |
 
 Calculation layers are kept free of DOM references so they can be tested or reused
 directly.

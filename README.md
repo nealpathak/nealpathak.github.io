@@ -26,6 +26,7 @@ tools/<slug>/memo.js    Plain-text executive summary generation
 | --- | --- |
 | `tools/automation-roi/` | Costs a manual process on expected passes, then scores automation scenarios on cash, cycle time, released capacity, payback, and sensitivity. |
 | `tools/loss-development/` | Chain ladder, Bornhuetter-Ferguson and Benktander on an editable loss triangle, with IBNR, funding adequacy, aggregate erosion, a renewal indication, and a diagnostics pass. |
+| `tools/contract-review/` | Contract text against an editable negotiation playbook: deviations by severity with the text relied on, missing clauses, a risk grade, an approval route, and drafted fallback language. Playbook exports as JSON. |
 
 Calculation layers are kept free of DOM references so they can be tested or reused
 directly.

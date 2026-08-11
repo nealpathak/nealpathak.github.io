@@ -199,7 +199,7 @@ function paintRanked(r) {
     const tr = document.createElement('tr');
     tr.innerHTML =
       `<td><span class="rank">${i + 1}</span>${escape(d.name)}` +
-      `${selected.has(d.id) ? ' <span class="tag tag--watch">in scenario</span>' : ''}</td>` +
+      `${selected.has(d.id) ? ' <span class="tag tag--quiet">in scenario</span>' : ''}</td>` +
       `<td>${money(d.buildCost)}</td>` +
       `<td>${money(d.runCostMonthly)}</td>` +
       `<td>${money(d.annualNet)}</td>` +

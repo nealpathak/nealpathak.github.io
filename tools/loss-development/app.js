@@ -37,8 +37,8 @@ function buildTriangle() {
   const head = $('tri-head');
   const body = $('tri-body');
 
-  head.innerHTML = `<tr><th>Accident year</th>${
-    ages.map(a => `<th>${a} mo</th>`).join('')}</tr>`;
+  head.innerHTML = `<tr><th scope="col">Accident year</th>${
+    ages.map(a => `<th scope="col">${a} mo</th>`).join('')}</tr>`;
 
   body.innerHTML = '';
   for (const y of config.years) {
@@ -77,8 +77,8 @@ function buildRatioTable(r) {
   const head = $('ratio-head');
   const body = $('ratio-body');
 
-  head.innerHTML = `<tr><th>Accident year</th>${
-    r.links.map(l => `<th>${l.fromAge}–${l.toAge}</th>`).join('')}</tr>`;
+  head.innerHTML = `<tr><th scope="col">Accident year</th>${
+    r.links.map(l => `<th scope="col">${l.fromAge}–${l.toAge}</th>`).join('')}</tr>`;
 
   body.innerHTML = '';
   for (const y of config.years) {
@@ -261,7 +261,7 @@ function paintDiagnostics(r) {
     item.className = `finding finding--${d.severity}`;
     item.innerHTML =
       `<p class="finding__head"><span class="tag tag--${
-        d.severity === 'high' ? 'hold' : d.severity === 'medium' ? 'watch' : 'go'
+        d.severity === 'high' ? 'hold' : d.severity === 'medium' ? 'watch' : 'quiet'
       }">${d.severity}</span> ${escape(d.title)}</p>` +
       `<p class="finding__body">${escape(d.detail)}</p>`;
     host.appendChild(item);
@@ -362,7 +362,9 @@ function onFactorInput(e) {
 function setView(next) {
   view = next;
   for (const b of document.querySelectorAll('[data-view]')) {
-    b.classList.toggle('is-active', b.dataset.view === next);
+    const on = b.dataset.view === next;
+    b.classList.toggle('is-active', on);
+    b.setAttribute('aria-pressed', String(on));
   }
   $('tri-wrap').style.display = next === 'ratios' ? 'none' : '';
   $('ratio-wrap').style.display = next === 'ratios' ? '' : 'none';
@@ -475,9 +477,9 @@ function init() {
   buildSampleOptions();
 
   $('factor-heads').innerHTML =
-    '<th>Age band</th><th>n</th>' +
-    METHOD_KEYS.map(k => `<th>${METHOD_HEADS[k]}</th>`).join('') +
-    '<th>Selected</th><th>To ultimate</th>';
+    '<th scope="col">Age band</th><th scope="col" title="Observations behind the average">n</th>' +
+    METHOD_KEYS.map(k => `<th scope="col">${METHOD_HEADS[k]}</th>`).join('') +
+    '<th scope="col">Selected</th><th scope="col">To ultimate</th>';
 
   loadInto(config.id);
 

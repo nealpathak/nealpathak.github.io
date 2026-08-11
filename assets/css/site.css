@@ -20,6 +20,8 @@
   --signal-soft:  #f7ece9;
   --positive:     #2f5d3f;
   --positive-soft:#eaf1eb;
+  --warn:         #7d5c12;
+  --warn-soft:    #f6efdf;
 
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
           "Helvetica Neue", Arial, sans-serif;
@@ -51,6 +53,8 @@
     --signal-soft:  #2c1e1b;
     --positive:     #8bbf9d;
     --positive-soft:#1a2620;
+    --warn:         #d3ae66;
+    --warn-soft:    #2a2314;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 1px 12px rgba(0, 0, 0, .2);
   }
 }
@@ -352,4 +356,49 @@ img, svg { max-width: 100%; }
     animation-duration: .001ms !important;
     transition-duration: .001ms !important;
   }
+}
+
+/* ---------------------------------------------------------------- more -- */
+
+.more {
+  border-top: 1px solid var(--rule);
+  padding-block: 2.5rem;
+}
+.more__list {
+  display: grid;
+  gap: 1.25rem 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 1rem;
+  list-style: none;
+}
+.more__list a {
+  text-decoration: none;
+  display: block;
+}
+.more__list h3 {
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  margin-bottom: .25rem;
+}
+.more__list a:hover h3 { color: var(--accent-ink); }
+.more__list p { font-size: .875rem; color: var(--ink-muted); }
+
+/* --------------------------------------------------------------- print -- */
+
+@media print {
+  :root {
+    --paper: #fff; --surface: #fff; --surface-sunk: #fff;
+    --ink: #000; --ink-soft: #222; --ink-muted: #444; --ink-faint: #777;
+    --rule: #ccc; --rule-strong: #999; --accent: #16304d; --accent-ink: #16304d;
+    --shadow: none;
+  }
+  body { background: #fff; font-size: 10.5pt; }
+  .masthead nav, .skip-link, .more, .tool-head__actions,
+  .workbench__aside, .tabs, .toast, .hero__meta { display: none !important; }
+  .page { max-width: none; padding: 0; }
+  .block, .hero, .tool-head { padding-block: .75rem; }
+  .block--sunk { border: 0; }
+  .cards, .card { border: 0; background: transparent; }
+  a { text-decoration: none; }
 }

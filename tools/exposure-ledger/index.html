@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exposure Ledger — retained contractual exposure</title>
+<meta name="description" content="Joins a contract register to an insurance programme and computes the contractual liability a company retains on itself. Runs entirely in the browser.">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/css/site.css">
+<link rel="stylesheet" href="../../assets/css/tool.css">
+</head>
+<body>
+<a class="skip" href="#number">Skip to the result</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="../../">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 20h18M6 20V9M12 20V4M18 20v-7"/>
+      </svg>
+      Neal Pathak
+    </a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="../../">Overview</a>
+      <a href="https://github.com/nealpathak/nealpathak.github.io">Source</a>
+    </nav>
+  </div>
+</header>
+
+<div class="toolhead">
+  <div class="wrap">
+    <div class="row">
+      <div>
+        <p class="eyebrow">Model</p>
+        <h1>Exposure Ledger</h1>
+        <p class="sub">
+          What your contracts promised, what your insurance covers, and what is left on you.
+          Nothing here is uploaded — the register and the schedule of insurance are read in this
+          browser and stay in it.
+        </p>
+      </div>
+      <div class="acts">
+        <button class="btn btn-primary" id="btn-data">Load your data</button>
+        <button class="btn" id="btn-assume">Assumptions</button>
+        <button class="btn" id="btn-export">Export</button>
+      </div>
+    </div>
+    <div class="runbar" id="runbar"></div>
+  </div>
+</div>
+
+<nav class="subnav" aria-label="Sections">
+  <div class="wrap">
+    <a href="#number">The number</a>
+    <a href="#landing">Where it lands</a>
+    <a href="#findings">Findings</a>
+    <a href="#queue">Renegotiation queue</a>
+    <a href="#levers">Levers</a>
+    <a href="#limits">Shared limits</a>
+    <a href="#inputs">Inputs</a>
+    <a href="#method">Method</a>
+  </div>
+</nav>
+
+<main>
+
+  <section class="tsec" id="number">
+    <div class="wrap">
+      <div class="headline">
+        <div>
+          <p class="bigcap">Retained contractual exposure</p>
+          <div class="bignum num" id="hero">—<small>expected, per year</small></div>
+          <p class="bigwhy" id="heroWhy"></p>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="ph">
+              <h3>How bad a bad year gets</h3>
+              <span class="hint">Retained loss against return period</span>
+            </div>
+            <div class="pb tight" id="exceedance"></div>
+          </div>
+          <div class="figrow" id="figrow"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tsec" id="landing">
+    <div class="wrap">
+      <header>
+        <h2>Where every dollar of loss lands</h2>
+        <p>
+          Only the first band is risk transfer. A captive recovery is the group paying itself on a
+          different schedule, and the last two bands are money that was never going to be anyone
+          else's problem.
+        </p>
+      </header>
+      <div class="panel"><div class="pb" id="landingChart"></div></div>
+    </div>
+  </section>
+
+  <section class="tsec" id="findings">
+    <div class="wrap">
+      <header>
+        <h2>Findings</h2>
+        <p>Derived from this run. Each one names the exposure, sizes it, and says what closing it would take.</p>
+      </header>
+      <div id="findingsList"></div>
+    </div>
+  </section>
+
+  <section class="tsec" id="queue">
+    <div class="wrap">
+      <header>
+        <h2>Renegotiation queue</h2>
+        <p>
+          Ranked by average retained loss inside the worst one per cent of simulated years — not by
+          contract size. These are the agreements whose ceilings are highest relative to what the
+          programme will actually answer for.
+        </p>
+      </header>
+      <div class="panel">
+        <div class="ph">
+          <h3>Contribution to the tail</h3>
+          <span class="hint" id="queueHint"></span>
+        </div>
+        <div class="pb" id="queueChart"></div>
+      </div>
+      <div class="panel" style="margin-top:22px">
+        <div class="ph"><h3>The queue in detail</h3><span class="hint">Sorted by tail contribution</span></div>
+        <div class="pb"><div class="scrollx" id="queueTable"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tsec levers" id="levers">
+    <div class="wrap">
+      <header>
+        <h2>What each lever is worth</h2>
+        <p>
+          Two ways to reduce retained exposure: buy more tower, or stop agreeing to the obligation.
+          Priced side by side, on the same book, with the same seed. A lever that costs a redline and
+          removes the same tail as a lever that costs premium is not a close call.
+        </p>
+      </header>
+      <div class="panel">
+        <div class="ph">
+          <h3>Levers priced against the base run</h3>
+          <span class="hint">Every row is a full re-simulation</span>
+        </div>
+        <div class="pb">
+          <div class="scrollx" id="leverTable"></div>
+          <p class="leverinsight" id="leverInsight" hidden></p>
+          <div class="leverform">
+            <p class="eyebrow" style="margin-bottom:12px">Price a candidate layer</p>
+            <div class="inlinefields">
+              <div class="field">
+                <label for="lvLine">Line</label>
+                <select id="lvLine"></select>
+              </div>
+              <div class="field">
+                <label for="lvAttach">Attaches at</label>
+                <input type="text" id="lvAttach" value="3M">
+              </div>
+              <div class="field">
+                <label for="lvLimit">Limit</label>
+                <input type="text" id="lvLimit" value="25M">
+              </div>
+              <div class="field">
+                <label for="lvPremium">Premium</label>
+                <input type="text" id="lvPremium" value="750k">
+              </div>
+              <button class="btn" id="lvAdd">Price it</button>
+            </div>
+            <p class="help" style="margin-top:10px; font-size:12px; color:var(--ink-3)">
+              Amounts accept 250k, 2.5M or a plain number. A layer that attaches inside an existing
+              one is allowed — the model will simply allocate to both.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tsec" id="limits">
+    <div class="wrap">
+      <header>
+        <h2>Shared limits</h2>
+        <p>
+          Drawn to scale from the ground up. Shading is aggregate already eroded this period. An
+          aggregate is a pool, not a per-contract entitlement: what one claim spends is gone for
+          every other contract routed through it.
+        </p>
+      </header>
+      <div class="panel">
+        <div class="ph"><h3>The programme as loaded</h3><span class="hint" id="towerHint"></span></div>
+        <div class="pb" id="towerChart"></div>
+      </div>
+      <div class="panel" style="margin-top:22px">
+        <div class="ph"><h3>Aggregate erosion</h3><span class="hint">Probability each pool is spent before year end</span></div>
+        <div class="pb"><div class="scrollx" id="aggTable"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tsec" id="inputs">
+    <div class="wrap">
+      <header>
+        <h2>Inputs</h2>
+        <p>What the model read, and everything it could not make sense of. Nothing is silently dropped.</p>
+      </header>
+      <div class="grid2">
+        <div class="panel">
+          <div class="ph"><h3>Contract register</h3><span class="hint" id="regHint"></span></div>
+          <div class="pb" id="regSummary"></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h3>Schedule of insurance</h3><span class="hint" id="progHint"></span></div>
+          <div class="pb" id="progSummary"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tsec" id="method">
+    <div class="wrap">
+      <header>
+        <h2>Method</h2>
+        <p>Everything the number depends on, stated plainly enough to be argued with.</p>
+      </header>
+      <div class="panel">
+        <div class="pb" id="methodBody"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div>Built and maintained by Neal Pathak.</div>
+    <div><a href="https://github.com/nealpathak/nealpathak.github.io">Source on GitHub</a></div>
+  </div>
+</footer>
+
+<!-- ------------------------------------------------------------- data --- -->
+<dialog class="sheet" id="dataSheet">
+  <form method="dialog" class="dh">
+    <h2>Load your data</h2>
+    <button class="iconbtn" value="close" aria-label="Close">&times;</button>
+  </form>
+  <div class="db">
+    <p style="font-size:14px; color:var(--ink-2); margin-top:0">
+      Paste or choose two CSVs. They are parsed in this browser and never sent anywhere — there is no
+      server behind this page. Column names are matched case-insensitively and unknown columns are ignored.
+    </p>
+    <div class="grid2">
+      <div class="field">
+        <label for="regText">Contract register</label>
+        <p class="help">
+          <b>contract_id, counterparty, category, annual_value, cap_type, cap_value, cap_carveouts, renewal_date, owner</b><br>
+          <code>cap_type</code> is AMOUNT, MULTIPLE or UNCAPPED. <code>cap_carveouts</code> is written the way
+          the clause reads: <code>INDEMNITY=UNCAPPED;DATA=3x;IP=5000000</code>.
+        </p>
+        <textarea id="regText" spellcheck="false" aria-label="Contract register CSV"></textarea>
+        <div class="inlinefields" style="margin-top:8px">
+          <input type="file" id="regFile" accept=".csv,text/csv" style="font-size:12px; border:0; padding:0">
+        </div>
+      </div>
+      <div class="field">
+        <label for="progText">Schedule of insurance</label>
+        <p class="help">
+          <b>line, layer, attachment, limit, aggregate_limit, aggregate_eroded, retention, agg_group, captive, premium</b><br>
+          <code>line</code> is GL, PROF or CYBER. Layers sharing one aggregate — a true umbrella over two
+          lines — get the same <code>agg_group</code>. Set <code>captive</code> to Y for layers your own captive writes.
+        </p>
+        <textarea id="progText" spellcheck="false" aria-label="Insurance programme CSV"></textarea>
+        <div class="inlinefields" style="margin-top:8px">
+          <input type="file" id="progFile" accept=".csv,text/csv" style="font-size:12px; border:0; padding:0">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="df">
+    <span class="spacer" id="dataNote"></span>
+    <button class="btn" id="btnSample">Restore the synthetic book</button>
+    <button class="btn btn-primary" id="btnApplyData">Run the model</button>
+  </div>
+</dialog>
+
+<!-- -------------------------------------------------------- assumptions --- -->
+<dialog class="sheet" id="assumeSheet">
+  <form method="dialog" class="dh">
+    <h2>Assumptions</h2>
+    <button class="iconbtn" value="close" aria-label="Close">&times;</button>
+  </form>
+  <div class="db">
+    <p style="font-size:14px; color:var(--ink-2); margin-top:0">
+      These describe how often a contract produces a claim and how large it is. They are a starting
+      position for a generic mid-to-large US corporate book, not a finding. Replace them with your own
+      loss history and the figures on the previous page become yours rather than illustrative.
+    </p>
+    <div class="grid3" style="margin-bottom:24px">
+      <div class="field">
+        <label for="setTrials">Simulated years</label>
+        <input type="number" id="setTrials" min="1000" max="200000" step="1000">
+        <span class="help">More years give a steadier tail. 25,000 is enough for the 1-in-100.</span>
+      </div>
+      <div class="field">
+        <label for="setSeed">Seed</label>
+        <input type="number" id="setSeed" step="1">
+        <span class="help">Fixes the dice. Same seed, same answer, forever.</span>
+      </div>
+      <div class="field">
+        <label for="setCV">Severity variability</label>
+        <input type="number" id="setCV" min="0.5" max="6" step="0.1">
+        <span class="help">Coefficient of variation. Higher means a longer right tail.</span>
+      </div>
+      <div class="field">
+        <label for="setLoad">Frequency load</label>
+        <input type="number" id="setLoad" min="0.1" max="5" step="0.05">
+        <span class="help">One dial on every frequency at once, for "the book is running hot".</span>
+      </div>
+      <div class="field">
+        <label for="setTrunc">Uncapped truncation</label>
+        <input type="text" id="setTrunc">
+        <span class="help">Where a genuinely uncapped exposure is cut off, so the mean stays finite.</span>
+      </div>
+      <div class="field">
+        <label for="setFreqExp">Frequency scaling exponent</label>
+        <input type="number" id="setFreqExp" min="0" max="1.5" step="0.05">
+        <span class="help">How claim counts scale with contract value. 1.0 is proportional; 0.6 is sub-linear.</span>
+      </div>
+    </div>
+
+    <h3 style="font-size:17px; margin-bottom:6px">Calibrate from your own losses</h3>
+    <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:12px">
+      Paste closed and open claims as <code>category,peril,amount</code>, one per line, plus the number of
+      years they cover. The model fits frequency and severity per category from what actually happened
+      and replaces the defaults. Categories and perils must match the codes used in the register.
+    </p>
+    <div class="inlinefields" style="margin-bottom:12px">
+      <div class="field" style="max-width:180px">
+        <label for="calYears">Years of history</label>
+        <input type="number" id="calYears" value="5" min="1" max="40" step="1">
+      </div>
+      <button class="btn" id="btnCalibrate">Fit and apply</button>
+      <span class="help" id="calNote" style="flex:1; min-width:200px"></span>
+    </div>
+    <textarea id="calText" spellcheck="false" style="min-height:130px"
+      placeholder="TECHNOLOGY,DATA,1450000&#10;SUPPLIER,INDEMNITY,320000&#10;CONSTRUCTION,INDEMNITY,2100000"
+      aria-label="Loss history"></textarea>
+  </div>
+  <div class="df">
+    <span class="spacer">Changes re-run the whole model.</span>
+    <button class="btn" id="btnResetAssume">Reset to defaults</button>
+    <button class="btn btn-primary" id="btnApplyAssume">Apply and re-run</button>
+  </div>
+</dialog>
+
+<!-- ------------------------------------------------------------ export --- -->
+<dialog class="sheet" id="exportSheet">
+  <form method="dialog" class="dh">
+    <h2>Export this run</h2>
+    <button class="iconbtn" value="close" aria-label="Close">&times;</button>
+  </form>
+  <div class="db">
+    <p style="font-size:14px; color:var(--ink-2); margin-top:0">
+      Everything is generated from the run on screen, so the memo and the spreadsheets cannot disagree
+      with each other. The seed is printed in the memo, which means anyone can reproduce the figures.
+    </p>
+    <div class="grid2">
+      <div>
+        <h3 style="font-size:16px; margin-bottom:8px">Board memo</h3>
+        <p style="font-size:13.5px; color:var(--ink-2)">The number, where it lands, the findings, the queue, the levers, and a plain statement of what is not modelled. Markdown, ready to paste into a paper.</p>
+        <button class="btn" id="expMemo">Download memo</button>
+      </div>
+      <div>
+        <h3 style="font-size:16px; margin-bottom:8px">Working files</h3>
+        <p style="font-size:13.5px; color:var(--ink-2)">Per-contract exposure, findings, aggregate erosion, and the exceedance curve as a table.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px">
+          <button class="btn btn-sm" id="expContracts">Contracts</button>
+          <button class="btn btn-sm" id="expFindings">Findings</button>
+          <button class="btn btn-sm" id="expAgg">Aggregates</button>
+          <button class="btn btn-sm" id="expCurve">Exceedance curve</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="df">
+    <span class="spacer" id="expNote"></span>
+    <button class="btn" onclick="document.getElementById('exportSheet').close()">Done</button>
+  </div>
+</dialog>
+
+<div class="busy" id="busy"><div class="box" id="busyText">Simulating…</div></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

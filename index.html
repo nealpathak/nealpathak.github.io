@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neal Pathak — Risk and legal operations tools</title>
+<meta name="description" content="Working software for corporate risk and legal operations. The Exposure Ledger joins a contract register to an insurance programme and computes the liability a company retains on itself.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/site.css">
+<meta property="og:title" content="Neal Pathak — Risk and legal operations tools">
+<meta property="og:description" content="The exposure your contracts created and your insurance does not answer for, computed.">
+<meta property="og:type" content="website">
+<style>
+  .hero { padding: 74px 0 12px; }
+  .hero h1 {
+    font-size: clamp(34px, 5.4vw, 58px);
+    max-width: 17ch;
+    margin: 0 0 22px;
+    letter-spacing: -0.022em;
+  }
+  .hero .lede { max-width: 62ch; font-size: clamp(17px, 2vw, 20px); }
+
+  .contrast {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin: 52px 0 0;
+    overflow: hidden;
+  }
+  .contrast > div { background: var(--surface); padding: 26px 28px 24px; }
+  .contrast .k {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px;
+  }
+  .contrast .v {
+    font-family: var(--serif); font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 10px;
+  }
+  .contrast .wrongv { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 2px; }
+  .contrast .rightv { color: var(--hot); }
+  .contrast p { font-size: 14.5px; line-height: 1.55; color: var(--ink-2); margin: 0; }
+  .contrast .src { font-size: 12.5px; color: var(--ink-3); margin-top: 12px; }
+
+  section { padding: 74px 0 0; }
+  .sechead { max-width: 66ch; margin-bottom: 36px; }
+  .sechead h2 { font-size: clamp(25px, 3.4vw, 33px); margin-bottom: 14px; }
+  .sechead p { color: var(--ink-2); margin: 0; }
+
+  .cols3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; }
+  .col h3 { font-size: 19px; margin-bottom: 10px; }
+  .col p { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); margin: 0; }
+  .col .idx {
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+    display: block; margin-bottom: 12px; letter-spacing: .04em;
+  }
+
+  .toolcard {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .toolcard .top {
+    padding: 30px 34px 26px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .toolcard h3 { font-size: 27px; margin: 8px 0 12px; }
+  .toolcard .titlerow { display: flex; align-items: center; gap: 12px; }
+  .toolcard .sub { color: var(--ink-2); font-size: 15px; margin: 0 0 20px; }
+  .outlist { list-style: none; margin: 0; padding: 0; }
+  .outlist li {
+    font-size: 14.5px; color: var(--ink-2); padding: 8px 0 8px 20px;
+    border-top: 1px solid var(--line); position: relative;
+  }
+  .outlist li:first-child { border-top: 0; padding-top: 0; }
+  .outlist li::before {
+    content: ""; position: absolute; left: 2px; top: 15px;
+    width: 5px; height: 5px; background: var(--accent); border-radius: 50%;
+  }
+  .outlist li:first-child::before { top: 7px; }
+  .outlist b { color: var(--ink); font-weight: 600; }
+  .toolcard .fig { padding: 26px 34px 30px; background: var(--surface-2); }
+  .toolcard .fig figcaption { font-size: 12.5px; color: var(--ink-3); margin-top: 14px; max-width: 78ch; }
+  .toolcard .cta { padding: 22px 34px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .toolcard .cta .note { font-size: 13px; color: var(--ink-3); }
+
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .d-line { stroke: var(--line-2); }
+  .d-box { fill: var(--surface); stroke: var(--line-2); }
+  .d-lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+  .d-lbl-strong { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 600; }
+  .d-mono { fill: var(--ink-3); font-family: var(--mono); font-size: 10.5px; }
+  .d-head { fill: var(--ink-3); font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .09em; }
+  .d-hot { fill: var(--hot); }
+  .d-hotbox { fill: var(--hot-wash); stroke: color-mix(in srgb, var(--hot) 45%, var(--line)); }
+  .d-coolbox { fill: var(--cool-wash); stroke: color-mix(in srgb, var(--cool) 40%, var(--line)); }
+  .d-cool { fill: var(--cool); }
+
+  .principles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .principles > div { background: var(--surface); padding: 24px 26px; }
+  .principles h3 { font-size: 17px; margin-bottom: 8px; }
+  .principles p { font-size: 14px; color: var(--ink-2); margin: 0; line-height: 1.58; }
+
+  .limits { border-left: 2px solid var(--line-2); padding-left: 22px; max-width: 70ch; }
+  .limits li { font-size: 14.5px; color: var(--ink-2); margin-bottom: 10px; }
+
+  .roadmap { display: flex; flex-direction: column; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .roadmap .row { background: var(--surface); padding: 18px 24px; display: flex; gap: 18px; align-items: baseline; flex-wrap: wrap; }
+  .roadmap .row .name { font-family: var(--serif); font-size: 17px; font-weight: 600; min-width: 260px; }
+  .roadmap .row .what { font-size: 14px; color: var(--ink-2); flex: 1; min-width: 260px; }
+
+  @media (max-width: 900px) {
+    .cols3 { grid-template-columns: 1fr; gap: 28px; }
+    .toolcard .top { grid-template-columns: 1fr; gap: 26px; padding: 24px; }
+    .toolcard .fig, .toolcard .cta { padding-left: 24px; padding-right: 24px; }
+    .contrast { grid-template-columns: 1fr; }
+    .principles { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="masthead">
+  <div class="wrap">
+    <a class="brand" href="./">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M3 20h18M6 20V9M12 20V4M18 20v-7"/>
+      </svg>
+      Neal Pathak
+    </a>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="#gap">The gap</a>
+      <a href="#tool">The tool</a>
+      <a href="#build">How it is built</a>
+      <a href="tools/exposure-ledger/">Open the model</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <div class="wrap hero">
+    <p class="eyebrow">Risk and legal operations — working software</p>
+    <h1>Your contracts wrote a liability. Nobody added it up.</h1>
+    <p class="lede">
+      Contract systems know what the clause says. Risk systems know what the tower covers.
+      Nothing joins them. So the number a board actually needs — the exposure a company's own
+      agreements created, that its own insurance does not answer for — has never been computed.
+      This computes it.
+    </p>
+
+    <div class="contrast">
+      <div>
+        <div class="k">What gets reported today</div>
+        <div class="v wrongv num">$866M</div>
+        <p>The sum of every liability cap in the register. It is the only contractual number most companies can produce, and it answers a question nobody asked: what if every counterparty sued for their full cap in the same year.</p>
+        <p class="src">Illustrative, from the synthetic 412-contract book shipped with the model.</p>
+      </div>
+      <div>
+        <div class="k">What the exposure actually is</div>
+        <div class="v rightv num">$28.1M <span style="font-size:.5em; color:var(--ink-3); letter-spacing:0">expected</span></div>
+        <p><b>$115M at the 1-in-100.</b> Of that, $7.9M a year sits in classes where no policy responds at all, and the primary general liability aggregate is exhausted in 58% of simulated years — after which claims fall through a gap in the tower and land on the balance sheet.</p>
+        <p class="src">The same book, run through the model at its default settings. Open the tool and these figures reproduce to the dollar — the simulation is seeded.</p>
+      </div>
+    </div>
+  </div>
+
+  <section id="gap">
+    <div class="wrap">
+      <div class="sechead">
+        <p class="eyebrow">The gap</p>
+        <h2>Three reasons the sum of the caps is the wrong number</h2>
+        <p>Each of these is ordinary. Together they are why a company can hold a complete contract register, a complete schedule of insurance, and still have no idea what it is carrying.</p>
+      </div>
+      <div class="cols3">
+        <div class="col">
+          <span class="idx">01</span>
+          <h3>The cap is not the ceiling</h3>
+          <p>Almost every negotiated cap carves something out of itself — indemnity, IP infringement, breach of confidentiality, gross negligence. The tidy "1× fees" in the summary field is silent on the four exposures most likely to reach nine figures. Extraction tools record the cap. The carve-out is where the money is.</p>
+        </div>
+        <div class="col">
+          <span class="idx">02</span>
+          <h3>Limits are shared</h3>
+          <p>An aggregate standing behind one contract is standing behind all of them. Reviewing contracts one at a time cannot see the year in which three claims land together and the third one finds the tower already spent. That interaction is the whole reason a programme is bought, and it is invisible to any per-contract analysis.</p>
+        </div>
+        <div class="col">
+          <span class="idx">03</span>
+          <h3>Some perils have no policy</h3>
+          <p>The general liability form excludes infringement of patent, trademark and trade secret. Gross negligence is uninsurable in most states and excluded in any event. Those exposures are not underinsured — nothing was ever written for them. They belong in the retained column from the first day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tool">
+    <div class="wrap">
+      <div class="sechead">
+        <p class="eyebrow">The tool</p>
+        <h2>Exposure Ledger</h2>
+        <p>Two CSVs in — the contract register and the schedule of insurance. One number out, with the reasoning kept in view the whole way down.</p>
+      </div>
+
+      <div class="toolcard">
+        <div class="top">
+          <div>
+            <div class="titlerow">
+              <span class="tag tag-live">Live</span>
+              <span class="tag">Runs in your browser</span>
+            </div>
+            <h3>What it computes</h3>
+            <p class="sub">
+              Every contract is decomposed into the five ways it can turn into money going out the door. Each
+              gets the ceiling that actually applies to it — the cap, the supercap, or nothing. Each is routed to the
+              policy line that answers for it, or to no line at all. Then the whole book is simulated together,
+              with the towers eroding inside every trial, so shared limits behave the way shared limits behave.
+            </p>
+            <p class="sub" style="margin-bottom:0">
+              The result is a distribution, not a point. What a normal year costs, what a bad year costs, and
+              which agreements were in the room during the worst of them.
+            </p>
+          </div>
+          <div>
+            <h3 style="font-size:19px; margin-top:0">What comes out</h3>
+            <ul class="outlist">
+              <li><b>Retained exposure</b> — expected, 1-in-10, 1-in-100, and the average of the worst one per cent.</li>
+              <li><b>The retained split</b> — how much sits in the retention, how much in the captive, how much above the programme, and how much in classes no form covers.</li>
+              <li><b>Aggregate exhaustion</b> — the probability each shared limit is spent before year end, and what falls through when it is.</li>
+              <li><b>A renegotiation list</b> — contracts ranked by their contribution to the tail, not by size. The ten your general counsel should reopen, and what closing each is worth.</li>
+              <li><b>Risk transfer economics</b> — price a candidate layer and see the cost per dollar of tail removed, next to the levers that cost nothing but a redline.</li>
+              <li><b>A board memo</b> and full CSV exports, generated from the run.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="fig">
+          <figure style="margin:0">
+            <svg class="diagram" viewBox="0 0 940 330" role="img" aria-labelledby="digt digd">
+              <title id="digt">How one contract becomes a retained exposure</title>
+              <desc id="digd">A single contract with a ten million dollar cap is split into five peril classes. Performance stays under the cap and is routed to the professional liability tower. Indemnity and IP infringement are carved out of the cap and become unlimited; IP has no policy line and is fully retained. Data breach carries a three-times-fees supercap and routes to cyber. Gross negligence is uncapped and uninsured.</desc>
+
+              <text class="d-head" x="0" y="12">THE REGISTER SAYS</text>
+              <text class="d-head" x="286" y="12">THE CEILING THAT APPLIES</text>
+              <text class="d-head" x="648" y="12">WHAT ANSWERS FOR IT</text>
+
+              <!-- contract -->
+              <rect class="d-box" x="0" y="96" width="212" height="118" rx="3"/>
+              <text class="d-lbl-strong" x="16" y="122">Master services agreement</text>
+              <text class="d-mono" x="16" y="145">cap_type      MULTIPLE</text>
+              <text class="d-mono" x="16" y="162">cap_value     2x  →  $10,000,000</text>
+              <text class="d-mono" x="16" y="185" style="fill:var(--hot)">carve-outs    INDEMNITY, IP,</text>
+              <text class="d-mono" x="16" y="200" style="fill:var(--hot)">              DATA=3x</text>
+
+              <path class="d-line" d="M212 155 H262" fill="none" stroke-width="1"/>
+              <path class="d-line" d="M262 40 V270" fill="none" stroke-width="1"/>
+
+              <!-- peril rows -->
+              <g>
+                <path class="d-line" d="M262 40 H286" fill="none" stroke-width="1"/>
+                <rect class="d-coolbox" x="286" y="26" width="286" height="30" rx="2"/>
+                <text class="d-lbl-strong" x="298" y="46">Performance / negligence</text>
+                <text class="d-mono" x="470" y="46">capped $10.0M</text>
+              </g>
+              <g>
+                <path class="d-line" d="M262 97 H286" fill="none" stroke-width="1"/>
+                <rect class="d-hotbox" x="286" y="83" width="286" height="30" rx="2"/>
+                <text class="d-lbl-strong" x="298" y="103">Third-party indemnity</text>
+                <text class="d-mono d-hot" x="470" y="103">no ceiling</text>
+              </g>
+              <g>
+                <path class="d-line" d="M262 155 H286" fill="none" stroke-width="1"/>
+                <rect class="d-hotbox" x="286" y="140" width="286" height="30" rx="2"/>
+                <text class="d-lbl-strong" x="298" y="160">IP infringement</text>
+                <text class="d-mono d-hot" x="470" y="160">no ceiling</text>
+              </g>
+              <g>
+                <path class="d-line" d="M262 212 H286" fill="none" stroke-width="1"/>
+                <rect class="d-coolbox" x="286" y="197" width="286" height="30" rx="2"/>
+                <text class="d-lbl-strong" x="298" y="217">Data / confidentiality</text>
+                <text class="d-mono" x="470" y="217">capped $15.0M</text>
+              </g>
+              <g>
+                <path class="d-line" d="M262 270 H286" fill="none" stroke-width="1"/>
+                <rect class="d-hotbox" x="286" y="255" width="286" height="30" rx="2"/>
+                <text class="d-lbl-strong" x="298" y="275">Gross negligence</text>
+                <text class="d-mono d-hot" x="470" y="275">no ceiling</text>
+              </g>
+
+              <!-- routing -->
+              <path class="d-line" d="M572 41 H612 V70 H648" fill="none" stroke-width="1"/>
+              <path class="d-line" d="M572 98 H600 V126 H648" fill="none" stroke-width="1"/>
+              <path class="d-line" d="M572 155 H648" fill="none" stroke-width="1"/>
+              <path class="d-line" d="M572 212 H600 V183 H648" fill="none" stroke-width="1"/>
+              <path class="d-line" d="M572 270 H612 V240 H648" fill="none" stroke-width="1"/>
+
+              <!-- towers -->
+              <rect class="d-coolbox" x="648" y="56" width="292" height="28" rx="2"/>
+              <text class="d-lbl-strong" x="660" y="75">Professional liability tower</text>
+              <text class="d-mono d-cool" x="866" y="75">insured</text>
+
+              <rect class="d-coolbox" x="648" y="112" width="292" height="28" rx="2"/>
+              <text class="d-lbl-strong" x="660" y="131">General liability + umbrella</text>
+              <text class="d-mono d-cool" x="866" y="131">insured</text>
+
+              <rect class="d-coolbox" x="648" y="169" width="292" height="28" rx="2"/>
+              <text class="d-lbl-strong" x="660" y="188">Cyber tower</text>
+              <text class="d-mono d-cool" x="866" y="188">insured</text>
+
+              <rect class="d-hotbox" x="648" y="140" width="292" height="0" rx="2" opacity="0"/>
+              <rect class="d-hotbox" x="648" y="226" width="292" height="28" rx="2"/>
+              <text class="d-lbl-strong" x="660" y="245">No form responds</text>
+              <text class="d-mono d-hot" x="838" y="245">fully retained</text>
+
+              <text class="d-lbl" x="648" y="286">IP is excluded from the general liability form. Gross negligence is</text>
+              <text class="d-lbl" x="648" y="302">uninsurable in most states. Both land here by construction, not by accident.</text>
+            </svg>
+            <figcaption>
+              One contract, five exposures, four different answers. Multiply by four hundred agreements sharing
+              one set of aggregates and the arithmetic stops being something a spreadsheet can hold.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div class="cta">
+          <a class="btn btn-primary" href="tools/exposure-ledger/">Open the model</a>
+          <a class="btn" href="tools/exposure-ledger/#method">Read the method</a>
+          <span class="note">Loads with a synthetic 412-contract book. Bring your own CSV whenever you like — it never leaves the browser.</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="build">
+    <div class="wrap">
+      <div class="sechead">
+        <p class="eyebrow">How it is built</p>
+        <h2>Four commitments that make the number arguable</h2>
+        <p>A risk model that cannot be interrogated is a rumour with a chart on it. These are the properties that let a CFO push back on the answer instead of taking it on faith.</p>
+      </div>
+      <div class="principles">
+        <div>
+          <h3>Nothing is uploaded</h3>
+          <p>The register and the schedule of insurance are read in the browser and stay there. There is no server, no account, no log. A risk officer can run their live book on a plane and there is nothing to put in a vendor questionnaire.</p>
+        </div>
+        <div>
+          <h3>The same inputs give the same answer</h3>
+          <p>The simulation is seeded. Re-running a board number six weeks later returns the identical figure, and any movement is a change in the book rather than a change in the dice. The seed is shown on screen and printed in the memo.</p>
+        </div>
+        <div>
+          <h3>Every assumption is on the surface</h3>
+          <p>Claim frequency and severity are visible, editable, and labelled as assumptions rather than dressed up as findings. Where a company has its own loss history, the calibration panel replaces the defaults with it and shows what moved.</p>
+        </div>
+        <div>
+          <h3>The engine is tested, not asserted</h3>
+          <p>Layer allocation, aggregate erosion, cap and carve-out parsing and the reconciliation identities are covered by a self-test that ships in the repository and runs in one command. Losses cannot recover more than they cost and aggregates cannot pay out more than they hold.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sechead">
+        <p class="eyebrow">Honest limits</p>
+        <h2>What this does not do</h2>
+      </div>
+      <ul class="limits">
+        <li>It does not read contracts. It reads a register. Getting the cap, the carve-outs and the annual value out of the paper is a separate job, and doing it badly makes everything downstream wrong.</li>
+        <li>It does not model coverage disputes, defence costs inside or outside the limit, retroactive dates, or the claims-made trigger. Those change the answer and belong to the next version.</li>
+        <li>It is not an actuarial opinion, and it is not a substitute for one. It is the thing to bring to the actuary so the conversation starts somewhere better than a list of caps.</li>
+        <li>The default frequency and severity assumptions are a starting position for argument. Any company with three years of loss history should replace them, and the tool makes that the easy path.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="sechead">
+        <p class="eyebrow">Next</p>
+        <h2>What is being built after this</h2>
+        <p>Same test: a real problem, at enterprise scale, that nothing on the market currently answers. Listed here because it is in progress, not because it is finished.</p>
+      </div>
+      <div class="roadmap">
+        <div class="row">
+          <span class="name">Captive capacity model</span>
+          <span class="what">Whether a captive can underwrite a new line, and what writing it does to surplus and to the probability of impairment. The question a captive board asks every year and answers from a consultant's deck.</span>
+          <span class="tag tag-soon">In build</span>
+        </div>
+        <div class="row">
+          <span class="name">Certificate reconciliation</span>
+          <span class="what">The insurance a contract required, against the certificates and endorsements actually on file. Additional insured status that was promised and never granted is the cheapest large exposure a company carries.</span>
+          <span class="tag tag-soon">Designed</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div>Built and maintained by Neal Pathak.</div>
+    <div><a href="https://github.com/nealpathak/nealpathak.github.io">Source on GitHub</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

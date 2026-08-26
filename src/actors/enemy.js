@@ -76,6 +76,13 @@ export class Enemy extends Actor {
     this.backstabImmune = !!A.backstabImmune;
     this.armourPoise = A.poise ?? 0;
     this.refreshDerived({ keepRatios: false });
+    // Bosses and elites get a flat health multiplier on top of their stat
+    // block, because scaling Vigour high enough to matter would distort every
+    // other number derived from it.
+    if (A.healthScale) {
+      this.maxHealth = Math.round(this.maxHealth * A.healthScale);
+      this.health = this.maxHealth;
+    }
 
     this.cinderValue = Math.round((A.cinders ?? 40) * (1 + (tier - 1) * 0.7) * (elite ? 3.2 : 1));
     this.bindable = !!A.bindable;

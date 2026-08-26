@@ -86,6 +86,9 @@ export class PauseMenu {
     this._row('Look sensitivity', this._range('sensitivity', 0.3, 3, 0.05));
     this._row('Invert vertical look', this._toggle('invertY'));
     this._row('Camera shake', this._range('cameraShake', 0, 1.5, 0.05));
+    this._row('Master volume', this._range('masterVolume', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`));
+    this._row('Music', this._range('musicVolume', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`));
+    this._row('Effects', this._range('sfxVolume', 0, 1, 0.05, (v) => `${Math.round(v * 100)}%`));
     this._row('Damage numbers', this._toggle('showDamageNumbers'));
     this._row('Larger text', this._toggle('largeText'));
     this._row('Reduce flashing', this._toggle('reduceFlashing'));

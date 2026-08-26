@@ -9,6 +9,7 @@ import { ThirdPersonCamera } from './camera.js';
 import { LockOn } from './lockon.js';
 import { Enemy } from '../actors/enemy.js';
 import { ENEMIES } from '../data/enemies.js';
+import { Boss } from '../actors/boss.js';
 import { FX } from '../render/fx.js';
 import { resolveHit } from '../combat/damage.js';
 import { makeRng } from '../core/rng.js';
@@ -19,6 +20,7 @@ import { STARTING_KIT } from '../data/items.js';
 import { hasSave } from '../core/save.js';
 import { summonWisp, makeCompanion } from '../actors/ally.js';
 import { COMPANIONS } from '../data/companions.js';
+import { Audio } from '../audio/audio.js';
 import { bus } from '../core/events.js';
 import { settings } from '../core/settings.js';
 import { clamp } from '../core/math.js';
@@ -106,6 +108,7 @@ export class Game {
     this.inventory.equip('armour', STARTING_KIT.armour);
     this.hasSave = hasSave();
     this.allies = [];
+    this.audio = new Audio(this);
 
     this._wireEvents();
     this.mode = MODE.TITLE;
@@ -140,7 +143,29 @@ export class Game {
         this.addActor(enemy);
       }
     }
+    this._spawnBoss();
     bus.emit('game:enemiesSpawned', { count: this.enemies.length });
+  }
+
+  _spawnBoss() {
+    const def = this.zone.def.boss;
+    if (!def) return;
+    const archetype = ENEMIES[def.kind];
+    if (!archetype) return;
+    if (this.bossDefeated) return;   // a felled boss stays felled across rests
+
+    const [x, z] = def.at;
+    const y = this.zone.terrain.heightAt(x, z);
+    const boss = new Boss({ archetype, world: this.world, tier: 1, rngSeed: 0xb055 });
+    boss.setHome(x, y, z, Math.PI);
+    const a = def.arena ?? { at: def.at, radius: 16 };
+    boss.setArena(
+      new THREE.Vector3(a.at[0], this.zone.terrain.heightAt(a.at[0], a.at[1]), a.at[1]),
+      a.radius,
+    );
+    boss.addTo(this.scene);
+    this.addActor(boss);
+    this.boss = boss;
   }
 
   addActor(a) {
@@ -259,6 +284,14 @@ export class Game {
     });
     bus.on('covenant:active', () => { if (this.mode !== MODE.LOADING) this.summonActiveWisp(); });
     bus.on('covenant:bound', () => { this._sideCache = null; });
+    bus.on('boss:ended', () => {
+      // A boss you have beaten does not come back when you rest. The cinders
+      // are paid by the ordinary enemy:died handler; paying again here would
+      // double them.
+      this.bossDefeated = true;
+      this.progression?.save();
+    });
+    bus.on('boss:phase', () => this.camera.addShake(0.8));
   }
 
   _queueProjectile(enemy, attack) {
@@ -289,6 +322,9 @@ export class Game {
   _enterPlay() {
     if (this.mode === MODE.PLAYING) return;
     this.mode = MODE.PLAYING;
+    // Browsers only allow an AudioContext to start from a user gesture, and
+    // pressing Begin is one.
+    this.audio.init();
     this.input.enabled = true;
     this.input.requestPointerLock(this.engine.canvas);
     document.body.classList.add('playing');
@@ -489,6 +525,7 @@ export class Game {
     }
 
     for (const a of this.actors) a.update(dt);
+    this.audio.update(realDt, this.player.position);
 
     // Hit testing runs here, not in fixedUpdate, because the poses hitboxes are
     // read from only change at render rate. Testing more often than the blade

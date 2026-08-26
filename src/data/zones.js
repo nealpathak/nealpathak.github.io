@@ -98,6 +98,12 @@ export const ZONES = {
       // Fen creatures, guarding the optional bowl.
       { kind: 'fenWisp', at: [-14, 24], count: 3, tier: 2, elite: true },
     ],
+
+    boss: {
+      kind: 'gatewarden',
+      at: [6, -52],
+      arena: { at: [6, -48], radius: 17 },
+    },
   },
 };
 

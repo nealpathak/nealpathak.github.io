@@ -199,5 +199,70 @@ export const ENEMIES = {
   },
 };
 
+/**
+ * The Ashfen boss. Phase one is a slow, readable armoured knight; phase two
+ * lights up, moves faster, and adds an unblockable ground slam that has to be
+ * rolled rather than tanked.
+ */
+ENEMIES.gatewarden = {
+  id: 'gatewarden',
+  name: 'The Warden of Ashfen',
+  isBoss: true,
+  scale: 1.34,
+  height: 2.32,
+  radius: 0.52,
+  affinity: 'none',
+  stats: { level: 20, vigour: 30, endurance: 20, strength: 22, finesse: 10, resolve: 26, attunement: 10 },
+  cinders: 1800,
+  healthScale: 3.4,
+  poise: 92,
+  defenceFlat: 14,
+  defencePercent: 0.18,
+  aggression: 0.6,
+  sightRange: 30,
+  sightAngle: 2.0,
+  preferredRange: 3.0,
+  walkSpeed: 1.3,
+  runSpeed: 3.2,
+  turnRate: 3.0,
+  parryable: false,
+  backstabImmune: true,
+  weapon: 'greatsword',
+  weaponVisual: { steel: 0x8d94a2, hilt: 0x2a2118, pommel: 0x4a4640 },
+  look: {
+    helm: 'greathelm', pauldrons: 'spiked', fauld: true, cape: true, build: 1.24,
+    rimStrength: 0.42, metalness: 0.7, capeColor: 0x4a1c18,
+    palette: {
+      flesh: 0x4a3d30, cloth: 0x201d22, cloth2: 0x4a1c18, leather: 0x2c241c,
+      metal: 0x6a6e78, metalDark: 0x2e3038, accent: 0xff8a3c, eye: 0xff7a3c,
+    },
+  },
+  attacks: [
+    { clip: 'attackHeavy1', range: 3.9, weight: 3, damage: 118, poiseDamage: 62, cooldown: 1.9, trackTime: 0.34, advance: 2.6, heavy: true, hyperArmour: true, pitch: 0.5 },
+    { clip: 'attackHeavy2', range: 3.7, weight: 2.4, damage: 104, poiseDamage: 56, cooldown: 1.7, trackTime: 0.28, advance: 2.0, heavy: true, hyperArmour: true, pitch: 0.55 },
+    { clip: 'attackLight1', range: 3.4, weight: 2, damage: 72, poiseDamage: 34, cooldown: 1.0, trackTime: 0.26, advance: 2.2, pitch: 0.7 },
+    { clip: 'attackRunning', range: 7.5, minRange: 3.4, weight: 1.6, damage: 96, poiseDamage: 44, cooldown: 2.6, trackTime: 0.3, advance: 8.0, hyperArmour: true, pitch: 0.8 },
+  ],
+  phases: [
+    { at: 1.0, title: 'The Warden of Ashfen' },
+    {
+      at: 0.5,
+      title: 'The Ember Answers',
+      affinity: 'ember',
+      aggression: 0.82,
+      speedScale: 1.22,
+      auraColour: 0xff7a3c,
+      transitionTime: 1.8,
+      attacks: [
+        { clip: 'attackHeavy1', range: 4.1, weight: 3, damage: 132, poiseDamage: 70, cooldown: 1.4, trackTime: 0.30, advance: 3.0, heavy: true, hyperArmour: true, affinity: 'ember', pitch: 0.48 },
+        { clip: 'attackHeavy2', range: 4.0, weight: 2.6, damage: 118, poiseDamage: 64, cooldown: 1.3, trackTime: 0.26, advance: 2.4, heavy: true, hyperArmour: true, affinity: 'ember', unblockable: true, pitch: 0.52 },
+        { clip: 'attackLight1', range: 3.6, weight: 2.4, damage: 84, poiseDamage: 38, cooldown: 0.8, trackTime: 0.22, advance: 2.6, affinity: 'ember', pitch: 0.72 },
+        { clip: 'attackLight3', range: 4.2, weight: 2, damage: 96, poiseDamage: 50, cooldown: 1.6, trackTime: 0.24, advance: 2.0, heavy: true, hyperArmour: true, affinity: 'ember', pitch: 0.6 },
+        { clip: 'attackRunning', range: 9.0, minRange: 3.6, weight: 1.8, damage: 110, poiseDamage: 50, cooldown: 2.0, trackTime: 0.28, advance: 10.0, hyperArmour: true, affinity: 'ember', pitch: 0.85 },
+      ],
+    },
+  ],
+};
+
 /** Encounter tiers exist so the same archetype can staff an early and a late fight. */
 export const TIER_LABEL = { 1: '', 2: 'Hardened', 3: 'Ancient' };

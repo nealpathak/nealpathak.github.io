@@ -1,0 +1,133 @@
+/* Emberwake UI.
+   All HUD and menus are DOM. Keeping them out of WebGL means crisp text at any
+   resolution, real focus handling, and screen-reader-visible menus. */
+
+:root {
+  --ink:        #f2e9dd;
+  --ink-dim:    #b7ab9c;
+  --ink-faint:  #7c7365;
+  --bg:         #0b0a10;
+  --bg-panel:   rgba(16, 14, 20, 0.88);
+  --bg-panel-2: rgba(24, 20, 27, 0.94);
+  --line:       rgba(214, 190, 156, 0.20);
+  --line-strong:rgba(214, 190, 156, 0.42);
+
+  --ember:      #ff9a4d;
+  --ember-dim:  #b66730;
+  --ember-glow: #ffd08a;
+  --blood:      #c4372c;
+  --blood-dark: #6d1f19;
+  --stamina:    #9fd47a;
+  --stamina-dark:#416b2c;
+  --focus:      #7fb6ff;
+  --focus-dark: #2f5a94;
+  --gold:       #e6c27a;
+
+  /* Affinities */
+  --aff-ember:    #ff7a3c;
+  --aff-bloom:    #86d05a;
+  --aff-tide:     #4fb8e8;
+  --aff-radiance: #ffe58a;
+  --aff-void:     #a97ce0;
+  --aff-none:     #b6b0a6;
+
+  --font-display: 'Cinzel', 'Trajan Pro', 'Georgia', 'Times New Roman', serif;
+  --font-body: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+
+  --hud-scale: 1;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body.large-text { --hud-scale: 1.22; }
+
+#viewport {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: default;
+}
+body.playing #viewport { cursor: none; }
+
+.ui-root {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-size: calc(15px * var(--hud-scale));
+}
+.ui-root > * { pointer-events: none; }
+.ui-root [data-interactive] { pointer-events: auto; }
+
+/* ---------- boot screen ---------- */
+
+.boot {
+  position: fixed; inset: 0;
+  z-index: 100;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(120% 90% at 50% 42%, #221a20 0%, #0b0a10 62%, #060509 100%);
+  color: var(--ink);
+  transition: opacity 900ms ease, visibility 900ms;
+}
+.boot--done { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.boot__inner { text-align: center; max-width: 34rem; padding: 2rem; }
+.boot__mark { color: var(--ember); filter: drop-shadow(0 0 18px rgba(255,154,77,.45)); animation: emberPulse 3.4s ease-in-out infinite; }
+.boot__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 8vw, 4.4rem);
+  letter-spacing: .34em;
+  margin: .6rem 0 .1rem -.34em;
+  font-weight: 600;
+  background: linear-gradient(180deg, #fff3e0 0%, #f0c48a 48%, #c07a3c 100%);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+.boot__sub { color: var(--ink-faint); letter-spacing: .28em; text-transform: uppercase; font-size: .72rem; margin: 0 0 2.2rem; }
+.boot__bar { width: min(22rem, 70vw); height: 2px; margin: 0 auto; background: rgba(255,255,255,.09); overflow: hidden; }
+.boot__bar i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--ember-dim), var(--ember-glow)); transition: width .35s ease; box-shadow: 0 0 12px rgba(255,180,110,.6); }
+.boot__status { margin-top: .9rem; font-size: .74rem; color: var(--ink-faint); letter-spacing: .12em; min-height: 1.2em; }
+.boot__status--error { color: #ff8a7a; letter-spacing: .02em; max-width: 30rem; }
+
+@keyframes emberPulse {
+  0%, 100% { opacity: .78; transform: translateY(0) scale(1); }
+  50%      { opacity: 1;   transform: translateY(-3px) scale(1.03); }
+}
+
+/* ---------- shared panel look ---------- */
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(9px) saturate(120%);
+  box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.h-display {
+  font-family: var(--font-display);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

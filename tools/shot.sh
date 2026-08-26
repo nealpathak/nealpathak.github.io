@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Render the game headlessly and drop a screenshot. Usage: tools/shot.sh [out.png] [waitMs] [eval.js]
+SP=/tmp/claude-0/-home-user-nealpathak-github-io/f25d9a19-6136-51e8-be3a-5e51f2c76b7e/scratchpad
+cd "$SP" && node shot.mjs "$@"

@@ -7,9 +7,16 @@ import { ZONES, DEFAULT_ZONE } from '../data/zones.js';
 import { Player, PS, DEFAULT_WEAPON } from '../actors/player.js';
 import { ThirdPersonCamera } from './camera.js';
 import { LockOn } from './lockon.js';
+import { Enemy } from '../actors/enemy.js';
+import { ENEMIES } from '../data/enemies.js';
+import { FX } from '../render/fx.js';
+import { resolveHit } from '../combat/damage.js';
+import { makeRng } from '../core/rng.js';
 import { bus } from '../core/events.js';
 import { settings } from '../core/settings.js';
 import { clamp } from '../core/math.js';
+
+const _up = new THREE.Vector3(0, 1, 0);
 
 export const MODE = {
   LOADING: 'loading', TITLE: 'title', PLAYING: 'playing',
@@ -36,6 +43,7 @@ export class Game {
     this.time = 0;
     this._interactCandidates = [];
     this._tmp = new THREE.Vector3();
+    this._sideCache = null;
   }
 
   async init() {
@@ -75,6 +83,12 @@ export class Game {
     this.camera.snapTo(this.player);
 
     this.lockOn = new LockOn(this.player, this.camera);
+    this.fx = new FX(this.scene, this.renderer.camera);
+    this.world.game = this;
+    this.zone.game = this;
+
+    this.spawnRng = makeRng((def.seed ?? 1) * 7919);
+    this.spawnEnemies();
 
     this._wireEvents();
     this.mode = MODE.TITLE;
@@ -82,6 +96,35 @@ export class Game {
 
   /** True when the smoke test or a debug link asked to skip the title card. */
   get wantsAutostart() { return this.params.has('autostart'); }
+
+  /** Populate the zone from its spawn table. Called again on every rest. */
+  spawnEnemies() {
+    for (const e of [...this.enemies]) this.removeActor(e);
+    this.enemies.length = 0;
+
+    for (const spawn of this.zone.spawns) {
+      const archetype = ENEMIES[spawn.kind];
+      if (!archetype) { console.warn(`[game] unknown enemy "${spawn.kind}"`); continue; }
+      const count = spawn.count ?? 1;
+      for (let i = 0; i < count; i++) {
+        // Spread a group around its spawn point rather than stacking it.
+        const a = (i / count) * Math.PI * 2 + this.spawnRng() * 1.4;
+        const r = count > 1 ? 1.2 + this.spawnRng() * 2.0 : 0;
+        const x = spawn.position.x + Math.cos(a) * r;
+        const z = spawn.position.z + Math.sin(a) * r;
+        const y = this.zone.terrain.heightAt(x, z);
+        const enemy = new Enemy({
+          archetype, world: this.world,
+          tier: spawn.tier ?? 1, elite: !!spawn.elite,
+          rngSeed: (this.spawnRng() * 1e9) | 0,
+        });
+        enemy.setHome(x, y, z, this.spawnRng() * Math.PI * 2);
+        enemy.addTo(this.scene);
+        this.addActor(enemy);
+      }
+    }
+    bus.emit('game:enemiesSpawned', { count: this.enemies.length });
+  }
 
   addActor(a) {
     this.actors.push(a);
@@ -116,7 +159,39 @@ export class Game {
     });
     bus.on('player:landed', ({ hard, impactSpeed }) => {
       this.camera.addShake(clamp(impactSpeed / 40, 0.05, 0.5) * (hard ? 1.6 : 1));
+      this.fx.dustPuff(this.player.position, { count: hard ? 16 : 8, power: hard ? 1.6 : 1 });
     });
+    bus.on('sfx:footstep', ({ actor, speed }) => {
+      if (speed > 2.4) this.fx.dustPuff(actor.position, { count: 3, power: 0.6 });
+    });
+    bus.on('combat:hit', ({ defender, report }) => {
+      const point = report.point ?? defender.position;
+      const dir = report.direction ?? _up;
+      if (report.blocked) this.fx.blockSpark(point, dir);
+      else {
+        const colour = report.relation === 'advantage' || report.relation === 'mutual'
+          ? 0xffd06a : report.relation === 'disadvantage' ? 0x9aa3b0 : 0xffb27a;
+        this.fx.hitSpark(point, dir, {
+          colour, count: report.attack?.critical ? 34 : 16,
+          power: report.attack?.critical ? 1.8 : 1,
+        });
+      }
+    });
+    bus.on('enemy:died', ({ enemy, cinders }) => {
+      this.fx.deathBurst(
+        new THREE.Vector3(enemy.position.x, enemy.position.y + enemy.height * 0.5, enemy.position.z),
+        enemy.archetype.look?.palette?.accent ?? 0xffa04c,
+      );
+      this.player.cinders += cinders;
+      bus.emit('ui:toast', { text: `+${cinders} cinders`, kind: 'gold', duration: 2 });
+    });
+    bus.on('enemy:windup', ({ enemy, attack }) => {
+      if (attack.projectile) this._queueProjectile(enemy, attack);
+    });
+  }
+
+  _queueProjectile(enemy, attack) {
+    enemy._pendingProjectile = attack;
   }
 
   // --- flow -----------------------------------------------------------------
@@ -167,10 +242,60 @@ export class Game {
       a.fixedUpdate(dt);
     }
 
-    // Player hits are tested after everyone has moved, so a hitbox never
-    // resolves against a stale position.
+    for (const e of this.enemies) {
+      if (e._pendingProjectile && e.character.base.progress > 0.5) {
+        this._fireProjectile(e, e._pendingProjectile);
+        e._pendingProjectile = null;
+      }
+    }
+
+    this.fx.updateProjectiles(dt, this.actors, this.zone.collision, (hitActor, p) => {
+      if (!hitActor) return;
+      resolveHit(hitActor, {
+        ...p.spec, source: p.owner,
+        point: p.mesh.position.clone(),
+        direction: p.velocity.clone().setY(0).normalize(),
+      });
+    });
+
+    // Ambient embers, thickest near the player so the budget goes where it shows.
+    if (this.spawnRng() < 0.55) this.fx.ambientEmber(this.player.position, 26, 1);
+  }
+
+  _playerSide() {
+    return this._sideCache ??= [this.player];
+  }
+
+  _resolveHits() {
+    if (this.mode !== MODE.PLAYING) return;
     const results = this.player.hitbox.test(this.enemies);
     if (results) for (const { target } of results) this.lockOn.notifyHit(target);
+    for (const e of this.enemies) {
+      if (e.hitbox.active) e.hitbox.test(this._playerSide());
+    }
+  }
+
+  _fireProjectile(enemy, attack) {
+    const target = enemy.target ?? this.player;
+    const hand = enemy.character.skeleton.get('handL');
+    hand.updateWorldMatrix(true, false);
+    const from = new THREE.Vector3().setFromMatrixPosition(hand.matrixWorld);
+    const to = new THREE.Vector3(
+      target.position.x, target.position.y + target.height * 0.55, target.position.z,
+    );
+    this.fx.spawnProjectile({
+      from, to, owner: enemy,
+      speed: attack.speed ?? 15,
+      radius: attack.projectileRadius ?? 0.26,
+      colour: attack.affinity === 'tide' ? 0x7fe0ff
+        : attack.affinity === 'radiance' ? 0xffe58a : 0xffa04c,
+      spec: {
+        damage: attack.damage, poiseDamage: attack.poiseDamage,
+        affinity: attack.affinity ?? enemy.affinity,
+        status: attack.status, statusAmount: attack.statusAmount,
+        unblockable: !!attack.unblockable,
+      },
+    });
   }
 
   _updateInteractables() {
@@ -192,6 +317,13 @@ export class Game {
     }
 
     for (const a of this.actors) a.update(dt);
+
+    // Hit testing runs here, not in fixedUpdate, because the poses hitboxes are
+    // read from only change at render rate. Testing more often than the blade
+    // moves finds nothing; testing less often misses.
+    this._resolveHits();
+
+    this.fx.update(realDt);
     this.camera.update(realDt, this.player);
 
     this._tmp.set(-Math.sin(this.camera.yaw), 0, -Math.cos(this.camera.yaw));
@@ -213,6 +345,8 @@ export class Game {
       mode: this.mode,
       zone: this.zone.id,
       actors: this.actors.length,
+      enemies: this.enemies.filter((e) => e.alive).length,
+      aggro: this.enemies.filter((e) => e.aggro && e.alive).length,
       props: this.zone.props.length,
       colliders: this.zone.collision.colliders.length,
       foliage: this.zone.foliage?.instanceCount ?? 0,

@@ -1,10 +1,14 @@
 // Melee hit detection.
 //
-// Hitboxes are swept, not instantaneous. Between one frame and the next a fast
-// weapon can travel a metre; sampling only at frame boundaries is how you get
-// swings that visibly pass through an enemy without hitting. We record the
-// weapon's world-space segment each frame and test the capsule swept between
-// the previous and current segments.
+// Hitboxes are swept, not instantaneous. A sword tip crosses two metres in the
+// 0.15s a swing is live; testing only where the blade happens to be at frame
+// boundaries produces swings that visibly pass through an enemy and do nothing.
+//
+// So: sample the blade's world segment every time the pose changes, and test
+// the volume swept since the last sample, subdivided by how far it moved. On a
+// 144Hz machine that is one step; on a struggling one it is six, and the hit
+// still lands. Sampling and testing must happen at the same rate — pairing them
+// is the whole point, and separating them was a real bug here.
 
 import * as THREE from 'three';
 import { resolveHit } from './damage.js';
@@ -61,6 +65,12 @@ export class MeleeHitbox {
     this.attack = null;
     this.onHit = null;
     this.trail = null;
+    // Sub-steps are capped: past this the extra tests buy nothing and a
+    // pathological frame could otherwise cost hundreds of segment tests.
+    this.maxSubSteps = 6;
+    // Melee in an action game is deliberately forgiving. This is added to the
+    // blade radius so a swing that looks like it connected does.
+    this.padding = 0.19;
   }
 
   /**
@@ -99,9 +109,16 @@ export class MeleeHitbox {
    * Test against a list of actors, applying damage to any that connect.
    * Returns the reports for anything hit this frame.
    */
+  /**
+   * Test against a list of actors. Call immediately after `sample()`.
+   */
   test(candidates) {
-    if (!this.active) return null;
+    if (!this.active || !this._hasPrev) return null;
     let results = null;
+
+    // How finely to subdivide the sweep: one step per half-radius of travel.
+    const travel = Math.max(this.from.distanceTo(this.prevFrom), this.to.distanceTo(this.prevTo));
+    const steps = Math.max(1, Math.min(this.maxSubSteps, Math.ceil(travel / Math.max(0.12, this.radius))));
 
     for (const target of candidates) {
       if (target === this.owner || !target.alive) continue;
@@ -113,17 +130,17 @@ export class MeleeHitbox {
       _b0.set(target.position.x, target.position.y + target.radius, target.position.z);
       _b1.set(target.position.x, target.position.y + target.height - target.radius, target.position.z);
 
-      // Test the current blade segment and the swept midpoint of the previous
-      // one. Two samples is enough for the speeds involved and is far cheaper
-      // than a real swept-volume test.
-      const reach = this.radius + target.radius;
-      let d2 = segmentDistanceSq(this.from, this.to, _b0, _b1, _p, _q);
-      if (d2 > reach * reach) {
-        _a0.lerpVectors(this.prevFrom, this.from, 0.5);
-        _a1.lerpVectors(this.prevTo, this.to, 0.5);
-        d2 = segmentDistanceSq(_a0, _a1, _b0, _b1, _p, _q);
-        if (d2 > reach * reach) continue;
+      // Walk the swept volume from the previous sample to this one.
+      const reach = this.radius + this.padding + target.radius;
+      const reach2 = reach * reach;
+      let connected = false;
+      for (let s = steps; s >= 0; s--) {
+        const t = s / steps;
+        _a0.lerpVectors(this.prevFrom, this.from, t);
+        _a1.lerpVectors(this.prevTo, this.to, t);
+        if (segmentDistanceSq(_a0, _a1, _b0, _b1, _p, _q) <= reach2) { connected = true; break; }
       }
+      if (!connected) continue;
 
       this.hitOnce.add(target.id);
       const spec = { ...this.attack, source: this.owner };
@@ -191,6 +208,7 @@ export class WeaponTrail {
   begin(color) {
     this.count = 0;
     this.head = 0;
+    this.points.fill(0);
     this.mesh.visible = true;
     this.material.uniforms.uOpacity.value = 1;
     if (color != null) this.material.uniforms.uColor.value.set(color);
@@ -208,16 +226,21 @@ export class WeaponTrail {
   _write() {
     const pos = this.geometry.attributes.position.array;
     const alpha = this.geometry.attributes.aAlpha.array;
+    const n = Math.max(1, this.count);
     for (let s = 0; s < this.segments; s++) {
-      // Oldest first, so the ribbon runs from tail to head.
-      const src = ((this.head - this.count + s + this.segments * 2) % this.segments) * 6;
-      const dst = s * 6;
       const live = s < this.count;
+      // Slots past the live tail collapse onto the newest segment rather than
+      // keeping whatever was there last swing. A zero-alpha vertex still
+      // anchors a quad, so leaving stale positions stretches a bright sheet
+      // across the whole level — which is exactly what it did.
+      const idx = live ? s : Math.max(0, this.count - 1);
+      const src = ((this.head - this.count + idx + this.segments * 2) % this.segments) * 6;
+      const dst = s * 6;
       for (let k = 0; k < 6; k++) pos[dst + k] = this.points[src + k];
-      const t = this.count > 1 ? s / (this.count - 1) : 0;
-      const a = live ? t * t * 0.9 : 0;
+      const t = n > 1 ? idx / (n - 1) : 1;
+      const a = live ? t * t * 0.42 : 0;
       alpha[s * 2] = a;
-      alpha[s * 2 + 1] = a * 0.35;
+      alpha[s * 2 + 1] = a * 0.28;
     }
     this.geometry.attributes.position.needsUpdate = true;
     this.geometry.attributes.aAlpha.needsUpdate = true;

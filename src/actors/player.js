@@ -15,6 +15,13 @@ import { bus } from '../core/events.js';
 import { clamp, damp, shortestAngle } from '../core/math.js';
 import { settings } from '../core/settings.js';
 
+/**
+ * States in which the base animation layer belongs to locomotion. Anything not
+ * in this set has played a one-shot onto that layer and must not have it taken
+ * back — doing so silently cancels every attack, roll and reaction.
+ */
+export const LOCOMOTION_STATES = new Set(['idle', 'move', 'sprint']);
+
 export const PS = {
   IDLE: 'idle', MOVE: 'move', SPRINT: 'sprint', ROLL: 'roll', BACKSTEP: 'backstep',
   ATTACK: 'attack', GUARD: 'guard', PARRY: 'parry', RIPOSTE: 'riposte',
@@ -45,7 +52,7 @@ export class Player extends Actor {
     this.equipLoadCurrent = 0;
 
     this.hitbox = new MeleeHitbox(this);
-    this.trail = new WeaponTrail({ segments: 16, color: 0xffe0b0 });
+    this.trail = new WeaponTrail({ segments: 14, color: 0xffcf95 });
 
     this.chain = { type: null, index: 0, queued: null, window: 0 };
     this.canCombo = false;
@@ -369,7 +376,7 @@ export class Player extends Actor {
       this.chain.type = type;
       this.chain.index = index;
       name = chain[index];
-      lunge = type === 'heavy' ? 1.6 : 1.1;
+      lunge = type === 'heavy' ? 2.4 : 1.9;
     }
 
     this.spendStamina(running ? COST.running : cost);
@@ -435,7 +442,7 @@ export class Player extends Actor {
         this.canCombo = true;
         break;
       case 'parryOpen':
-        this.parryWindow = 0.20;
+        this.parryWindow = 0.24;
         break;
       case 'parryClose':
         this.parryWindow = 0;
@@ -646,12 +653,23 @@ export class Player extends Actor {
     // Sweep the weapon hitbox at render rate, so fast swings are sampled often.
     this.hitbox.sample();
     if (this.hitbox.active && this.weapon) {
-      this.trail.push(this.hitbox.from, this.hitbox.to);
+      // The ribbon traces the outer part of the blade only. Tracing the full
+      // hitbox draws a sheet the width of the whole sword, which reads as a
+      // sail rather than a cut.
+      _trailA.lerpVectors(this.hitbox.from, this.hitbox.to, 0.52);
+      _trailB.lerpVectors(this.hitbox.from, this.hitbox.to, 1.0);
+      this.trail.push(_trailA, _trailB);
     } else {
       this.trail.fade(dt);
     }
 
-    this.character.useLocomotion(!!this.lockedOn && this.state !== PS.SPRINT);
+    // Only swap the base layer's motion while it actually belongs to
+    // locomotion. Doing this unconditionally overwrites the attack, roll or
+    // stagger clip one frame after it starts.
+    if (LOCOMOTION_STATES.has(this.state)) {
+      this.character.useLocomotion(!!this.lockedOn && this.state !== PS.SPRINT);
+    }
+
     if (this.lockedOn?.alive) {
       // Feed the strafe blend in the character's own frame.
       const fwd = Math.sin(this.yaw), side = Math.cos(this.yaw);
@@ -670,6 +688,8 @@ export class Player extends Actor {
 }
 
 const _lookTmp = new THREE.Vector3();
+const _trailA = new THREE.Vector3();
+const _trailB = new THREE.Vector3();
 
 export const DEFAULT_WEAPON = {
   id: 'longsword',

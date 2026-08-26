@@ -119,7 +119,7 @@ export const WEAPON_BUILDERS = {
       e.position.set(0, 0.12, 0); e.scale.setScalar(1.06);
       g.add(e);
     }
-    g.userData = { reach: 1.15, hitFrom: [0, 0.16, 0], hitTo: [0, 1.08, 0], radius: 0.10, class: 'sword' };
+    g.userData = { reach: 1.15, hitFrom: [0, 0.10, 0], hitTo: [0, 1.10, 0], radius: 0.17, class: 'sword' };
     return g;
   },
 
@@ -132,7 +132,7 @@ export const WEAPON_BUILDERS = {
     addMesh(g, gripGeo(0.34, 0.024), mat('leather', hilt), { pos: [0, 0.175, 0] });
     addMesh(g, cached('gsPommel', () => new THREE.CylinderGeometry(0.045, 0.032, 0.07, 8)), mat('darksteel', pommel),
       { pos: [0, -0.20, 0] });
-    g.userData = { reach: 1.62, hitFrom: [0, 0.24, 0], hitTo: [0, 1.60, 0], radius: 0.15, class: 'greatsword' };
+    g.userData = { reach: 1.62, hitFrom: [0, 0.20, 0], hitTo: [0, 1.62, 0], radius: 0.24, class: 'greatsword' };
     return g;
   },
 
@@ -145,7 +145,7 @@ export const WEAPON_BUILDERS = {
       { pos: [0, 1.02, 0] });
     addMesh(g, cached('spearButt', () => new THREE.ConeGeometry(0.026, 0.10, 8)), mat('darksteel', 0x4a4a52),
       { pos: [0, -0.85, 0], rot: [Math.PI, 0, 0] });
-    g.userData = { reach: 2.05, hitFrom: [0, 1.00, 0], hitTo: [0, 1.42, 0], radius: 0.09, class: 'spear' };
+    g.userData = { reach: 2.05, hitFrom: [0, 0.90, 0], hitTo: [0, 1.44, 0], radius: 0.15, class: 'spear' };
     return g;
   },
 
@@ -156,7 +156,7 @@ export const WEAPON_BUILDERS = {
     addMesh(g, blade, mat('darksteel', steel), { pos: [0.03, 0.42, 0] });
     addMesh(g, boxGeo(0.10, 0.22, 0.03, 0.01), mat('darksteel', steel), { pos: [-0.06, 0.22, 0], rot: [0, 0, 0.3] });
     addMesh(g, gripGeo(0.24, 0.024), mat('leather', hilt), { pos: [0, 0.11, 0] });
-    g.userData = { reach: 0.92, hitFrom: [0, 0.16, 0], hitTo: [0.03, 0.72, 0], radius: 0.13, class: 'axe' };
+    g.userData = { reach: 0.92, hitFrom: [0, 0.12, 0], hitTo: [0.03, 0.76, 0], radius: 0.20, class: 'axe' };
     return g;
   },
 
@@ -210,13 +210,21 @@ WEAPON_BUILDERS.shield = function shield({ face = 0x5b5f6b } = {}) {
   return g;
 };
 
-/** How each weapon class sits in the hand. */
+/**
+ * How each weapon class sits in the hand.
+ *
+ * Blades continue the forearm rather than standing perpendicular to it: the
+ * weapon's +Y is mapped onto the hand's -Y (on down the arm) with a small
+ * forward cock. Mounting them at right angles instead makes every horizontal
+ * slash sweep a circle above the character's head, which both looks wrong and
+ * puts the blade nowhere near anything it is aimed at.
+ */
 export const GRIPS = {
-  sword:      { bone: 'handR', pos: [0, -0.055, 0.015], rot: [Math.PI / 2 - 0.28, 0, 0] },
-  greatsword: { bone: 'handR', pos: [0, -0.06, 0.02], rot: [Math.PI / 2 - 0.22, 0, 0] },
-  spear:      { bone: 'handR', pos: [0, -0.05, 0.02], rot: [Math.PI / 2 - 0.35, 0, 0] },
-  axe:        { bone: 'handR', pos: [0, -0.055, 0.015], rot: [Math.PI / 2 - 0.30, 0, 0] },
-  staff:      { bone: 'handR', pos: [0, -0.05, 0.02], rot: [Math.PI / 2 - 0.30, 0, 0] },
+  sword:      { bone: 'handR', pos: [0, -0.03, 0.02], rot: [-0.34, 0, Math.PI] },
+  greatsword: { bone: 'handR', pos: [0, -0.03, 0.02], rot: [-0.28, 0, Math.PI] },
+  spear:      { bone: 'handR', pos: [0, -0.02, 0.03], rot: [-0.55, 0, Math.PI] },
+  axe:        { bone: 'handR', pos: [0, -0.03, 0.02], rot: [-0.30, 0, Math.PI] },
+  staff:      { bone: 'handR', pos: [0, -0.02, 0.02], rot: [-0.20, 0, Math.PI] },
   // The grip maps the shield's face normal onto the hand's -Y (out along the
   // fingers) and its top onto the hand's +Z, then slides it back down the arm
   // so the boss covers the chest rather than the face.

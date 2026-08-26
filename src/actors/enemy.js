@@ -188,6 +188,21 @@ export class Enemy extends Actor {
     if (next !== ES.GUARD) this.isGuarding = false;
   }
 
+  /**
+   * Move the AI's state without touching the animation.
+   *
+   * Animation events must never go through setState: entering a state replays
+   * its clip, and replaying the clip that just fired the event restarts it, so
+   * the attack loops forever — re-firing hitStart, opening a fresh hitbox and
+   * clearing its already-hit set every cycle. One husk could empty a full
+   * health bar in nine seconds that way.
+   */
+  _advanceState(next) {
+    this.state = next;
+    this.stateTime = 0;
+    if (next !== ES.GUARD) this.isGuarding = false;
+  }
+
   get committed() {
     return this.state === ES.WINDUP || this.state === ES.ATTACK || this.state === ES.RECOVER
       || this.state === ES.HIT || this.state === ES.STAGGER || this.state === ES.DEAD;
@@ -251,6 +266,14 @@ export class Enemy extends Actor {
         if (this.stateTime < (this.currentAttack?.trackTime ?? 0.18)) {
           this.faceTowards(target.position.x, target.position.z);
         }
+        // Safety net: not every attack clip carries hitStart/hitEnd. A cast
+        // fires castRelease instead, and without this a caster would finish
+        // its animation and stand in wind-up forever, having attacked exactly
+        // once. Never let leaving a state depend solely on an animation event.
+        if (this.character.base.finished) {
+          this.hitbox.close();
+          this._advanceState(ES.RECOVER);
+        }
         break;
 
       case ES.ATTACK:
@@ -261,6 +284,10 @@ export class Enemy extends Actor {
           if (p >= w[0] && p <= w[1]) {
             this.requestMove(Math.sin(this.yaw), Math.cos(this.yaw), this.currentAttack.advance);
           }
+        }
+        if (this.character.base.finished) {
+          this.hitbox.close();
+          this._advanceState(ES.RECOVER);
         }
         break;
 
@@ -427,16 +454,25 @@ export class Enemy extends Actor {
             unblockable: !!a.unblockable,
           },
         );
-        this.setState(ES.ATTACK, { force: true, clip: this.character.base.motion });
-        this.state = ES.ATTACK;
+        this._advanceState(ES.ATTACK);
         bus.emit('sfx:swoosh', { actor: this, pitch: a.pitch ?? 0.9, big: !!a.heavy });
         break;
       }
       case 'hitEnd':
         this.hitbox.close();
-        this.setState(ES.RECOVER, { force: true });
-        this.state = ES.RECOVER;
+        this._advanceState(ES.RECOVER);
         this.attackCooldown = randRange(this.rng, this.currentAttack?.cooldown ?? 0.5, (this.currentAttack?.cooldown ?? 0.5) + 0.9);
+        break;
+      case 'castRelease':
+        // The moment a spell leaves the hand. The game shell watches for this
+        // to spawn the projectile.
+        this._castReleased = true;
+        break;
+      case 'recovered':
+        if (this.state === ES.WINDUP || this.state === ES.ATTACK) {
+          this.hitbox.close();
+          this._advanceState(ES.RECOVER);
+        }
         break;
       case 'footstep':
         bus.emit('sfx:footstep', { actor: this, ...e.data, speed: this._speed });

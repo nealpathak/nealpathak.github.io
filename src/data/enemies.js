@@ -1,5 +1,10 @@
 // Enemy archetypes.
 //
+// `scale` alone sets a character's size: the body is the shared rig, so its
+// height is always RIG_HEIGHT times scale, and collision derives from the same
+// number. Do not also pass `height` — that is what let a houndling's capsule
+// end up a third shorter than the thing you can see.
+//
 // Attack entries are the contract between design and the AI: a clip, a range
 // band, a weight, and the numbers. The clip's own `hitStart`/`hitEnd` events
 // decide when the hitbox is live, so retiming an attack is an animation change,
@@ -13,7 +18,6 @@ export const ENEMIES = {
     name: 'Ashen Husk',
     eliteName: 'Husk Warden',
     scale: 0.98,
-    height: 1.76,
     radius: 0.34,
     affinity: 'ember',
     stats: { level: 4, vigour: 9, endurance: 8, strength: 11, finesse: 6, resolve: 8, attunement: 4 },
@@ -50,7 +54,6 @@ export const ENEMIES = {
     id: 'shieldHusk',
     name: 'Warden of the Gate',
     scale: 1.04,
-    height: 1.82,
     radius: 0.37,
     affinity: 'none',
     stats: { level: 8, vigour: 13, endurance: 12, strength: 14, finesse: 8, resolve: 14, attunement: 5 },
@@ -91,7 +94,6 @@ export const ENEMIES = {
     id: 'houndling',
     name: 'Fen Houndling',
     scale: 0.62,
-    height: 1.14,
     radius: 0.26,
     affinity: 'bloom',
     stats: { level: 3, vigour: 5, endurance: 12, strength: 7, finesse: 12, resolve: 4, attunement: 4 },
@@ -116,10 +118,10 @@ export const ENEMIES = {
     },
     attacks: [
       // Unarmed: the hitbox rides the right hand bone instead of a weapon.
-      { clip: 'attackLight2', range: 1.9, weight: 3, damage: 22, poiseDamage: 6, cooldown: 0.35, trackTime: 0.14, advance: 4.2,
+      { clip: 'attackLight2', range: 1.9, weight: 3, damage: 22, poiseDamage: 6, cooldown: 1.05, trackTime: 0.14, advance: 4.2,
         bone: 'handR', hitFrom: [0, 0.05, 0], hitTo: [0, -0.22, 0.1], radius: 0.26, pitch: 1.3,
         status: 'bleed', statusAmount: 9 },
-      { clip: 'attackRunning', range: 3.4, minRange: 1.4, weight: 2, damage: 26, poiseDamage: 9, cooldown: 0.9, trackTime: 0.2, advance: 6.5,
+      { clip: 'attackRunning', range: 3.4, minRange: 1.4, weight: 2, damage: 26, poiseDamage: 9, cooldown: 1.7, trackTime: 0.2, advance: 6.5,
         bone: 'handR', hitFrom: [0, 0.05, 0], hitTo: [0, -0.24, 0.12], radius: 0.28, pitch: 1.4 },
     ],
   },
@@ -129,7 +131,6 @@ export const ENEMIES = {
     id: 'emberPriest',
     name: 'Priest of the Kindle',
     scale: 1.0,
-    height: 1.8,
     radius: 0.34,
     affinity: 'radiance',
     stats: { level: 10, vigour: 10, endurance: 10, strength: 8, finesse: 9, resolve: 12, attunement: 18 },
@@ -166,7 +167,6 @@ export const ENEMIES = {
     name: 'Fen Wisp',
     eliteName: 'Elder Fen Wisp',
     scale: 0.72,
-    height: 1.3,
     radius: 0.3,
     affinity: 'tide',
     stats: { level: 6, vigour: 7, endurance: 14, strength: 6, finesse: 14, resolve: 6, attunement: 14 },
@@ -209,12 +209,11 @@ ENEMIES.gatewarden = {
   name: 'The Warden of Ashfen',
   isBoss: true,
   scale: 1.34,
-  height: 2.32,
   radius: 0.52,
   affinity: 'none',
   stats: { level: 20, vigour: 30, endurance: 20, strength: 22, finesse: 10, resolve: 26, attunement: 10 },
   cinders: 1800,
-  healthScale: 3.4,
+  healthScale: 2.6,
   poise: 92,
   defenceFlat: 14,
   defencePercent: 0.18,
@@ -237,10 +236,15 @@ ENEMIES.gatewarden = {
       metal: 0x6a6e78, metalDark: 0x2e3038, accent: 0xff8a3c, eye: 0xff7a3c,
     },
   },
+  // A first boss should be readable, but not answerable by rolling on reaction
+  // to everything. The heavies telegraph for well over half a second; the jab
+  // does not, and the sweep keeps tracking you most of the way through its
+  // wind-up, so rolling early just puts you where it is about to swing.
   attacks: [
-    { clip: 'attackHeavy1', range: 3.9, weight: 3, damage: 118, poiseDamage: 62, cooldown: 1.9, trackTime: 0.34, advance: 2.6, heavy: true, hyperArmour: true, pitch: 0.5 },
-    { clip: 'attackHeavy2', range: 3.7, weight: 2.4, damage: 104, poiseDamage: 56, cooldown: 1.7, trackTime: 0.28, advance: 2.0, heavy: true, hyperArmour: true, pitch: 0.55 },
+    { clip: 'attackHeavy1', range: 3.9, weight: 2.6, damage: 118, poiseDamage: 62, cooldown: 1.9, trackTime: 0.34, advance: 2.6, heavy: true, hyperArmour: true, pitch: 0.5 },
+    { clip: 'attackHeavy2', range: 3.9, weight: 2.4, damage: 104, poiseDamage: 56, cooldown: 1.7, trackTime: 0.62, advance: 2.4, heavy: true, hyperArmour: true, pitch: 0.55 },
     { clip: 'attackLight1', range: 3.4, weight: 2, damage: 72, poiseDamage: 34, cooldown: 1.0, trackTime: 0.26, advance: 2.2, pitch: 0.7 },
+    { clip: 'attackLight2', range: 3.2, weight: 2.2, damage: 58, poiseDamage: 26, cooldown: 0.7, trackTime: 0.30, advance: 2.6, speed: 1.25, pitch: 0.95 },
     { clip: 'attackRunning', range: 7.5, minRange: 3.4, weight: 1.6, damage: 96, poiseDamage: 44, cooldown: 2.6, trackTime: 0.3, advance: 8.0, hyperArmour: true, pitch: 0.8 },
   ],
   phases: [
@@ -254,9 +258,10 @@ ENEMIES.gatewarden = {
       auraColour: 0xff7a3c,
       transitionTime: 1.8,
       attacks: [
-        { clip: 'attackHeavy1', range: 4.1, weight: 3, damage: 132, poiseDamage: 70, cooldown: 1.4, trackTime: 0.30, advance: 3.0, heavy: true, hyperArmour: true, affinity: 'ember', pitch: 0.48 },
-        { clip: 'attackHeavy2', range: 4.0, weight: 2.6, damage: 118, poiseDamage: 64, cooldown: 1.3, trackTime: 0.26, advance: 2.4, heavy: true, hyperArmour: true, affinity: 'ember', unblockable: true, pitch: 0.52 },
-        { clip: 'attackLight1', range: 3.6, weight: 2.4, damage: 84, poiseDamage: 38, cooldown: 0.8, trackTime: 0.22, advance: 2.6, affinity: 'ember', pitch: 0.72 },
+        { clip: 'attackHeavy1', range: 4.1, weight: 2.6, damage: 132, poiseDamage: 70, cooldown: 1.4, trackTime: 0.42, advance: 3.0, heavy: true, hyperArmour: true, affinity: 'ember', pitch: 0.48 },
+        { clip: 'attackHeavy2', range: 4.2, weight: 2.6, damage: 118, poiseDamage: 64, cooldown: 1.3, trackTime: 0.70, advance: 2.8, heavy: true, hyperArmour: true, affinity: 'ember', unblockable: true, pitch: 0.52 },
+        { clip: 'attackLight1', range: 3.6, weight: 2.4, damage: 84, poiseDamage: 38, cooldown: 0.8, trackTime: 0.34, advance: 2.6, affinity: 'ember', speed: 1.15, pitch: 0.72 },
+        { clip: 'attackLight2', range: 3.4, weight: 2.6, damage: 70, poiseDamage: 30, cooldown: 0.55, trackTime: 0.36, advance: 3.0, affinity: 'ember', speed: 1.4, pitch: 1.0 },
         { clip: 'attackLight3', range: 4.2, weight: 2, damage: 96, poiseDamage: 50, cooldown: 1.6, trackTime: 0.24, advance: 2.0, heavy: true, hyperArmour: true, affinity: 'ember', pitch: 0.6 },
         { clip: 'attackRunning', range: 9.0, minRange: 3.6, weight: 1.8, damage: 110, poiseDamage: 50, cooldown: 2.0, trackTime: 0.28, advance: 10.0, hyperArmour: true, affinity: 'ember', pitch: 0.85 },
       ],

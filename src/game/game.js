@@ -120,6 +120,36 @@ export class Game {
   /** True when the smoke test or a debug link asked to skip the title card. */
   get wantsAutostart() { return this.params.has('autostart'); }
 
+  /**
+   * Place an ad-hoc group of enemies at a point. Used by the balance harness
+   * to stage one encounter at a time, and by scripted ambushes.
+   *
+   * @param {Array<[string, number, number]>} spec  [archetype, count, tier]
+   */
+  spawnEncounter(spec, x, z, { elite = false } = {}) {
+    const made = [];
+    for (const [kind, count, tier] of spec) {
+      const archetype = ENEMIES[kind];
+      if (!archetype) { console.warn(`[game] unknown enemy "${kind}"`); continue; }
+      for (let i = 0; i < count; i++) {
+        const a = (i / Math.max(1, count)) * Math.PI * 2 + this.spawnRng() * 1.2;
+        const r = count > 1 ? 1.4 + this.spawnRng() * 1.8 : 0;
+        const ex = x + Math.cos(a) * r;
+        const ez = z + Math.sin(a) * r;
+        const enemy = new Enemy({
+          archetype, world: this.world, tier: tier ?? 1, elite,
+          rngSeed: (this.spawnRng() * 1e9) | 0,
+        });
+        enemy.setHome(ex, this.zone.terrain.heightAt(ex, ez), ez, this.spawnRng() * Math.PI * 2);
+        enemy.addTo(this.scene);
+        this.addActor(enemy);
+        made.push(enemy);
+      }
+    }
+    this._sideCache = null;
+    return made;
+  }
+
   /** Populate the zone from its spawn table. Called again on every rest. */
   spawnEnemies() {
     for (const e of [...this.enemies]) this.removeActor(e);
@@ -484,9 +514,12 @@ export class Game {
     this._retargetEnemies();
 
     for (const e of this.enemies) {
-      if (e._pendingProjectile && e.character.base.progress > 0.5) {
+      // Released on the clip's own castRelease event, so retiming the cast is
+      // an animation change rather than a hunt for the right progress value.
+      if (e._pendingProjectile && e._castReleased) {
         this._fireProjectile(e, e._pendingProjectile);
         e._pendingProjectile = null;
+        e._castReleased = false;
       }
     }
 

@@ -71,6 +71,12 @@ export class MeleeHitbox {
     // Melee in an action game is deliberately forgiving. This is added to the
     // blade radius so a swing that looks like it connected does.
     this.padding = 0.19;
+    // Vertical tolerance is separate and much larger, because a horizontal
+    // slash lives at roughly chest height while enemies range from knee-high
+    // spirits to a boss twice your size. Without it a swing sails over
+    // anything short and under anything tall, which is not a difficulty
+    // choice, just a miss the player cannot understand.
+    this.verticalPad = 0.42;
   }
 
   /**
@@ -126,9 +132,10 @@ export class MeleeHitbox {
       if (this.hitOnce.has(target.id)) continue;
       if (this.hitOnce.size >= this.maxTargets) break;
 
-      // Target capsule: its core segment.
-      _b0.set(target.position.x, target.position.y + target.radius, target.position.z);
-      _b1.set(target.position.x, target.position.y + target.height - target.radius, target.position.z);
+      // Target capsule: its core segment, extended vertically by the tolerance
+      // above so short and tall actors are both reachable by the same swing.
+      _b0.set(target.position.x, target.position.y + target.radius - this.verticalPad, target.position.z);
+      _b1.set(target.position.x, target.position.y + target.height - target.radius + this.verticalPad, target.position.z);
 
       // Walk the swept volume from the previous sample to this one.
       const reach = this.radius + this.padding + target.radius;

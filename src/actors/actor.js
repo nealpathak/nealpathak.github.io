@@ -10,6 +10,15 @@ import { bus } from '../core/events.js';
 
 let nextActorId = 1;
 
+/**
+ * The rig's height at scale 1, in metres. Every character is built from the
+ * same skeleton, so a body's visible height is always this times its scale.
+ * Collision height is derived from it rather than passed in separately —
+ * passing both let them drift apart, and a houndling ended up with a 0.7m
+ * capsule under a 1.09m model, so swings sailed over its head.
+ */
+export const RIG_HEIGHT = 1.76;
+
 export class Actor {
   /**
    * @param {object} opts
@@ -21,7 +30,7 @@ export class Actor {
    */
   constructor({
     world, look = {}, scale = 1, stats = {}, affinity = 'none',
-    faction = 'hostile', radius = 0.34, height = 1.78, name = 'Actor',
+    faction = 'hostile', radius = 0.34, height = null, name = 'Actor',
     blobShadow = true,
   } = {}) {
     this.id = nextActorId++;
@@ -40,8 +49,10 @@ export class Actor {
     this.targetYaw = 0;
     this.turnRate = 9.5;             // radians/sec at full speed
     this.radius = radius * scale;
-    this.height = height * scale;
-    this.eyeHeight = height * 0.86 * scale;
+    // `height` is the unscaled body height; omit it and the rig's own is used.
+    const bodyHeight = height ?? RIG_HEIGHT;
+    this.height = bodyHeight * scale;
+    this.eyeHeight = bodyHeight * 0.86 * scale;
 
     this.grounded = true;
     this.groundNormal = new THREE.Vector3(0, 1, 0);

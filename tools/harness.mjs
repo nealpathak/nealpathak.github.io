@@ -5,7 +5,28 @@
 // inside the page, then screenshots and reports renderer statistics.
 //
 // Needs Playwright and a Chromium build. Set EW_CHROMIUM to point at one.
-import { chromium } from 'playwright';
+// Playwright is a dev-only dependency and deliberately not vendored, so it may
+// live anywhere. Try the normal resolution first, then an explicit path, then
+// the scratch install the sandbox uses. It must never be a symlink inside the
+// repo: GitHub Pages refuses to build a site containing one.
+async function loadChromium() {
+  const tried = [];
+  for (const spec of [process.env.EW_PLAYWRIGHT, 'playwright'].filter(Boolean)) {
+    try {
+      // Playwright's entry point is CommonJS, so importing it by path puts the
+      // exports under `default` rather than as named bindings.
+      const m = await import(spec);
+      const c = m.chromium ?? m.default?.chromium;
+      if (c) return c;
+      tried.push(`${spec}: loaded but exposed no chromium`);
+    } catch (e) { tried.push(`${spec}: ${e.code || e.message}`); }
+  }
+  throw new Error(
+    `Playwright not found. Install it with:\n  npm --prefix tools install\n` +
+    `or point EW_PLAYWRIGHT at its entry point.\nTried:\n  ${tried.join('\n  ')}`,
+  );
+}
+const chromium = await loadChromium();
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -14,9 +14,11 @@ import { resolveHit } from '../combat/damage.js';
 import { makeRng } from '../core/rng.js';
 import { Progression } from './progression.js';
 import { Inventory } from './inventory.js';
-import { Covenant } from './covenant.js';
+import { Covenant, TACTICS as TACTICS_TABLE } from './covenant.js';
 import { STARTING_KIT } from '../data/items.js';
 import { hasSave } from '../core/save.js';
+import { summonWisp, makeCompanion } from '../actors/ally.js';
+import { COMPANIONS } from '../data/companions.js';
 import { bus } from '../core/events.js';
 import { settings } from '../core/settings.js';
 import { clamp } from '../core/math.js';
@@ -103,6 +105,7 @@ export class Game {
     this.inventory.equip('offhand', STARTING_KIT.offhand);
     this.inventory.equip('armour', STARTING_KIT.armour);
     this.hasSave = hasSave();
+    this.allies = [];
 
     this._wireEvents();
     this.mode = MODE.TITLE;
@@ -144,6 +147,58 @@ export class Game {
     this.actors.push(a);
     if (a.faction === 'hostile') this.enemies.push(a);
     return a;
+  }
+
+  /** Put a companion in the field beside the player. */
+  recruit(id) {
+    const def = COMPANIONS[id];
+    if (!def || this.covenant.companions.some((c) => c.companionId === id)) return null;
+    const ally = makeCompanion(this, def);
+    this._placeBeside(ally);
+    ally.addTo(this.scene);
+    this.actors.push(ally);
+    this.allies.push(ally);
+    this.covenant.companions.push(ally);
+    ally.setTactics(TACTICS_TABLE[this.covenant.tactics]);
+    bus.emit('ui:toast', { text: `${def.short ?? def.name} joins you.`, kind: 'good', duration: 4 });
+    if (def.lines?.greet) bus.emit('ui:speech', { who: def.short ?? def.name, text: def.lines.greet });
+    return ally;
+  }
+
+  /** Summon (or re-summon) the active Wisp. */
+  summonActiveWisp() {
+    const bound = this.covenant.active;
+    if (this._summoned) {
+      this._removeAlly(this._summoned);
+      this._summoned = null;
+    }
+    if (!bound) return null;
+    const ally = summonWisp(this, bound);
+    this._placeBeside(ally);
+    ally.addTo(this.scene);
+    this.actors.push(ally);
+    this.allies.push(ally);
+    ally.setTactics(TACTICS_TABLE[this.covenant.tactics]);
+    this._summoned = ally;
+    bus.emit('covenant:summoned', { ally, wisp: bound });
+    return ally;
+  }
+
+  _placeBeside(ally) {
+    const p = this.player;
+    const side = this.allies.length % 2 === 0 ? 1 : -1;
+    const x = p.position.x + Math.cos(p.yaw) * 1.6 * side;
+    const z = p.position.z - Math.sin(p.yaw) * 1.6 * side;
+    ally.setPosition(x, this.zone.terrain.heightAt(x, z), z);
+    ally.yaw = ally.targetYaw = p.yaw;
+  }
+
+  _removeAlly(ally) {
+    let i = this.actors.indexOf(ally); if (i >= 0) this.actors.splice(i, 1);
+    i = this.allies.indexOf(ally); if (i >= 0) this.allies.splice(i, 1);
+    i = this.covenant.companions.indexOf(ally); if (i >= 0) this.covenant.companions.splice(i, 1);
+    ally.removeFrom(this.scene);
+    if (ally.wisp) ally.wisp.actor = null;
   }
 
   removeActor(a) {
@@ -202,6 +257,8 @@ export class Game {
     bus.on('enemy:windup', ({ enemy, attack }) => {
       if (attack.projectile) this._queueProjectile(enemy, attack);
     });
+    bus.on('covenant:active', () => { if (this.mode !== MODE.LOADING) this.summonActiveWisp(); });
+    bus.on('covenant:bound', () => { this._sideCache = null; });
   }
 
   _queueProjectile(enemy, attack) {
@@ -236,6 +293,13 @@ export class Game {
     this.input.requestPointerLock(this.engine.canvas);
     document.body.classList.add('playing');
     bus.emit('game:started');
+
+    // Mote follows you out of the fen from the first step; Seryn is met later.
+    if (!this._recruited) {
+      this._recruited = true;
+      this.recruit('mote');
+      if (this.covenant.active) this.summonActiveWisp();
+    }
   }
 
   /** The full death sequence: fade, hold, then respawn at the last shrine. */
@@ -314,6 +378,10 @@ export class Game {
       a.fixedUpdate(dt);
     }
 
+    // Enemies should notice an ally standing in front of them, not walk past
+    // it to reach the player.
+    this._retargetEnemies();
+
     for (const e of this.enemies) {
       if (e._pendingProjectile && e.character.base.progress > 0.5) {
         this._fireProjectile(e, e._pendingProjectile);
@@ -334,8 +402,13 @@ export class Game {
     if (this.spawnRng() < 0.55) this.fx.ambientEmber(this.player.position, 26, 1);
   }
 
+  /** Everyone an enemy attack is allowed to hit. Rebuilt when the party changes. */
   _playerSide() {
-    return this._sideCache ??= [this.player];
+    if (!this._sideCache || this._sideCacheSize !== this.allies.length) {
+      this._sideCache = [this.player, ...this.allies];
+      this._sideCacheSize = this.allies.length;
+    }
+    return this._sideCache;
   }
 
   _resolveHits() {
@@ -344,6 +417,9 @@ export class Game {
     if (results) for (const { target } of results) this.lockOn.notifyHit(target);
     for (const e of this.enemies) {
       if (e.hitbox.active) e.hitbox.test(this._playerSide());
+    }
+    for (const a of this.allies) {
+      if (a.hitbox.active) a.hitbox.test(this.enemies);
     }
   }
 
@@ -368,6 +444,22 @@ export class Game {
         unblockable: !!attack.unblockable,
       },
     });
+  }
+
+  _retargetEnemies() {
+    for (const e of this.enemies) {
+      if (!e.alive || !e.aggro) continue;
+      if (e.target?.alive && e.target !== this.player) continue;
+      let best = e.target, bestD = best?.alive ? best.position.distanceTo(e.position) : Infinity;
+      for (const a of this.allies) {
+        if (!a.alive) continue;
+        const d = a.position.distanceTo(e.position);
+        // Only switch for something meaningfully closer, or the party would
+        // pull aggro back and forth every frame.
+        if (d < bestD * 0.65) { bestD = d; best = a; }
+      }
+      if (best) e.target = best;
+    }
   }
 
   _updateInteractables() {
@@ -433,6 +525,7 @@ export class Game {
       cinders: this.player.cinders,
       level: this.player.stats.level,
       wisps: this.covenant?.wisps.length ?? 0,
+      allies: this.allies?.filter((a) => a.alive).length ?? 0,
       bloodstain: !!this.progression?.bloodstain,
       player: {
         state: this.player.state,

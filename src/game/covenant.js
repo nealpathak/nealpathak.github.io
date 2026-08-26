@@ -244,7 +244,9 @@ export class Covenant {
   setTactics(id) {
     if (!TACTICS[id]) return;
     this.tactics = id;
-    for (const c of this.companions) c.setTactics?.(TACTICS[id]);
+    // Every ally in the field, not just named companions: the summoned Wisp
+    // takes orders too.
+    for (const a of this.game.allies ?? this.companions) a.setTactics?.(TACTICS[id]);
     bus.emit('covenant:tactics', { tactics: TACTICS[id] });
   }
 

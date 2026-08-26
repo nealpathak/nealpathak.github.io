@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 *.png
 !assets/**/*.png
 !docs/*.png

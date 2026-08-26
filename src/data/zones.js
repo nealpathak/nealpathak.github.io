@@ -32,8 +32,9 @@ export const ZONES = {
 
         // The ruin sits on a shelf above the fen.
         ['plateau', 6, -48, 22, 6.4, 12],
-        // The shrine terrace, just off the path.
+        // The shrine terraces, just off the path.
         ['plateau', -26, 6, 7.5, 1.6, 5],
+        ['plateau', 13, -32, 6.5, 3.6, 5],
 
         // The road. Its control points carry their own heights, so the route is
         // always walkable no matter what the noise wanted to do.
@@ -67,16 +68,19 @@ export const ZONES = {
       { kind: 'stairs', at: [[6, -30, 3.1416]], opts: { steps: 12, width: 4.2, rise: 0.3, run: 0.5 } },
       { kind: 'banner', at: [[1, -42, 0], [11, -42, 0]], opts: { height: 4.4, color: 0x7a2f28 } },
 
-      // --- the shrine ---
+      // --- shrines ---
+      // Two of them: one early, and one on the shelf below the ruin so the walk
+      // back to the boss is a walk and not a pilgrimage.
       { kind: 'emberwake', at: [[-26, 6, 0.4]], id: 'shrine:ashfen:wayside', name: 'Wayside Ember' },
+      { kind: 'emberwake', at: [[13, -32, -2.4]], id: 'shrine:ashfen:gate', name: 'Ember Below the Gate' },
 
       // --- scatter ---
       { kind: 'boulder', count: 34, opts: { radius: 1.5 }, minGap: 6,
         area: { x: 0, z: 10, radius: 100 }, maxSlope: 0.85,
-        avoid: [[-26, 6, 9], [6, -48, 26]] },
+        avoid: [[-26, 6, 9], [13, -32, 9], [6, -48, 26]] },
       { kind: 'deadTree', count: 26, opts: { height: 8 }, minGap: 9,
         area: { x: 0, z: 20, radius: 96 }, maxSlope: 0.42,
-        avoid: [[-26, 6, 11], [6, -48, 28], [-14, 26, 20]] },
+        avoid: [[-26, 6, 11], [13, -32, 11], [6, -48, 28], [-14, 26, 20]] },
       { kind: 'paleTree', count: 14, opts: { height: 10 }, minGap: 14,
         area: { x: 0, z: 60, radius: 70 }, maxSlope: 0.36,
         avoid: [[-26, 6, 12]] },

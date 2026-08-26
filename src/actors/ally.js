@@ -14,6 +14,7 @@ import { bus } from '../core/events.js';
 import { clamp, randRange } from '../core/math.js';
 import { makeRng } from '../core/rng.js';
 import { TACTICS, BOND_RANKS } from '../game/covenant.js';
+import { COMPANIONS } from '../data/companions.js';
 
 export const AS = {
   FOLLOW: 'follow', ENGAGE: 'engage', STRAFE: 'strafe', ATTACK: 'attack',
@@ -58,6 +59,19 @@ export class Ally extends Actor {
     return rank;
   }
 
+  get lines() { return COMPANIONS[this.companionId]?.lines ?? null; }
+  get shortName() { return COMPANIONS[this.companionId]?.short ?? this.name; }
+
+  /** Say one of this companion's lines, if it has one for the occasion. */
+  speak(key) {
+    const line = this.lines?.[key];
+    if (!line || this._lastLine === key) return;
+    this._lastLine = key;
+    bus.emit('ui:speech', { who: this.shortName, text: line });
+    // Allow the same line again later; it is the immediate repeat that grates.
+    setTimeout(() => { if (this._lastLine === key) this._lastLine = null; }, 45000);
+  }
+
   bondWith(other, amount) {
     const before = this.bondRank.id;
     this.bond += amount;
@@ -65,6 +79,8 @@ export class Ally extends Actor {
     if (after.id !== before) {
       bus.emit('covenant:allyBond', { ally: this, rank: after });
       bus.emit('ui:toast', { text: `${this.name} — bond rank ${after.label}`, kind: 'good', duration: 3.5 });
+      if (after.id === 'B') this.speak('bondB');
+      if (after.id === 'A') this.speak('bondA');
     }
     void other;
   }
@@ -281,6 +297,7 @@ export class Ally extends Actor {
 
   onFlinch(report) {
     this.character.flash(0xffffff, 0.06);
+    if (this.healthFraction < 0.3) this.speak('lowHealth');
     if (report.damage > this.maxHealth * 0.12) this.setState(AS.HIT, { force: true });
     // Being hit picks a fight, whatever the standing orders say.
     if (report.attack?.source?.alive) this.target = report.attack.source;

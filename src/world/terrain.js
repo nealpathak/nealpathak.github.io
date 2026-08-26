@@ -135,6 +135,9 @@ export class Terrain {
 
     const base = fbmField(resolution, { octaves: 6, frequency, seed, warp: 0.05, ridged });
     const fine = fbmField(resolution, { octaves: 4, frequency: frequency * 5.5, seed: seed + 91 });
+    // A ridged layer on top of the smooth one. Without it, hillsides are
+    // featureless ramps no matter how good the texturing is.
+    const relief = fbmField(resolution, { octaves: 5, frequency: frequency * 2.6, seed: seed + 313, ridged: true });
 
     const half = size / 2;
     const b = { rock: 0, moss: 0, path: 0 };
@@ -143,7 +146,9 @@ export class Terrain {
         const idx = j * resolution + i;
         const x = origin[0] - half + i * this.cell;
         const z = origin[1] - half + j * this.cell;
-        let h = (base[idx] - 0.5) * 2 * amplitude + (fine[idx] - 0.5) * 2 * amplitude * detail * 0.25;
+        let h = (base[idx] - 0.5) * 2 * amplitude
+          + (relief[idx] - 0.5) * 2 * amplitude * detail * 0.42
+          + (fine[idx] - 0.5) * 2 * amplitude * detail * 0.16;
         b.rock = 0; b.moss = 0; b.path = 0;
         for (const shape of shapers) h = shape(x, z, h, b);
         this.heights[idx] = h;
@@ -313,12 +318,21 @@ export function makeTerrainMaterial({
         varying vec3 vTerrainWorld;
         varying vec3 vTerrainNormal;`)
       .replace('#include <map_fragment>', /* glsl */`
-        // World-space UVs: terrain never stretches, and tiling stays consistent
-        // no matter how the mesh was triangulated.
+        // Flat world-space UVs for anything lying on the ground: terrain never
+        // stretches and tiling stays consistent however the mesh was cut.
         vec2 uvFlat = vTerrainWorld.xz * uScale;
-        // On steep faces, project on the wall plane instead, or the rock
-        // smears into vertical streaks.
-        vec2 uvWall = vec2( dot( vTerrainWorld.xz, normalize( vec2( -vTerrainNormal.z, vTerrainNormal.x ) + 1e-5 ) ), vTerrainWorld.y ) * uRockScale;
+
+        // Rock is triplanar. Projecting it onto a plane derived from the
+        // surface normal — which rotates continuously across a hillside —
+        // twists the UVs into huge concentric swirls. Blending three
+        // axis-aligned projections by the normal costs two extra samples and
+        // is correct on every face, including vertical ones.
+        vec3 blendW = abs( vTerrainNormal );
+        blendW = pow( blendW, vec3( 4.0 ) );
+        blendW /= max( blendW.x + blendW.y + blendW.z, 1e-4 );
+        vec2 uvX = vTerrainWorld.zy * uRockScale;
+        vec2 uvY = vTerrainWorld.xz * uRockScale;
+        vec2 uvZ = vTerrainWorld.xy * uRockScale;
 
         float slope = 1.0 - clamp( vTerrainNormal.y, 0.0, 1.0 );
         float rockW = smoothstep( 0.24, 0.58, slope );
@@ -327,7 +341,9 @@ export function makeTerrainMaterial({
         float pathW = vColor.b * ( 1.0 - rockW );
 
         vec4 cDirt = texture2D( tDirt, uvFlat );
-        vec4 cRock = texture2D( tRock, mix( uvFlat, uvWall, smoothstep( 0.25, 0.6, slope ) ) );
+        vec4 cRock = texture2D( tRock, uvX ) * blendW.x
+                   + texture2D( tRock, uvY ) * blendW.y
+                   + texture2D( tRock, uvZ ) * blendW.z;
         vec4 cMoss = texture2D( tMoss, uvFlat * 1.7 );
 
         vec4 blended = cDirt;
@@ -341,7 +357,12 @@ export function makeTerrainMaterial({
       .replace('#include <normal_fragment_maps>', /* glsl */`
         #ifdef USE_NORMALMAP_TANGENTSPACE
           vec3 nDirt = texture2D( tDirtN, uvFlat ).xyz * 2.0 - 1.0;
-          vec3 nRock = texture2D( tRockN, mix( uvFlat, uvWall, smoothstep( 0.25, 0.6, slope ) ) ).xyz * 2.0 - 1.0;
+          // Blending tangent-space normals across the three projections is an
+          // approximation, but at this scale it is indistinguishable from the
+          // correct whiteout blend and costs a lot less.
+          vec3 nRock = ( texture2D( tRockN, uvX ).xyz * blendW.x
+                       + texture2D( tRockN, uvY ).xyz * blendW.y
+                       + texture2D( tRockN, uvZ ).xyz * blendW.z ) * 2.0 - 1.0;
           vec3 nMoss = texture2D( tMossN, uvFlat * 1.7 ).xyz * 2.0 - 1.0;
           vec3 mapN = mix( mix( nDirt, nMoss, mossW ), nRock, rockW );
           mapN.xy *= normalScale;

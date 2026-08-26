@@ -25,7 +25,7 @@ export const GradeShader = {
     uLift:        { value: new THREE.Vector3(0.020, 0.017, 0.030) },
     uGain:        { value: new THREE.Vector3(1.01, 1.00, 0.98) },
     uShadowTint:  { value: new THREE.Color(0x707189) },
-    uHighlightTint:{ value: new THREE.Color(0xffd9a8) },
+    uHighlightTint:{ value: new THREE.Color(0xffe6c8) },
     uSplitAmount: { value: 0.10 },
     uDamageFlash: { value: 0.0 },
     uDamageColor: { value: new THREE.Color(0xb4241e) },

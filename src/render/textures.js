@@ -174,7 +174,7 @@ export function surface(name) {
       for (let i = 0; i < mixed.length; i++) mixed[i] = f[i] * 0.72 + detail[i] * 0.28;
       result = {
         map: fieldToTexture(mixed, S, [
-          [0.0, [64, 52, 40]], [0.4, [88, 72, 55]], [0.7, [110, 92, 69]], [1.0, [136, 116, 88]],
+          [0.0, [68, 58, 48]], [0.4, [92, 79, 65]], [0.7, [114, 99, 81]], [1.0, [140, 124, 103]],
         ], { contrast: 0.82, repeat: 18 }),
         normalMap: fieldToNormalTexture(mixed, S, 3.0, 18),
         roughnessMap: fieldToGrayTexture(mixed, S, { lo: 0.78, hi: 1.0, repeat: 18 }),

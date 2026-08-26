@@ -211,8 +211,8 @@ export const MOODS = {
     // flattened the whole valley into one colour.
     fog: 0x8b7a72, fogDensity: 0.0090, heightFalloff: 0.05, heightOffset: 3,
     inscatter: 0xffc79a, inscatterAmt: 0.38,
-    ambientSky: 0x9d99a4, ambientGround: 0x8a6f56, ambientIntensity: 1.0,
-    sunLight: 0xffd6ae, sunLightIntensity: 2.9,
+    ambientSky: 0xa8a2a6, ambientGround: 0x9c7f62, ambientIntensity: 1.22,
+    sunLight: 0xffe2c6, sunLightIntensity: 2.55,
   },
   choir: {
     top: 0x101a2e, horizon: 0x3f6f7e, bottom: 0x060a10,

@@ -22,7 +22,7 @@ export class Renderer {
     });
     this.gl.setClearColor(0x000000, 1);
     this.gl.toneMapping = THREE.ACESFilmicToneMapping;
-    this.gl.toneMappingExposure = 1.28;
+    this.gl.toneMappingExposure = 1.16;
     this.gl.outputColorSpace = THREE.SRGBColorSpace;
     this.gl.shadowMap.enabled = true;
     this.gl.shadowMap.type = THREE.PCFShadowMap;

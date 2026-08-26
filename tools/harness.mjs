@@ -11,7 +11,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
-const PORT = 4174;
+// Port 0 lets the OS pick, so two harness runs never collide.
+const PORT = Number(process.env.EW_PORT || 0);
 const TYPES = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript',
   '.css':'text/css', '.svg':'image/svg+xml', '.json':'application/json', '.png':'image/png' };
 
@@ -25,7 +26,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
 });
-await new Promise(r => server.listen(PORT, r));
+await new Promise(r => server.listen(PORT, '127.0.0.1', r));
+const port = server.address().port;
 
 const args = process.argv.slice(2);
 const out = args[0] || `${process.env.HOME || '/tmp'}/shot.png`;
@@ -44,7 +46,7 @@ page.on('console', m => logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', e => logs.push(`[pageerror] ${e.message}\n${(e.stack||'').split('\n').slice(1,5).join('\n')}`));
 page.on('requestfailed', r => logs.push(`[404?] ${r.url()} ${r.failure()?.errorText}`));
 
-await page.goto(`http://127.0.0.1:${PORT}/${process.env.EW_Q||''}`, { waitUntil: 'load' });
+await page.goto(`http://127.0.0.1:${port}/${process.env.EW_Q||''}`, { waitUntil: 'load' });
 
 let booted = true;
 try {

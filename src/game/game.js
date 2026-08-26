@@ -319,6 +319,9 @@ export class Game {
       this.progression?.save();
     });
     bus.on('boss:phase', () => this.camera.addShake(0.8));
+    bus.on('progression:rested', () => {
+      for (const a of this.allies) a.speak?.('rest');
+    });
 
     // A parry has to pay out or it is just a worse dodge: the attacker is
     // opened, and the player gets a window to press E for the riposte.

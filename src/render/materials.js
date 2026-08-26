@@ -16,9 +16,13 @@ export const windUniforms = {
   uWindFreq: { value: 0.9 },
 };
 
+// Uses `normal` rather than `vNormal`: three only declares the varying when the
+// material is smooth-shaded, so a flat-shaded rock would fail to compile.
+// `normal` is a local that normal_fragment_begin always defines, in view space,
+// which is the same space vViewPosition is in.
 const RIM_CHUNK = /* glsl */`
   #ifdef USE_RIM
-    float rimDot = 1.0 - clamp( dot( normalize( vNormal ), normalize( vViewPosition ) ), 0.0, 1.0 );
+    float rimDot = 1.0 - clamp( dot( normalize( normal ), normalize( vViewPosition ) ), 0.0, 1.0 );
     float rim = pow( rimDot, uRimPower );
     outgoingLight += uRimColor * rim * uRimStrength;
   #endif
@@ -55,7 +59,7 @@ let materialId = 0;
  * @param {number} [opts.rimStrength]
  * @param {number} [opts.rimPower]
  * @param {number} [opts.wind]           0 disables; ~0.15 is a gentle bush
- * @param {'height'|'color'} [opts.windMask]
+ * @param {'height'|'color'|'uv'} [opts.windMask]
  */
 export function makeMaterial(opts = {}) {
   const {
@@ -113,9 +117,12 @@ export function makeMaterial(opts = {}) {
       shader.uniforms.uWindStrength = windUniforms.uWindStrength;
       shader.uniforms.uWindFreq = windUniforms.uWindFreq;
       shader.uniforms.uWindAmount = { value: wind };
-      const maskExpr = windMask === 'color'
-        ? 'float uWindMask = vColor.g;'
-        : 'float uWindMask = clamp( position.y * 0.55, 0.0, 1.4 );';
+      // 'uv' is the right choice for anything built from planes: uv.y already
+      // runs 0 at the root to 1 at the tip, and it does not steal a channel of
+      // vertex colour that we would rather use for shading.
+      const maskExpr = windMask === 'color' ? 'float uWindMask = vColor.g;'
+        : windMask === 'uv' ? 'float uWindMask = uv.y * uv.y;'
+          : 'float uWindMask = clamp( position.y * 0.55, 0.0, 1.4 );';
       shader.vertexShader = `#define USE_WIND\nuniform float uTime;\nuniform vec2 uWindDir;\nuniform float uWindStrength;\nuniform float uWindFreq;\nuniform float uWindAmount;\n` + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',

@@ -208,7 +208,7 @@ export const MOODS = {
     sun: [0.34, 0.40, -0.85], sunColor: 0xffb374, sunIntensity: 1.0,
     fog: 0xa9764f, fogDensity: 0.0085, heightFalloff: 0.05, heightOffset: 3,
     inscatter: 0xffbd7d, inscatterAmt: 0.6,
-    ambientSky: 0x8ba0d8, ambientGround: 0x6b5142, ambientIntensity: 1.15,
+    ambientSky: 0xa2949a, ambientGround: 0x94724f, ambientIntensity: 1.0,
     sunLight: 0xffd2a1, sunLightIntensity: 3.1,
   },
   choir: {

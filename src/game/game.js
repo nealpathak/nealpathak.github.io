@@ -1,27 +1,20 @@
-// Temporary animation lab. Replaced by the real game shell once the world and
-// player controller land; for now it is how the rig gets looked at.
+// The game shell: owns the zone, the actors, the camera and the flow between
+// playing, paused, resting and dead.
 
 import * as THREE from 'three';
-import { makeMaterial } from '../render/materials.js';
-import { Character } from '../actors/character.js';
-import { clip } from '../anim/library.js';
-import { equipWeapon } from '../actors/weapons.js';
-import { skyUniforms } from '../render/atmosphere.js';
+import { Zone } from '../world/zone.js';
+import { ZONES, DEFAULT_ZONE } from '../data/zones.js';
+import { Player, PS, DEFAULT_WEAPON } from '../actors/player.js';
+import { ThirdPersonCamera } from './camera.js';
+import { LockOn } from './lockon.js';
+import { bus } from '../core/events.js';
+import { settings } from '../core/settings.js';
+import { clamp } from '../core/math.js';
 
-const POSE_ROW = [
-  { name: 'idle', kind: 'blend', speed: 0 },
-  { name: 'walk', kind: 'blend', speed: 1.42 },
-  { name: 'run', kind: 'blend', speed: 3.9 },
-  { name: 'sprint', kind: 'blend', speed: 5.6 },
-  { name: 'idleGuard', kind: 'clip' },
-  { name: 'attackLight1', kind: 'clip' },
-  { name: 'attackHeavy1', kind: 'clip' },
-  { name: 'roll', kind: 'clip' },
-  { name: 'guard', kind: 'clip' },
-  { name: 'stagger', kind: 'clip' },
-  { name: 'death', kind: 'clip' },
-  { name: 'rest', kind: 'clip' },
-];
+export const MODE = {
+  LOADING: 'loading', TITLE: 'title', PLAYING: 'playing',
+  PAUSED: 'paused', RESTING: 'resting', DEAD: 'dead', DIALOGUE: 'dialogue',
+};
 
 export class Game {
   static async create(engine) {
@@ -33,100 +26,204 @@ export class Game {
   constructor(engine) {
     this.engine = engine;
     this.scene = engine.renderer.scene;
-    this.camera = engine.renderer.camera;
-    this.time = 0;
-    this.characters = [];
+    this.renderer = engine.renderer;
+    this.input = engine.input;
     this.params = new URLSearchParams(location.search);
+
+    this.mode = MODE.LOADING;
+    this.actors = [];
+    this.enemies = [];
+    this.time = 0;
+    this._interactCandidates = [];
+    this._tmp = new THREE.Vector3();
   }
 
   async init() {
-    if (this.params.has('studio')) this._studio();
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(600, 600),
-      makeMaterial({ color: 0x9a8468, surface: 'dirt', roughness: 1 }),
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
+    const zoneId = this.params.get('zone') ?? DEFAULT_ZONE;
+    const def = ZONES[zoneId] ?? ZONES[DEFAULT_ZONE];
 
-    const single = this.params.get('clip');
-    const specs = single
-      ? [{ name: single, kind: 'clip' }]
-      : POSE_ROW;
+    this.zone = new Zone(def, this.scene);
+    this.world = { terrain: this.zone.terrain, collision: this.zone.collision, zone: this.zone };
+    this.renderer.setMood(def.mood, 1);
 
-    const spacing = 1.9;
-    specs.forEach((spec, i) => {
-      const c = new Character({
-        scale: 1,
-        look: {
-          helm: i % 4 === 1 ? 'hood' : i % 4 === 2 ? 'none' : 'greathelm',
-          pauldrons: i % 3 === 2 ? 'cloth' : 'plate',
-          cape: true,
+    this.camera = new ThirdPersonCamera(this.renderer.camera, this.zone.collision);
+    this.camera.setBaseFov(settings.get('fov'));
+
+    this.player = new Player({
+      world: this.world,
+      scale: 1,
+      stats: { level: 1, vigour: 12, endurance: 12, strength: 12, finesse: 11, resolve: 10, attunement: 9 },
+      look: {
+        helm: 'greathelm', pauldrons: 'plate', cape: true,
+        palette: {
+          cloth: 0x2f2b33, cloth2: 0x6d2b26, leather: 0x40332a,
+          metal: 0x77787f, metalDark: 0x3c3d45, accent: 0xffa04c, eye: 0xffb45c,
         },
-      });
-      const weap = this.params.get('weapon') ?? 'longsword';
-      if (weap !== 'none') equipWeapon(c, weap);
-      if (this.params.get('shield') !== '0') equipWeapon(c, 'shield');
-      c.addTo(this.scene);
-      c.root.position.set((i - (specs.length - 1) / 2) * spacing, 0, 0);
-      c.root.rotation.y = Math.PI;    // face the camera (+Z is forward)
-      if (spec.kind === 'blend') c.setSpeed(spec.speed);
-      else c.playFull(clip(spec.name), { fade: 0, loop: true });
-      c.label = spec.name;
-      this.characters.push(c);
+      },
     });
+    this.player.refreshDerived({ keepRatios: false });
+    this.player.equip('longsword', DEFAULT_WEAPON);
+    this.player.equipOffhand('shield', { weight: 5, stability: 0.62 });
+    this.player.addTo(this.scene);
+    this.scene.add(this.player.trail.mesh);
+    this.addActor(this.player);
 
-    this.focus = this.characters[Math.floor(this.characters.length / 2)];
-    this._forward = new THREE.Vector3();
+    const start = this.zone.startPoint;
+    this.player.setPosition(start.x, start.y, start.z);
+    this.player.yaw = this.player.targetYaw = Math.PI;
+    this.camera.yaw = Math.PI;
+    this.camera.snapTo(this.player);
+
+    this.lockOn = new LockOn(this.player, this.camera);
+
+    this._wireEvents();
+    this.mode = MODE.TITLE;
   }
 
-  // Neutral three-point lighting for judging silhouette and proportion without
-  // the zone's art direction in the way.
-  _studio() {
-    const r = this.engine.renderer;
-    r.hemi.intensity = 1.15;
-    r.hemi.color.set(0xc6d6f2);
-    r.hemi.groundColor.set(0x7a6a58);
-    r.sun.intensity = 2.4;
-    r.sun.color.set(0xfff4e4);
-    r.fill.intensity = 0.7;
-    r.fill.color.set(0xa8c4ff);
-    r.scene.fog.density = 0.0016;
-    r.scene.fog.color.set(0x8a93a4);
-    // A neutral sky so nothing about the character is judged through a sunset.
-    skyUniforms.uTopColor.value.set(0x6d7e9c);
-    skyUniforms.uHorizon.value.set(0xa9b3c2);
-    skyUniforms.uBottomColor.value.set(0x4a4f58);
-    skyUniforms.uSunColor.value.set(0xfff0d8);
-    skyUniforms.uSunIntensity.value = 0.35;
-    skyUniforms.uSunDir.value.set(0.42, 0.62, -0.66).normalize();
-    this.engine.post.grade.uniforms.uVignette.value = 0.18;
-    this.engine.post.grade.uniforms.uSplitAmount.value = 0.04;
-    this.engine.renderer.gl.toneMappingExposure = 1.15;
+  /** True when the smoke test or a debug link asked to skip the title card. */
+  get wantsAutostart() { return this.params.has('autostart'); }
+
+  addActor(a) {
+    this.actors.push(a);
+    if (a.faction === 'hostile') this.enemies.push(a);
+    return a;
   }
 
-  fixedUpdate(dt) { this.time += dt; }
+  removeActor(a) {
+    let i = this.actors.indexOf(a);
+    if (i >= 0) this.actors.splice(i, 1);
+    i = this.enemies.indexOf(a);
+    if (i >= 0) this.enemies.splice(i, 1);
+    a.removeFrom(this.scene);
+  }
 
-  update(realDt, alpha, dt) {
-    for (const c of this.characters) {
-      // Non-looping clips restart so the lab keeps showing them.
-      if (c.base.finished) c.base.play(c.base.motion, { fade: 0, restart: true });
-      c.update(dt);
+  _wireEvents() {
+    bus.on('settings:changed', ({ key }) => {
+      if (key === 'fov' || key === '*') this.camera.setBaseFov(settings.get('fov'));
+    });
+    bus.on('player:damaged', ({ report }) => {
+      this.engine.post.damageFlash(clamp(report.damage / Math.max(1, this.player.maxHealth) * 2.6, 0.15, 0.9));
+      this.camera.addShake(clamp(report.damage / Math.max(1, this.player.maxHealth) * 2.2, 0.12, 0.7));
+      this.engine.loop.hitStop(0.05, 0.1);
+    });
+    bus.on('combat:hit', ({ attacker, report }) => {
+      if (attacker !== this.player) return;
+      // Hit-stop scaled by how big the blow was — the whole reason the loop
+      // exposes it. Blocked hits get a shorter, sharper stop.
+      const heavy = report.damage > this.player.attackRating * 0.9;
+      this.engine.loop.hitStop(report.blocked ? 0.045 : heavy ? 0.10 : 0.07, 0.06);
+      this.camera.addShake(report.blocked ? 0.14 : heavy ? 0.36 : 0.2);
+    });
+    bus.on('player:landed', ({ hard, impactSpeed }) => {
+      this.camera.addShake(clamp(impactSpeed / 40, 0.05, 0.5) * (hard ? 1.6 : 1));
+    });
+  }
+
+  // --- flow -----------------------------------------------------------------
+
+  start() {
+    if (this.mode === MODE.PLAYING) return;
+    this.mode = MODE.PLAYING;
+    this.input.enabled = true;
+    this.input.requestPointerLock(this.engine.canvas);
+    document.body.classList.add('playing');
+    bus.emit('game:started');
+  }
+
+  pause() {
+    if (this.mode !== MODE.PLAYING) return;
+    this.mode = MODE.PAUSED;
+    this.engine.loop.paused = true;
+    this.input.exitPointerLock();
+    document.body.classList.remove('playing');
+    bus.emit('game:paused');
+  }
+
+  resume() {
+    if (this.mode !== MODE.PAUSED) return;
+    this.mode = MODE.PLAYING;
+    this.engine.loop.paused = false;
+    this.input.clearAllBuffers();
+    this.input.requestPointerLock(this.engine.canvas);
+    document.body.classList.add('playing');
+    bus.emit('game:resumed');
+  }
+
+  // --- ticks ----------------------------------------------------------------
+
+  fixedUpdate(dt) {
+    this.time += dt;
+    if (this.mode !== MODE.PLAYING) return;
+
+    this.lockOn.update(dt, this.enemies);
+    if (this.input.consume('lockOn', 0.2)) this.lockOn.toggle(this.enemies);
+    if (this.input.consume('swapTarget', 0.2)) this.lockOn.cycle(this.enemies, 1);
+    this.player.handleInput(this.input, this.camera, dt);
+    this._updateInteractables();
+
+    for (const a of this.actors) {
+      if (a === this.player) { a.fixedUpdate(dt); continue; }
+      a.think?.(dt, this.player);
+      a.fixedUpdate(dt);
     }
 
-    const p = this.params;
-    const orbit = p.has('orbit') ? this.time * 0.35 : Number(p.get('angle') ?? 0);
-    const dist = Number(p.get('dist') ?? (this.characters.length > 3 ? 13 : 4.2));
-    const height = Number(p.get('height') ?? 1.9);
-    const cx = this.focus.root.position.x;
-    this.camera.position.set(cx + Math.sin(orbit) * dist, height, Math.cos(orbit) * dist);
-    this.camera.lookAt(cx, 0.95, 0);
+    // Player hits are tested after everyone has moved, so a hitbox never
+    // resolves against a stale position.
+    const results = this.player.hitbox.test(this.enemies);
+    if (results) for (const { target } of results) this.lockOn.notifyHit(target);
+  }
 
-    this._forward.set(0, 0, 0).sub(this.camera.position).setY(0).normalize();
-    this.engine.renderer.updateShadows(new THREE.Vector3(cx, 0.9, 0), this._forward);
+  _updateInteractables() {
+    let best = null, bestD = 3.2;
+    for (const shrine of this.zone.shrines) {
+      const d = shrine.position.distanceTo(this.player.position);
+      if (d < bestD) { bestD = d; best = { type: 'shrine', shrine, position: shrine.position }; }
+    }
+    if (best !== this.player.interactTarget) {
+      this.player.interactTarget = best;
+      bus.emit('player:interactTarget', { target: best });
+    }
+  }
+
+  update(realDt, alpha, dt) {
+    if (this.mode === MODE.PLAYING) {
+      this.camera.look(this.input.look.x, this.input.look.y);
+      if (this.player.state === PS.SPRINT) this.camera.setFovBoost(7);
+    }
+
+    for (const a of this.actors) a.update(dt);
+    this.camera.update(realDt, this.player);
+
+    this._tmp.set(-Math.sin(this.camera.yaw), 0, -Math.cos(this.camera.yaw));
+    this.renderer.updateShadows(this.player.position, this._tmp);
+
+    // Shrine flames flicker at render rate so they read as fire, not a lamp.
+    for (const s of this.zone.shrines) {
+      const f = s.built.flame;
+      if (!f?.visible) continue;
+      const t = this.time * 9 + s.position.x;
+      const k = 0.86 + Math.sin(t) * 0.08 + Math.sin(t * 2.7 + 1.3) * 0.06;
+      f.scale.set(k, 0.9 + (k - 0.86) * 2.4, k);
+      s.built.light.intensity = 8 + Math.sin(t * 1.7) * 1.6 + Math.sin(t * 4.3) * 0.9;
+    }
   }
 
   debugStats() {
-    return { characters: this.characters.length, clips: this.characters.map((c) => c.label) };
+    return {
+      mode: this.mode,
+      zone: this.zone.id,
+      actors: this.actors.length,
+      props: this.zone.props.length,
+      colliders: this.zone.collision.colliders.length,
+      foliage: this.zone.foliage?.instanceCount ?? 0,
+      player: {
+        state: this.player.state,
+        pos: this.player.position.toArray().map((v) => +v.toFixed(1)),
+        hp: Math.round(this.player.health),
+        stam: Math.round(this.player.stamina),
+        grounded: this.player.grounded,
+        lock: this.lockOn.target?.name ?? null,
+      },
+    };
   }
 }

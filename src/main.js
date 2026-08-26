@@ -10,7 +10,7 @@ import { settings } from './core/settings.js';
 import { bus } from './core/events.js';
 
 export const engine = {
-  renderer: null, post: null, input: null, loop: null, ui: null, canvas: null,
+  renderer: null, post: null, input: null, loop: null, ui: null, canvas: null, game: null,
 };
 
 function setBootStatus(text, pct) {
@@ -41,11 +41,11 @@ export async function boot() {
   engine.canvas = canvas;
   engine.ui = document.getElementById('ui');
 
-  setBootStatus('Lighting the sky…', 0.18);
+  setBootStatus('Lighting the sky…', 0.15);
   const renderer = new Renderer(canvas);
   engine.renderer = renderer;
 
-  setBootStatus('Grinding lenses…', 0.34);
+  setBootStatus('Grinding lenses…', 0.28);
   const post = new PostFX(renderer);
   post.applyQuality(renderer.quality);
   engine.post = post;
@@ -76,25 +76,31 @@ export async function boot() {
   });
   document.body.classList.toggle('large-text', settings.get('largeText'));
 
-  setBootStatus('Waking the vale…', 0.55);
-  // Yield so the browser can paint the progress bar before we build the world.
+  setBootStatus('Shaping the vale…', 0.45);
   await nextFrame();
 
   const { Game } = await import('./game/game.js');
   const game = await Game.create(engine);
   engine.game = game;
 
+  setBootStatus('Waking the ash…', 0.86);
+  await nextFrame();
+
+  const { mountUI } = await import('./ui/index.js');
+  engine.uiRoot = mountUI(engine, game);
+
   setBootStatus('Ready', 1);
 
   const loop = new Loop({
     step: 1 / 60,
-    onFixed: (dt, elapsed) => game.fixedUpdate(dt, elapsed),
+    onFixed: (dt) => game.fixedUpdate(dt),
     onRender: (realDt, alpha, dt) => {
       input.update(realDt);
       game.update(realDt, alpha, dt);
       tickMaterials(loop.elapsed);
       renderer.tick(loop.elapsed);
       post.tick(realDt, loop.realElapsed);
+      engine.uiRoot?.update(realDt);
       post.render();
     },
   });
@@ -102,7 +108,6 @@ export async function boot() {
   game.loop = loop;
   loop.start();
 
-  // Expose for the console. Handy while building, harmless in production.
   window.emberwake = { engine, game, THREE, bus, settings };
 
   await nextFrame();

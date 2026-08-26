@@ -29,6 +29,7 @@ export class HUD {
     this.el = el('div', 'hud', root);
     this._buildVitals();
     this._buildFlask();
+    this._buildSkill();
     this._buildLockOn();
     this._buildBossBar();
     this._buildPrompt();
@@ -72,6 +73,48 @@ export class HUD {
     this.cinders = el('div', 'hud__cinders', this.el);
     this.cindersValue = el('span', 'hud__cinders-value', this.cinders, '0');
     el('span', 'hud__cinders-label', this.cinders, 'cinders');
+  }
+
+  _buildSkill() {
+    const wrap = el('div', 'skillchip', this.el);
+    this.skillChip = wrap;
+    this.skillName = el('div', 'skillchip__name', wrap);
+    const meta = el('div', 'skillchip__meta', wrap);
+    this.skillCost = el('span', 'skillchip__cost', meta);
+    this.skillKey = el('kbd', null, meta, 'V');
+    this.skillCool = el('i', 'skillchip__cool', wrap);
+    wrap.style.display = 'none';
+
+    this.paired = el('div', 'paired', this.el);
+    el('span', 'paired__label', this.paired, 'Paired Strike');
+    el('kbd', null, this.paired, 'C');
+    this.paired.style.display = 'none';
+  }
+
+  _updateSkill() {
+    const cov = this.game.covenant;
+    const ready = cov?.pairedReady ?? false;
+    if (ready !== this._pairedShown) {
+      this._pairedShown = ready;
+      this.paired.style.display = ready ? '' : 'none';
+      if (ready) this.pulse(this.paired);
+    }
+
+    const skills = this.game.skills;
+    if (!skills) return;
+    const list = skills.available();
+    if (!list.length) { this.skillChip.style.display = 'none'; return; }
+    const move = list[Math.min(skills.selected, list.length - 1)];
+    this.skillChip.style.display = '';
+    this.skillName.textContent = move.name;
+    const aff = AFFINITY[move.affinity] ?? AFFINITY.none;
+    this.skillChip.style.setProperty('--aff', `#${aff.color.toString(16).padStart(6, '0')}`);
+    this.skillCost.textContent = `${move.cost ?? 0} focus`;
+    const total = move.cooldownBase ?? move.cooldown ?? 1;
+    const remaining = skills.cooldowns.get(move.id) ?? 0;
+    this.skillCool.style.transform = `scaleX(${remaining > 0 ? clamp(remaining / Math.max(total, 0.001), 0, 1) : 0})`;
+    this.skillChip.classList.toggle('skillchip--ready', remaining <= 0 && move.affordable);
+    this.skillChip.classList.toggle('skillchip--blocked', remaining > 0 || !move.affordable);
   }
 
   _buildLockOn() {
@@ -232,6 +275,7 @@ export class HUD {
     this.cindersValue.textContent = p.cinders.toLocaleString();
 
     this._updateStatusBars();
+    this._updateSkill();
     this._updateLockOn(dt);
     this._updateBoss(dt);
     this._updateDamageNumbers(dt);

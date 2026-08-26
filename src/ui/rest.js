@@ -65,9 +65,22 @@ export class RestMenu {
 
   get visible() { return !this.el.classList.contains('rest--hidden'); }
 
-  open(shrine) {
+  /**
+   * @param {object|null} shrine  null when opened away from a shrine, which
+   *   hides the levelling tab: spending cinders is what makes resting matter.
+   * @param {string} [tab]
+   */
+  open(shrine, tab = 'level') {
     this.shrine = shrine;
-    this.title.textContent = shrine?.name ?? 'Emberwake';
+    this.atShrine = !!shrine;
+    this.tab = shrine ? tab : (tab === 'level' ? 'gear' : tab);
+    this.title.textContent = shrine?.name ?? 'Covenant';
+    for (const b of this.tabsEl.children) {
+      b.hidden = b.dataset.tab === 'level' && !shrine;
+    }
+    this.el.querySelector('.rest__hint').textContent = shrine
+      ? 'Resting wakes everything in the vale.'
+      : 'Kindling requires an Emberwake.';
     this.el.classList.remove('rest--hidden');
     this.game.mode = 'resting';
     this.game.engine.loop.paused = true;

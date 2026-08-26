@@ -513,3 +513,73 @@ select.setting__control option { background: #17141c; }
 .speech--in { opacity: 1; transform: none; }
 .speech__who { font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--focus); }
 .speech__text { margin: .2rem 0 0; font-size: .82rem; line-height: 1.5; color: var(--ink); }
+
+/* ---------- skill chip ---------- */
+
+.skillchip {
+  position: absolute; right: calc(2.2rem * var(--hud-scale)); bottom: calc(5.4rem * var(--hud-scale));
+  min-width: 9rem; padding: .42rem .65rem;
+  background: rgba(10,8,12,.74);
+  border: 1px solid var(--line); border-left: 2px solid var(--aff, var(--ember));
+  text-align: right; overflow: hidden;
+}
+.skillchip__name { font-size: .8rem; letter-spacing: .04em; color: var(--ink); }
+.skillchip__meta { display: flex; gap: .45rem; align-items: center; justify-content: flex-end; margin-top: .15rem; }
+.skillchip__cost { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+.skillchip__cool {
+  position: absolute; inset: auto 0 0 0; height: 2px; display: block;
+  background: var(--aff, var(--ember)); transform-origin: left center;
+  transition: transform .12s linear;
+}
+.skillchip--blocked .skillchip__name { color: var(--ink-faint); }
+.skillchip--ready { border-color: var(--line-strong); }
+
+/* ---------- compass ---------- */
+
+.compass {
+  position: absolute; left: 50%; top: calc(.9rem * var(--hud-scale));
+  transform: translateX(-50%);
+  width: min(30rem, 54vw); height: calc(2.1rem * var(--hud-scale));
+  /* Fades at both ends so marks slide off rather than stopping dead. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.compass::before {
+  content: ''; position: absolute; left: 0; right: 0; top: calc(1.05rem * var(--hud-scale));
+  height: 1px; background: linear-gradient(90deg, transparent, rgba(214,190,156,.28), transparent);
+}
+.compass__ticks, .compass__marks { position: absolute; inset: 0; }
+.compass__card {
+  position: absolute; left: 50%; top: calc(1.2rem * var(--hud-scale));
+  font-size: .62rem; letter-spacing: .2em; color: var(--ink-faint);
+  text-shadow: 0 1px 3px rgba(0,0,0,.9);
+}
+.cmark {
+  position: absolute; left: 50%; top: 0;
+  display: flex; flex-direction: column; align-items: center; gap: .1rem;
+  transition: opacity .2s ease;
+}
+.cmark__pip {
+  display: block; width: 7px; height: 7px; margin-top: calc(.72rem * var(--hud-scale));
+  background: var(--ink-dim); transform: rotate(45deg);
+  box-shadow: 0 1px 4px rgba(0,0,0,.9);
+}
+.cmark__dist { font-size: .56rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0,0,0,.9); }
+.cmark--shrine .cmark__pip { background: var(--ember); box-shadow: 0 0 8px rgba(255,154,77,.7); }
+.cmark--dim .cmark__pip { background: var(--ink-faint); box-shadow: none; }
+.cmark--stain .cmark__pip { background: var(--gold); box-shadow: 0 0 8px rgba(230,194,122,.8); }
+.cmark--boss .cmark__pip { background: var(--blood); box-shadow: 0 0 9px rgba(196,55,44,.8); width: 9px; height: 9px; }
+.cmark--bossIdle .cmark__pip { background: var(--blood-dark); }
+.cmark--ally .cmark__pip { background: var(--focus); width: 5px; height: 5px; }
+
+.paired {
+  position: absolute; right: calc(2.2rem * var(--hud-scale)); bottom: calc(8.6rem * var(--hud-scale));
+  display: flex; align-items: center; gap: .45rem;
+  padding: .32rem .6rem; background: rgba(30,18,8,.8);
+  border: 1px solid rgba(230,194,122,.5);
+  box-shadow: 0 0 18px rgba(230,194,122,.18);
+}
+.paired__label {
+  font-family: var(--font-display); font-size: .68rem;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+}

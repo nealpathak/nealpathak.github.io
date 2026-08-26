@@ -21,6 +21,7 @@ import { hasSave } from '../core/save.js';
 import { summonWisp, makeCompanion } from '../actors/ally.js';
 import { COMPANIONS } from '../data/companions.js';
 import { Audio } from '../audio/audio.js';
+import { Skills } from './skills.js';
 import { bus } from '../core/events.js';
 import { settings } from '../core/settings.js';
 import { clamp } from '../core/math.js';
@@ -78,6 +79,7 @@ export class Game {
         },
       },
     });
+    this.player.game = this;
     this.player.refreshDerived({ keepRatios: false });
     this.player.addTo(this.scene);
     this.scene.add(this.player.trail.mesh);
@@ -100,6 +102,7 @@ export class Game {
     this.inventory = new Inventory(this.player);
     this.covenant = new Covenant(this);
     this.progression = new Progression(this);
+    this.skills = new Skills(this);
 
     // Starting kit, then a saved game on top of it if there is one.
     for (const [id, n] of STARTING_KIT.items) this.inventory.add(id, n);
@@ -283,6 +286,30 @@ export class Game {
       if (attack.projectile) this._queueProjectile(enemy, attack);
     });
     bus.on('covenant:active', () => { if (this.mode !== MODE.LOADING) this.summonActiveWisp(); });
+
+    // A Paired Strike rides on the player's own blow: the partners' damage is
+    // folded into the hit rather than arriving as a separate one, so it reads
+    // as a single, much heavier attack.
+    bus.on('combat:hit', ({ defender, attacker, report }) => {
+      if (attacker !== this.player || !this._pairedPending) return;
+      const bonus = this._pairedPending;
+      this._pairedPending = null;
+      if (!defender.alive) return;
+      resolveHit(defender, {
+        source: this.player,
+        damage: bonus.damage,
+        poiseDamage: bonus.damage * 0.9,
+        affinity: bonus.partners[0]?.affinity ?? 'none',
+        point: report.point ?? defender.position.clone(),
+        direction: report.direction,
+      });
+      this.engine.loop.hitStop(0.16, 0.02);
+      this.camera.addShake(0.7);
+      this.fx.deathBurst(
+        new THREE.Vector3(defender.position.x, defender.position.y + defender.height * 0.5, defender.position.z),
+        0xffd08a,
+      );
+    });
     bus.on('covenant:bound', () => { this._sideCache = null; });
     bus.on('boss:ended', () => {
       // A boss you have beaten does not come back when you rest. The cinders
@@ -407,6 +434,7 @@ export class Game {
     this.time += dt;
     this.progression?.update(dt);
     this.covenant?.update(dt);
+    this.skills?.update(dt);
 
     if (this.mode === MODE.DEAD) {
       this._updateDeath(dt);
@@ -436,6 +464,9 @@ export class Game {
 
     if (this.input.consume('lockOn', 0.2)) this.lockOn.toggle(this.enemies);
     if (this.input.consume('swapTarget', 0.2)) this.lockOn.cycle(this.enemies, 1);
+    if (this.input.consume('cycleItemL', 0.2)) this.skills.cycle(-1);
+    if (this.input.consume('cycleItemR', 0.2)) this.skills.cycle(1);
+    if (this.input.consume('command', 0.2)) this._callPairedOrCycle();
     this.player.handleInput(this.input, this.camera, dt);
     this._updateInteractables();
 
@@ -510,6 +541,33 @@ export class Game {
         status: attack.status, statusAmount: attack.statusAmount,
         unblockable: !!attack.unblockable,
       },
+    });
+  }
+
+  /**
+   * `C` calls a Paired Strike when one is available, and otherwise steps
+   * through standing orders. One button, and the more valuable action wins.
+   */
+  _callPairedOrCycle() {
+    const target = this.lockOn.target ?? null;
+    if (target && this.covenant.pairedReady) {
+      const called = this.covenant.callPairedStrike(target);
+      if (called) {
+        this._pairedPending = called;
+        bus.emit('ui:toast', { text: 'Strike now — your next blow carries theirs.', kind: 'gold', duration: 3 });
+        return;
+      }
+    }
+    this._cycleTactics();
+  }
+
+  _cycleTactics() {
+    const ids = Object.keys(TACTICS_TABLE);
+    const next = ids[(ids.indexOf(this.covenant.tactics) + 1) % ids.length];
+    this.covenant.setTactics(next);
+    bus.emit('ui:toast', {
+      text: `Party: ${TACTICS_TABLE[next].label} — ${TACTICS_TABLE[next].blurb}`,
+      kind: 'info', duration: 3,
     });
   }
 

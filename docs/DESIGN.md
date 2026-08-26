@@ -108,9 +108,8 @@ and a save.
 
 - The Sunken Choir and Cinderreach zones
 - A hub with vendors, and quests with dialogue trees
-- Paired Strikes at bond rank A (the rank unlocks; the move is not implemented)
-- Wisp skills bound to `V` (the input and the data exist; the effects do not)
-- A map screen
+- Companion dialogue beyond the one-line barks
+- Touch controls
 
 ## Non-goals
 

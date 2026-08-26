@@ -112,7 +112,8 @@ export class Player extends Actor {
   }
 
   get attackRating() {
-    return this.weaponStats ? attackRating(this.weaponStats, this.stats) : 40;
+    const base = this.weaponStats ? attackRating(this.weaponStats, this.stats) : 40;
+    return base * (this.damageMultiplier ?? 1);
   }
 
   // --- state machine --------------------------------------------------------
@@ -404,6 +405,11 @@ export class Player extends Actor {
   }
 
   _tryCast() {
+    // The Wisp does the work; the player's animation is the command gesture.
+    // If the cast is refused (no Wisp, no focus, on cooldown) there is no
+    // point playing the animation at all.
+    const refused = this.game?.skills?.cast?.();
+    if (refused) return;
     bus.emit('player:skill', { player: this });
     this.setState(PS.CAST, { force: true });
   }

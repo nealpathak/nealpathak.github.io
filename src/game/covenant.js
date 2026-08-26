@@ -124,6 +124,7 @@ export class Covenant {
     this.bestiary = new Map();   // wispId -> { seen, bound }
     this.tactics = 'balanced';
     this.maxBound = 8;
+    this.pairedCooldown = 0;
     this._bondTimer = 0;
 
     this._wire();
@@ -250,8 +251,51 @@ export class Covenant {
     bus.emit('covenant:tactics', { tactics: TACTICS[id] });
   }
 
+  /**
+   * The Paired Strike — the reward for a rank A bond.
+   *
+   * Everyone bonded at A who is close enough joins the player's next blow: they
+   * commit their own attack animation at the same target and their damage is
+   * folded into one hit. It is on a long cooldown, because a move that turns
+   * every fight into a cutscene is not a move, it is a skip button.
+   */
+  pairedPartners() {
+    return this.companions
+      .concat(this.active?.actor ? [this.active.actor] : [])
+      .filter((a) => a.alive && a.bondRank.id === 'A'
+        && a.position.distanceTo(this.game.player.position) < 14);
+  }
+
+  get pairedReady() {
+    return this.pairedCooldown <= 0 && this.pairedPartners().length > 0;
+  }
+
+  /** Call a Paired Strike at `target`. Returns the partners who joined. */
+  callPairedStrike(target) {
+    if (!target?.alive) return null;
+    const partners = this.pairedPartners();
+    if (!partners.length || this.pairedCooldown > 0) return null;
+
+    this.pairedCooldown = 26;
+    let total = 0;
+    for (const a of partners) {
+      a.target = target;
+      a.faceTowards(target.position.x, target.position.z, true);
+      a.setState('attack', { force: true, clip: 'attackLight3' });
+      total += a.power * 1.6;
+      a.bondWith?.(this.game.player, 10);
+    }
+    bus.emit('covenant:pairedStrike', { partners, target, damage: total });
+    bus.emit('ui:announce', {
+      text: partners.length > 1 ? 'Paired Strike' : `${partners[0].name} — Paired Strike`,
+      kind: 'area', duration: 2.2,
+    });
+    return { partners, damage: total };
+  }
+
   /** Bonds accrue while allies fight near the player. */
   update(dt) {
+    if (this.pairedCooldown > 0) this.pairedCooldown -= dt;
     this._bondTimer += dt;
     if (this._bondTimer < 1) return;
     this._bondTimer = 0;

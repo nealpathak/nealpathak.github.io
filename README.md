@@ -47,8 +47,8 @@ without dying again and it is yours.
 | Heal | `R` |
 | Interact | `E` |
 | Throw an Ember Sigil | `G` |
-| Wisp skill | `V` |
-| Party orders | `C` |
+| Wisp skill | `V` — `1` / `2` cycle which one |
+| Paired Strike / party orders | `C` |
 | Menus | `I` inventory · `P` covenant · `M` map · `Esc` pause |
 
 A gamepad is picked up automatically.

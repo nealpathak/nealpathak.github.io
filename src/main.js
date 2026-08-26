@@ -111,6 +111,8 @@ export async function boot() {
   // A console handle for debugging and for the headless test harness. Exposing
   // resolveHit lets a test drive a hit without having to pose a weapon first.
   const { resolveHit } = await import('./combat/damage.js');
+  const { BONE_INDEX } = await import('./anim/skeleton.js');
+  window.__BI = BONE_INDEX;   // bone lookup, for the animation probes in tools/
   window.emberwake = { engine, game, THREE, bus, settings, resolveHit };
 
   await nextFrame();

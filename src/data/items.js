@@ -42,8 +42,8 @@ export const ITEMS = {
   },
   kindleStaff: {
     id: 'kindleStaff', name: 'Kindle Staff', kind: 'weapon', slot: 'weapon', model: 'staff',
-    blurb: 'A catalyst. Poor at hitting things, excellent at telling Wisps to.',
-    damage: 28, poiseDamage: 8, weight: 4, speed: 1.05, affinity: 'radiance',
+    blurb: 'A catalyst. Poor at hitting things, excellent at telling Wisps to. Bring a spirit.',
+    damage: 42, poiseDamage: 12, weight: 4, speed: 1.05, affinity: 'radiance',
     scaling: { attunement: 'A' }, stability: 0.3, trailColor: 0xffe58a,
     visual: { wood: 0x4a3628, gem: 0xff9a4d },
   },

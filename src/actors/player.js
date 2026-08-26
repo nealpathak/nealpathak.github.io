@@ -10,7 +10,7 @@ import { equipWeapon } from './weapons.js';
 import { MeleeHitbox, WeaponTrail } from '../combat/hitbox.js';
 import { isBackstab, resolveHit } from '../combat/damage.js';
 import { attackRating, loadBand } from '../combat/stats.js';
-import { CHAINS, clip } from '../anim/library.js';
+import { movesetFor, clip } from '../anim/library.js';
 import { bus } from '../core/events.js';
 import { clamp, damp, shortestAngle } from '../core/math.js';
 import { settings } from '../core/settings.js';
@@ -29,12 +29,11 @@ export const PS = {
   CAST: 'cast', BIND: 'bind', INTERACT: 'interact', REST: 'rest', FALL: 'fall',
 };
 
-// Stamina costs. Tuned so a full bar buys roughly four light swings, or two
-// rolls and a heavy — enough rope to hang yourself with.
+// Stamina costs that are not weapon-specific. Attack costs come from the
+// weapon's moveset, so a greatsword swing empties a bar a longsword's does not.
 const COST = {
   roll: 22, backstep: 15, sprintPerSecond: 12,
-  light: 18, heavy: 32, running: 24, parry: 14, riposte: 0,
-  guardMin: 4, cast: 0, bind: 8,
+  parry: 14, riposte: 0, guardMin: 4, cast: 0, bind: 8,
 };
 
 export class Player extends Actor {
@@ -114,6 +113,11 @@ export class Player extends Actor {
   get attackRating() {
     const base = this.weaponStats ? attackRating(this.weaponStats, this.stats) : 40;
     return base * (this.damageMultiplier ?? 1);
+  }
+
+  /** The moveset for whatever is currently in hand. */
+  get moveset() {
+    return movesetFor(this.weapon?.userData?.class ?? 'sword');
   }
 
   // --- state machine --------------------------------------------------------
@@ -361,26 +365,27 @@ export class Player extends Actor {
   }
 
   _tryAttack(type) {
-    const cost = type === 'heavy' ? COST.heavy : COST.light;
+    const ms = this.moveset;
+    const cost = type === 'heavy' ? ms.cost.heavy : ms.cost.light;
     const running = this.state === PS.SPRINT;
     if (!this.canSpend(cost)) { bus.emit('player:noStamina'); return; }
 
     let name;
-    let lunge = 0.9;
+    let lunge;
     if (running && type === 'light') {
-      name = 'attackRunning';
-      lunge = 4.6;
+      name = ms.running;
+      lunge = ms.lunge.heavy * 2.2;
     } else {
-      const chain = CHAINS[type];
+      const chain = ms[type] ?? ms.light;
       const continuing = this.state === PS.ATTACK && this.chain.type === type && this.canCombo;
       const index = continuing ? (this.chain.index + 1) % chain.length : 0;
       this.chain.type = type;
       this.chain.index = index;
       name = chain[index];
-      lunge = type === 'heavy' ? 2.4 : 1.9;
+      lunge = ms.lunge[type] ?? ms.lunge.light;
     }
 
-    this.spendStamina(running ? COST.running : cost);
+    this.spendStamina(running ? Math.round(cost * 1.35) : cost);
     this._attackLunge = lunge;
     this._attackType = running ? 'running' : type;
     this.canCombo = false;
@@ -389,7 +394,10 @@ export class Player extends Actor {
       this.targetYaw = Math.atan2(this._moveDir.x, this._moveDir.z);
       this.yaw = damp(this.yaw, this.targetYaw, 30, 1 / 60);
     }
-    this.setState(PS.ATTACK, { clip: name, force: true, speed: this.weaponStats?.speed ?? 1 });
+    this.setState(PS.ATTACK, {
+      clip: name, force: true,
+      speed: (this.weaponStats?.speed ?? 1) * ms.speed,
+    });
   }
 
   _tryParry() {
@@ -486,11 +494,12 @@ export class Player extends Actor {
     if (!w) return;
     const ud = w.userData;
     const stats = this.weaponStats ?? DEFAULT_WEAPON;
-    const heavy = !!data.heavy;
+    const heavy = !!data.heavy || this._attackType === 'heavy';
     const rating = this.attackRating;
+    const ms = this.moveset;
     this.hitbox.open(w, ud.hitFrom, ud.hitTo, ud.radius * this.scale, {
       damage: rating * (heavy ? 1.62 : 1.0) * (data.arc === 'thrust' ? 1.24 : 1),
-      poiseDamage: (stats.poiseDamage ?? rating * 0.32) * (heavy ? 1.9 : 1),
+      poiseDamage: (stats.poiseDamage ?? rating * 0.32) * (heavy ? 1.9 : 1) * ms.poise,
       staminaDamage: rating * (heavy ? 0.85 : 0.5),
       affinity: stats.affinity ?? 'none',
       status: stats.status ?? null,

@@ -86,7 +86,9 @@ open and close — retiming an attack is an animation change, not a code change.
 
 **Combat is measured, not assumed.** Hitboxes are swept and subdivided by how
 far the blade actually moved between samples, so a hit lands on a struggling
-machine as well as a fast one.
+machine as well as a fast one. Balance is measured too: a bot plays each
+encounter through the real input layer and reports whether the fight was
+actually winnable. It has found more real bugs than reading the code did.
 
 **Fog has a height term.** Three's built-in fog is distance-only, which makes a
 valley floor and the ridgeline above it the same colour. The global fog chunks

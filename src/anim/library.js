@@ -47,3 +47,62 @@ export const CHAINS = {
   light: ['attackLight1', 'attackLight2', 'attackLight3'],
   heavy: ['attackHeavy1', 'attackHeavy2'],
 };
+
+/**
+ * Per-weapon-class movesets.
+ *
+ * A greatsword that swings like a longsword is just a longsword with bigger
+ * numbers. Each class gets its own chain, playback speed, lunge distance and
+ * stamina cost, so the choice of weapon changes how you fight rather than only
+ * how fast things die.
+ *
+ *   speed   playback multiplier on every attack clip
+ *   lunge   metres per second of forward drive during the active window
+ *   cost    stamina, light and heavy
+ *   poise   multiplier on the weapon's poise damage
+ */
+export const MOVESETS = {
+  sword: {
+    light: ['attackLight1', 'attackLight2', 'attackLight3'],
+    heavy: ['attackHeavy1', 'attackHeavy2'],
+    running: 'attackRunning',
+    speed: 1.0, lunge: { light: 1.9, heavy: 2.4 }, cost: { light: 18, heavy: 32 }, poise: 1.0,
+  },
+  greatsword: {
+    // Two swings, both enormous. No backhand: this thing does not change
+    // direction, it commits.
+    light: ['attackHeavy2', 'attackHeavy1'],
+    heavy: ['attackHeavy1', 'attackLight3'],
+    running: 'attackHeavy1',
+    speed: 0.78, lunge: { light: 2.6, heavy: 3.2 }, cost: { light: 30, heavy: 46 }, poise: 1.9,
+  },
+  spear: {
+    // Built on the sweeping clips rather than attackRunning. That clip is
+    // named a thrust but does not behave like one: measured mid-swing the
+    // weapon ends up pointing up and back rather than forward, which a short
+    // sword survives and a two-metre polearm does not — it turned the spear
+    // into an eight-damage-a-swing joke. Until there is a thrust animation
+    // that measurably drives the head forward, the spear earns its identity
+    // from reach, speed and low poise damage instead of from a bad animation.
+    light: ['attackLight1', 'attackLight2', 'attackLight1'],
+    heavy: ['attackHeavy1', 'attackLight3'],
+    running: 'attackLight1',
+    speed: 1.16, lunge: { light: 1.1, heavy: 1.8 }, cost: { light: 15, heavy: 27 }, poise: 0.82,
+  },
+  axe: {
+    light: ['attackLight1', 'attackHeavy2'],
+    heavy: ['attackHeavy1', 'attackHeavy2'],
+    running: 'attackRunning',
+    speed: 0.9, lunge: { light: 2.1, heavy: 2.8 }, cost: { light: 24, heavy: 38 }, poise: 1.45,
+  },
+  staff: {
+    light: ['attackLight1', 'attackLight2'],
+    heavy: ['attackHeavy1'],
+    running: 'attackRunning',
+    speed: 1.05, lunge: { light: 1.6, heavy: 2.0 }, cost: { light: 14, heavy: 24 }, poise: 0.62,
+  },
+};
+
+export function movesetFor(weaponClass) {
+  return MOVESETS[weaponClass] ?? MOVESETS.sword;
+}

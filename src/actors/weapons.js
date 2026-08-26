@@ -145,7 +145,7 @@ export const WEAPON_BUILDERS = {
       { pos: [0, 1.02, 0] });
     addMesh(g, cached('spearButt', () => new THREE.ConeGeometry(0.026, 0.10, 8)), mat('darksteel', 0x4a4a52),
       { pos: [0, -0.85, 0], rot: [Math.PI, 0, 0] });
-    g.userData = { reach: 2.05, hitFrom: [0, 0.90, 0], hitTo: [0, 1.44, 0], radius: 0.15, class: 'spear' };
+    g.userData = { reach: 2.05, hitFrom: [0, 0.52, 0], hitTo: [0, 1.46, 0], radius: 0.19, class: 'spear' };
     return g;
   },
 

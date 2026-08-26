@@ -179,7 +179,7 @@
     for (const e of made) e.provoke(p);
 
     let frames = 0;
-    while (frames < 60 * 150 && p.alive && g.enemies.some((e) => e.alive)) { step(10); frames += 10; }
+    while (frames < 60 * 100 && p.alive && g.enemies.some((e) => e.alive)) { step(10); frames += 10; }
 
     out.encounters.push({
       name: enc.name,
@@ -221,7 +221,7 @@
     boss.engage(p);
 
     let frames = 0;
-    while (frames < 60 * 300 && p.alive && boss.alive) { step(10); frames += 10; }
+    while (frames < 60 * 150 && p.alive && boss.alive) { step(10); frames += 10; }
     out.boss = {
       name: boss.name,
       killed: !boss.alive,

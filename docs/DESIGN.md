@@ -104,11 +104,33 @@ two evolution lines.
 effects, an affinity triangle, cinders as both XP and currency, the death loop,
 and a save.
 
+## Weapon classes
+
+Each class has its own chain, playback speed, lunge, stamina cost and poise
+multiplier, so the choice changes how you fight rather than only how fast
+things die. Measured against the same pair of husks, with the same bot:
+
+| Class | Time | Damage per swing | Staggers | Damage taken |
+|---|---|---|---|---|
+| Sword | 9s | 93 | 5 | none to light |
+| Greatsword | 10s | 242 | 6 | the most — slow means exposed |
+| Spear | 15s | 71 | 3 | none — reach keeps you out of it |
+| Staff | 21s | 51 | 0 | light, but it is a catalyst; bring a spirit |
+
+## Known limitations
+
+`attackRunning` is named a thrust but does not behave like one: measured
+mid-swing the weapon ends up pointing up and back rather than forward. A short
+sword survives that; a two-metre polearm built on it did eight damage a swing.
+The spear is built on the sweeping clips instead until there is a thrust
+animation that measurably drives the head forward.
+
 ## Still open
 
 - The Sunken Choir and Cinderreach zones
 - A hub with vendors, and quests with dialogue trees
 - Companion dialogue beyond the one-line barks
+- A thrust animation that actually thrusts
 - Touch controls
 
 ## Non-goals

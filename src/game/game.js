@@ -12,6 +12,11 @@ import { ENEMIES } from '../data/enemies.js';
 import { FX } from '../render/fx.js';
 import { resolveHit } from '../combat/damage.js';
 import { makeRng } from '../core/rng.js';
+import { Progression } from './progression.js';
+import { Inventory } from './inventory.js';
+import { Covenant } from './covenant.js';
+import { STARTING_KIT } from '../data/items.js';
+import { hasSave } from '../core/save.js';
 import { bus } from '../core/events.js';
 import { settings } from '../core/settings.js';
 import { clamp } from '../core/math.js';
@@ -70,8 +75,6 @@ export class Game {
       },
     });
     this.player.refreshDerived({ keepRatios: false });
-    this.player.equip('longsword', DEFAULT_WEAPON);
-    this.player.equipOffhand('shield', { weight: 5, stability: 0.62 });
     this.player.addTo(this.scene);
     this.scene.add(this.player.trail.mesh);
     this.addActor(this.player);
@@ -89,6 +92,17 @@ export class Game {
 
     this.spawnRng = makeRng((def.seed ?? 1) * 7919);
     this.spawnEnemies();
+
+    this.inventory = new Inventory(this.player);
+    this.covenant = new Covenant(this);
+    this.progression = new Progression(this);
+
+    // Starting kit, then a saved game on top of it if there is one.
+    for (const [id, n] of STARTING_KIT.items) this.inventory.add(id, n);
+    this.inventory.equip('weapon', STARTING_KIT.weapon);
+    this.inventory.equip('offhand', STARTING_KIT.offhand);
+    this.inventory.equip('armour', STARTING_KIT.armour);
+    this.hasSave = hasSave();
 
     this._wireEvents();
     this.mode = MODE.TITLE;
@@ -196,13 +210,63 @@ export class Game {
 
   // --- flow -----------------------------------------------------------------
 
-  start() {
+  /** Begin a run: fresh, or continuing from the save on disk. */
+  start({ loadSave = false } = {}) {
+    if (loadSave) {
+      this.progression.restore();
+      const shrine = this.progression.lastShrine;
+      if (shrine) {
+        const spot = new THREE.Vector3(
+          shrine.position.x - Math.sin(shrine.rotY + Math.PI) * 1.6, 0,
+          shrine.position.z - Math.cos(shrine.rotY + Math.PI) * 1.6,
+        );
+        spot.y = this.zone.terrain.heightAt(spot.x, spot.z);
+        this.player.respawn(spot, shrine.rotY + Math.PI);
+      }
+      this.spawnEnemies();
+      this.camera.snapTo(this.player);
+    }
+    this._enterPlay();
+  }
+
+  _enterPlay() {
     if (this.mode === MODE.PLAYING) return;
     this.mode = MODE.PLAYING;
     this.input.enabled = true;
     this.input.requestPointerLock(this.engine.canvas);
     document.body.classList.add('playing');
     bus.emit('game:started');
+  }
+
+  /** The full death sequence: fade, hold, then respawn at the last shrine. */
+  beginDeathSequence() {
+    if (this.mode === MODE.DEAD) return;
+    this.mode = MODE.DEAD;
+    this.input.releaseAll();
+    this.lockOn.clear();
+    this._deathFade = 0;
+    this._deathTimer = 0;
+  }
+
+  _updateDeath(dt) {
+    this._deathTimer += dt;
+    // Fade in over the first two seconds, hold, then bring the world back.
+    if (this._deathTimer < 3.4) {
+      this._deathFade = Math.min(1, this._deathTimer / 2.0);
+    } else if (this._deathTimer < 3.6) {
+      if (!this._respawned) {
+        this._respawned = true;
+        this.progression.respawn();
+      }
+    } else {
+      this._deathFade = Math.max(0, 1 - (this._deathTimer - 3.6) / 1.2);
+      if (this._deathFade <= 0) {
+        this._respawned = false;
+        this.mode = MODE.PLAYING;
+        this.input.clearAllBuffers();
+      }
+    }
+    this.engine.post.setDeathFade(this._deathFade);
   }
 
   pause() {
@@ -228,6 +292,14 @@ export class Game {
 
   fixedUpdate(dt) {
     this.time += dt;
+    this.progression?.update(dt);
+    this.covenant?.update(dt);
+
+    if (this.mode === MODE.DEAD) {
+      this._updateDeath(dt);
+      for (const a of this.actors) a.fixedUpdate(dt);
+      return;
+    }
     if (this.mode !== MODE.PLAYING) return;
 
     this.lockOn.update(dt, this.enemies);
@@ -304,6 +376,14 @@ export class Game {
       const d = shrine.position.distanceTo(this.player.position);
       if (d < bestD) { bestD = d; best = { type: 'shrine', shrine, position: shrine.position }; }
     }
+    const stain = this.progression?.bloodstain;
+    if (stain) {
+      const d = stain.position.distanceTo(this.player.position);
+      if (d < bestD) {
+        bestD = d;
+        best = { type: 'bloodstain', position: stain.position, label: `Recover ${stain.cinders} cinders` };
+      }
+    }
     if (best !== this.player.interactTarget) {
       this.player.interactTarget = best;
       bus.emit('player:interactTarget', { target: best });
@@ -350,6 +430,10 @@ export class Game {
       props: this.zone.props.length,
       colliders: this.zone.collision.colliders.length,
       foliage: this.zone.foliage?.instanceCount ?? 0,
+      cinders: this.player.cinders,
+      level: this.player.stats.level,
+      wisps: this.covenant?.wisps.length ?? 0,
+      bloodstain: !!this.progression?.bloodstain,
       player: {
         state: this.player.state,
         pos: this.player.position.toArray().map((v) => +v.toFixed(1)),

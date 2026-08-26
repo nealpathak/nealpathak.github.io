@@ -42,10 +42,10 @@ export class TitleScreen {
       if (hasSave()) deleteSave();
       this.begin();
     });
-    this.continueBtn.addEventListener('click', (e) => { e.stopPropagation(); this.begin(); });
+    this.continueBtn.addEventListener('click', (e) => { e.stopPropagation(); this.begin(true); });
   }
 
-  begin() { this.game.start(); }
+  begin(loadSave = false) { this.game.start({ loadSave }); }
   hide() { this.el.classList.add('title--hidden'); }
   show() { this.el.classList.remove('title--hidden'); }
   update() { /* reserved for the drifting-ember backdrop */ }

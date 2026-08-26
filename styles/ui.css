@@ -571,6 +571,7 @@ select.setting__control option { background: #17141c; }
 .cmark--boss .cmark__pip { background: var(--blood); box-shadow: 0 0 9px rgba(196,55,44,.8); width: 9px; height: 9px; }
 .cmark--bossIdle .cmark__pip { background: var(--blood-dark); }
 .cmark--ally .cmark__pip { background: var(--focus); width: 5px; height: 5px; }
+.cmark--gate .cmark__pip { background: var(--tide, #7fd8ff); box-shadow: 0 0 9px rgba(127,216,255,.75); }
 
 .paired {
   position: absolute; right: calc(2.2rem * var(--hud-scale)); bottom: calc(8.6rem * var(--hud-scale));

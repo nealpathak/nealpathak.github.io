@@ -51,17 +51,20 @@ export function basin(cx, cz, radius, depth, falloff = 10) {
 
 /**
  * A contained pool: a dish flattened to `floor` at the centre, rising to a lip
- * at the shore, with the surrounding land pulled up to meet it.
+ * at the shore, with the surrounding land pulled up to meet it. Circular by
+ * default; `aspect` above 1 stretches it along z into a channel or a nave.
  *
  * A plain basin over noisy ground does not give you a pond — the noise breaches
  * the rim somewhere and the water runs out of the level. This guarantees a
  * shore all the way round while still letting enough noise through that the bed
  * has hummocks in it.
  */
-export function pool(cx, cz, radius, floor, rise = 1.6, falloff = 10) {
+export function pool(cx, cz, radius, floor, rise = 1.6, falloff = 10, aspect = 1) {
   const lip = floor + rise;
   return (x, z, h, blend) => {
-    const d = Math.hypot(x - cx, z - cz);
+    // `aspect` squeezes the x axis, so one shaper can author a round pond or a
+    // long narrow hall flooded end to end.
+    const d = Math.hypot((x - cx) * aspect, z - cz);
     if (d > radius + falloff) return h;
     const inner = clamp01(d / radius);
     if (d <= radius) {

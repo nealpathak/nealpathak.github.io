@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { makeMaterial, makeGlowMaterial } from '../render/materials.js';
+import { radialSprite } from '../render/textures.js';
 import { cachedGeometry as cached, boxGeo, mergeGeometries } from '../actors/body.js';
 import { BoxCollider, CylinderCollider } from './collision.js';
 import { makeRng } from '../core/rng.js';
@@ -53,6 +54,30 @@ export const PROP_MATERIALS = {
     return surfaceMat('prop:canopy', {
       color: 0x4b5738, surface: 'moss', roughness: 0.95, normalScale: 0.8,
       rimColor: 0xd8e08a, rimStrength: 0.20, wind: 0.13, side: THREE.DoubleSide,
+    });
+  },
+  get drownedStone() {
+    return surfaceMat('prop:drownedStone', {
+      color: 0x6f7d7a, surface: 'stone', roughness: 0.88, normalScale: 1.15,
+      rimColor: 0x9fe0f0, rimStrength: 0.16, rimPower: 3.2,
+    });
+  },
+  get drownedStoneDark() {
+    return surfaceMat('prop:drownedStoneDark', {
+      color: 0x44514f, surface: 'stone', roughness: 0.93, normalScale: 1.2,
+      rimColor: 0x8ecfe4, rimStrength: 0.13,
+    });
+  },
+  get bronze() {
+    return surfaceMat('prop:bronze', {
+      color: 0x6d6034, surface: 'metal', roughness: 0.62, metalness: 0.78,
+      rimColor: 0xa8e6d4, rimStrength: 0.24, rimPower: 2.6,
+    });
+  },
+  get sodden() {   // waterlogged timber
+    return surfaceMat('prop:sodden', {
+      color: 0x2f2f2c, surface: 'rock', roughness: 1.0, normalScale: 1.3,
+      rimColor: 0x86c4cf, rimStrength: 0.16,
     });
   },
   get iron() {
@@ -454,6 +479,258 @@ export function banner({ height = 4.0, color = 0x7a2f28, seed = 9 } = {}) {
     colliders: (origin) => [new CylinderCollider(
       new THREE.Vector3(origin.x, origin.y, origin.z), 0.18, height * 0.9, { tag: 'prop' },
     )],
+  };
+}
+
+/**
+ * A choir pew: a plank bench on stone feet, half of them gone.
+ *
+ * Placed in rows down a nave, these are what tell you the flooded hall was a
+ * room people sat in, which no amount of broken masonry does on its own.
+ */
+export function pew({ length = 3.4, seed = 1, ruin = 0.3 } = {}) {
+  const group = new THREE.Group();
+  const rng = makeRng(seed * 2654435761 + 13);
+  const legs = Math.max(2, Math.round(length / 1.5));
+  for (let i = 0; i < legs; i++) {
+    const x = -length / 2 + (length * i) / (legs - 1);
+    if (i > 0 && i < legs - 1 && rng() < ruin) continue;
+    group.add(mesh(boxGeo(0.16, 0.46, 0.42, 0.02), PROP_MATERIALS.drownedStoneDark,
+      { pos: [x, 0.23, 0] }));
+  }
+  // Seat and back, sagging where the water has been at them.
+  const planks = [[0.46, 0.09, 0.40, 0], [0.86, 0.36, 0.08, -0.10]];
+  for (const [y, h, d, tilt] of planks) {
+    if (rng() < ruin * 0.5) continue;
+    const segs = Math.max(1, Math.round(length / 1.2));
+    for (let i = 0; i < segs; i++) {
+      if (rng() < ruin * 0.8) continue;
+      const w = length / segs;
+      group.add(mesh(boxGeo(w * 0.96, h, d, 0.015), PROP_MATERIALS.sodden, {
+        pos: [-length / 2 + w * (i + 0.5), y + (rng() - 0.5) * 0.04, y > 0.6 ? -0.17 : 0],
+        rot: [tilt, (rng() - 0.5) * 0.03, (rng() - 0.5) * 0.04],
+      }));
+    }
+  }
+  return {
+    object: bakeStatic(group),
+    colliders: (origin, rotY = 0) => [new BoxCollider(
+      new THREE.Vector3(origin.x, origin.y + 0.3, origin.z),
+      new THREE.Vector3(length / 2, 0.3, 0.28), rotY, { tag: 'prop', stepOver: true },
+    )],
+  };
+}
+
+/**
+ * A vault rib: the pointed arch that used to carry a roof, standing alone now
+ * that everything between the ribs has fallen into the water.
+ */
+export function vaultRib({ span = 9, height = 11, thickness = 0.72, seed = 5, ruin = 0.18 } = {}) {
+  const group = new THREE.Group();
+  const rng = makeRng(seed * 2246822519 + 31);
+  const pierH = height * 0.42;
+
+  for (const side of [-1, 1]) {
+    const drums = Math.round(pierH / 0.7);
+    for (let i = 0; i < drums; i++) {
+      const dh = pierH / drums;
+      group.add(mesh(boxGeo(thickness * 1.25, dh, thickness * 1.25, 0.03),
+        i % 2 ? PROP_MATERIALS.drownedStone : PROP_MATERIALS.drownedStoneDark,
+        { pos: [side * span / 2, dh * (i + 0.5), 0], rot: [0, rng() * 0.05, 0] }));
+    }
+  }
+
+  // Two limbs leaning in to meet at a point — a gothic arch, not a Roman one,
+  // because the silhouette is the whole reason this prop exists.
+  //
+  // Each voussoir is cut to the length of the span it bridges. Fixed-length
+  // blocks strung along the curve leave gaps between them, and the arch reads
+  // as a handful of stones thrown in the air rather than as masonry.
+  const rings = 12;
+  for (const side of [-1, 1]) {
+    const x0 = side * span / 2, x1 = side * span * 0.40, x2 = 0;
+    const y0 = pierH, y1 = height * 0.80, y2 = height;
+    const pts = [];
+    for (let i = 0; i <= rings; i++) {
+      const t = i / rings, u = 1 - t;
+      pts.push([
+        u * u * x0 + 2 * u * t * x1 + t * t * x2,
+        u * u * y0 + 2 * u * t * y1 + t * t * y2,
+      ]);
+    }
+    for (let i = 0; i < rings; i++) {
+      // The lowest courses of an arch are the last to fall.
+      if (i > 2 && rng() < ruin) continue;
+      const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+      const len = Math.hypot(bx - ax, by - ay);
+      group.add(mesh(boxGeo(len * 1.06, thickness * 1.1, thickness * 1.1, 0.03),
+        i % 2 ? PROP_MATERIALS.drownedStone : PROP_MATERIALS.drownedStoneDark,
+        { pos: [(ax + bx) / 2, (ay + by) / 2, 0], rot: [0, 0, Math.atan2(by - ay, bx - ax)] }));
+    }
+  }
+
+  return {
+    object: bakeStatic(group),
+    colliders: (origin, rotY = 0) => [-1, 1].map((side) => new BoxCollider(
+      new THREE.Vector3(
+        origin.x + Math.cos(rotY) * side * span / 2,
+        origin.y + pierH * 0.5,
+        origin.z - Math.sin(rotY) * side * span / 2,
+      ),
+      new THREE.Vector3(thickness * 0.7, pierH / 2, thickness * 0.7),
+      rotY, { tag: 'column' },
+    )),
+  };
+}
+
+/**
+ * The drowned bell: a great bronze cone lying where the tower dropped it,
+ * cracked open down one side. The landmark the whole zone is built around.
+ */
+export function drownedBell({ radius = 2.4, height = 3.4, tilt = 0.42, seed = 3 } = {}) {
+  const group = new THREE.Group();
+  const rng = makeRng(seed * 374761393 + 17);
+
+  const shell = new THREE.Group();
+  // A bell profile: a lathe of a curve that flares at the mouth.
+  const points = [];
+  for (let i = 0; i <= 12; i++) {
+    const t = i / 12;
+    const y = t * height;
+    // Narrow crown, waisted, flaring lip.
+    const r = radius * (0.18 + 0.82 * Math.pow(1 - t, 1.7)) + (t < 0.06 ? 0 : 0);
+    points.push(new THREE.Vector2(Math.max(0.06, r), y));
+  }
+  const lathe = new THREE.LatheGeometry(points, 22, 0, Math.PI * 1.72);
+  const bell = mesh(lathe, PROP_MATERIALS.bronze, { pos: [0, 0, 0] });
+  bell.material = PROP_MATERIALS.bronze;
+  shell.add(bell);
+  // The crown loop it hung from.
+  shell.add(mesh(cached('bellCrown', () => {
+    const g = new THREE.TorusGeometry(0.32, 0.09, 6, 12);
+    g.rotateY(Math.PI / 2);
+    return g;
+  }), PROP_MATERIALS.bronze, { pos: [0, height + 0.22, 0] }));
+  // The clapper, still inside.
+  shell.add(mesh(cached('bellClapper', () => new THREE.SphereGeometry(0.34, 10, 8)),
+    PROP_MATERIALS.iron, { pos: [0.1, 0.6, 0] }));
+  // Rubble spilling out of the crack.
+  for (let i = 0; i < 9; i++) {
+    const a = rng() * 1.2 - 0.6;
+    shell.add(mesh(cached(`bellChip:${i}`, () => new THREE.IcosahedronGeometry(0.16 + (i % 3) * 0.07, 0)),
+      PROP_MATERIALS.bronze, {
+        pos: [Math.cos(a) * (radius + 0.5 + rng()), 0.14, Math.sin(a) * (radius + 0.5 + rng())],
+        rot: [rng() * 3, rng() * 3, rng() * 3],
+      }));
+  }
+  shell.rotation.z = tilt;
+  shell.rotation.y = 0.6;
+  group.add(shell);
+
+  return {
+    object: bakeStatic(group),
+    colliders: (origin) => [new CylinderCollider(
+      new THREE.Vector3(origin.x, origin.y, origin.z), radius * 0.82, height * 0.8, { tag: 'prop' },
+    )],
+  };
+}
+
+/**
+ * A robed figure on a plinth, headless as often as not. Built from the same
+ * capsules and boxes as the people who walk past it, which is the point.
+ */
+export function statue({ height = 3.6, headless = true, seed = 7 } = {}) {
+  const group = new THREE.Group();
+  const rng = makeRng(seed * 668265263 + 3);
+  const plinth = height * 0.28;
+  const figure = height - plinth;
+
+  group.add(mesh(boxGeo(1.5, plinth * 0.82, 1.5, 0.04), PROP_MATERIALS.drownedStone,
+    { pos: [0, plinth * 0.41, 0] }));
+  group.add(mesh(boxGeo(1.24, plinth * 0.18, 1.24, 0.03), PROP_MATERIALS.drownedStoneDark,
+    { pos: [0, plinth * 0.91, 0] }));
+
+  // Robe: a tapered cylinder, because a standing figure in a habit is a cone.
+  group.add(mesh(cached(`statueRobe:${figure.toFixed(2)}`, () => {
+    const g = new THREE.CylinderGeometry(0.30, 0.56, figure * 0.72, 12, 1);
+    g.translate(0, figure * 0.36, 0);
+    return g;
+  }), PROP_MATERIALS.drownedStone, { pos: [0, plinth, 0], rot: [0, rng() * 0.4, 0] }));
+  // Shoulders and cowl.
+  group.add(mesh(cached('statueShoulder', () => new THREE.SphereGeometry(0.34, 10, 7)),
+    PROP_MATERIALS.drownedStone, { pos: [0, plinth + figure * 0.74, 0], scale: [1.25, 0.7, 1] }));
+  // Arms folded in front, one block each.
+  for (const side of [-1, 1]) {
+    group.add(mesh(boxGeo(0.16, figure * 0.34, 0.18, 0.05), PROP_MATERIALS.drownedStone, {
+      pos: [side * 0.24, plinth + figure * 0.52, 0.16], rot: [0.3, 0, side * -0.22],
+    }));
+  }
+  if (!headless) {
+    group.add(mesh(cached('statueHead', () => new THREE.SphereGeometry(0.22, 10, 8)),
+      PROP_MATERIALS.drownedStone, { pos: [0, plinth + figure * 0.93, 0], scale: [1, 1.2, 1] }));
+    group.add(mesh(cached('statueCowl', () => new THREE.ConeGeometry(0.32, 0.42, 10)),
+      PROP_MATERIALS.drownedStoneDark, { pos: [0, plinth + figure * 0.99, -0.03] }));
+  }
+
+  return {
+    object: bakeStatic(group),
+    colliders: (origin) => [new CylinderCollider(
+      new THREE.Vector3(origin.x, origin.y, origin.z), 0.78, height * 0.95, { tag: 'prop' },
+    )],
+  };
+}
+
+/**
+ * A waygate: the door between zones.
+ *
+ * Deliberately not a shrine. A shrine is where you stop; this is where you go
+ * on. The veil in the opening is the only thing in the world that is the wrong
+ * colour for the zone it stands in, so it reads as a way out from a distance.
+ */
+export function waygate({ span = 3.2, height = 5.0, veil = 0x7fd8ff, seed = 33 } = {}) {
+  const group = new THREE.Group();
+  group.name = 'waygate';
+
+  const arch = archway({ span, height, thickness: 1.05, seed });
+  group.add(arch.object);
+
+  // A pair of standing stones flanking it, so the gate has a threshold.
+  for (const side of [-1, 1]) {
+    group.add(mesh(boxGeo(0.5, 1.9, 0.5, 0.06), PROP_MATERIALS.stoneDark, {
+      pos: [side * (span / 2 + 1.7), 0.95, 0.4], rot: [0, side * 0.2, side * 0.04],
+    }));
+  }
+
+  // Soft-edged on purpose: a hard rectangle of light in a stone opening reads
+  // as a billboard, not as a way through.
+  const veilMat = makeGlowMaterial(veil, {
+    opacity: 0.13, map: radialSprite('#ffffff', 'rgba(255,255,255,0)', 128, 1.1),
+  });
+  const sheet = mesh(new THREE.PlaneGeometry(span * 1.15, height * 0.80, 1, 1), veilMat, {
+    pos: [0, height * 0.40, 0], shadow: false,
+  });
+  sheet.name = 'veil';
+  sheet.userData.noBake = true;
+  group.add(sheet);
+
+  const light = new THREE.PointLight(veil, 6, 15, 2);
+  light.position.set(0, height * 0.45, 0);
+  light.name = 'veilLight';
+  group.add(light);
+
+  return {
+    object: group,
+    veil: sheet,
+    light,
+    // Only the piers block. Walking through the opening is the whole idea.
+    colliders: (origin, rotY = 0) => [-1, 1].map((side) => new BoxCollider(
+      new THREE.Vector3(
+        origin.x + Math.cos(rotY) * side * (span / 2 + 0.5),
+        origin.y + height * 0.31,
+        origin.z - Math.sin(rotY) * side * (span / 2 + 0.5),
+      ),
+      new THREE.Vector3(0.5, height * 0.31, 0.55), rotY, { tag: 'wall' },
+    )),
   };
 }
 

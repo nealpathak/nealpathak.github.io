@@ -147,7 +147,7 @@ export class Water {
          float wDepth = ( texture2D( uDepthMap, vWaterUv ).r - 0.5 ) * 2.0 * uMaxDepth;
          float wNorm = clamp( wDepth / uMaxDepth, 0.0, 1.0 );
          // Deep water swallows light; shallow water shows the bed through it.
-         diffuseColor.rgb *= mix( uShallow, uDeep, smoothstep( 0.02, 0.55, wNorm ) );
+         diffuseColor.rgb *= mix( uShallow, uDeep, smoothstep( 0.02, 0.9, wNorm ) );
          // Foam gathers where the swell pushes onto ground that is nearly dry,
          // so the line breathes in and out with the waves instead of sitting
          // frozen at one contour.

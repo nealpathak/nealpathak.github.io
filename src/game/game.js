@@ -60,11 +60,11 @@ export class Game {
     const zoneId = this.params.get('zone') ?? DEFAULT_ZONE;
     const def = ZONES[zoneId] ?? ZONES[DEFAULT_ZONE];
 
-    this.zone = new Zone(def, this.scene);
-    this.world = { terrain: this.zone.terrain, collision: this.zone.collision, zone: this.zone };
-    this.renderer.setMood(def.mood, 1);
+    this.world = {};
+    this._buildZone(def);
 
     this.camera = new ThirdPersonCamera(this.renderer.camera, this.zone.collision);
+    this.camera.water = this.zone.water ?? null;
     this.camera.setBaseFov(settings.get('fov'));
 
     this.player = new Player({
@@ -97,6 +97,7 @@ export class Game {
     this.zone.game = this;
 
     this.spawnRng = makeRng((def.seed ?? 1) * 7919);
+    this.bossesFelled = new Set();
     this.spawnEnemies();
 
     this.inventory = new Inventory(this.player);
@@ -115,6 +116,97 @@ export class Game {
 
     this._wireEvents();
     this.mode = MODE.TITLE;
+  }
+
+  /**
+   * Stand up a zone and point everything that reads the world at it. Called
+   * once at boot and again on every crossing, which is why the world object is
+   * mutated in place rather than replaced: actors hold a reference to it.
+   */
+  _buildZone(def) {
+    this.zone = new Zone(def, this.scene);
+    this.world.terrain = this.zone.terrain;
+    this.world.collision = this.zone.collision;
+    this.world.zone = this.zone;
+    this.zone.game = this;
+    if (this.camera) {
+      this.camera.collision = this.zone.collision;
+      this.camera.water = this.zone.water ?? null;
+    }
+    this.renderer.setMood(def.mood, 1);
+  }
+
+  /**
+   * Cross to another zone.
+   *
+   * There is no streaming here and no second zone held in memory: the old one
+   * is torn down and the new one built in its place, which takes long enough to
+   * be worth a fade but is over inside a second. What survives the crossing is
+   * everything that belongs to the player rather than to the ground they were
+   * standing on — stats, inventory, covenant, cinders and the party.
+   *
+   * @param {string} zoneId
+   * @param {object} [opts]
+   * @param {string} [opts.arrive]  id of the waygate to step out of
+   */
+  travelTo(zoneId, { arrive = null, announce = true, save = true } = {}) {
+    const def = ZONES[zoneId];
+    if (!def || zoneId === this.zone.id) return false;
+
+    // A bloodstain belongs to the ground it was dropped on. Crossing forfeits
+    // it, exactly as a second death does, and the player is told so.
+    if (this.progression?.bloodstain) {
+      bus.emit('ui:toast', { text: 'What you dropped stays behind.', kind: 'bad', duration: 4 });
+      this.progression._clearBloodstain();
+    }
+
+    for (const e of [...this.enemies]) this.removeActor(e);
+    this.enemies.length = 0;
+    this.boss = null;
+    for (const a of this.allies) a.removeFrom(this.scene);
+
+    this.zone.dispose();
+    this._buildZone(def);
+
+    // Where you step out. A named gate on the far side if there is one, so a
+    // round trip puts you back at the door you came in by, not at the start.
+    const gate = arrive ? this.zone.gates.find((g) => g.id === arrive || g.spec.id === arrive) : null;
+    let spot = this.zone.startPoint;
+    let yaw = Math.PI;
+    if (gate) {
+      // Step out of the arch facing the way the gate faces, and two paces on
+      // that side of it — not behind it, looking at the back of the stone.
+      yaw = gate.rotY;
+      spot = new THREE.Vector3(
+        gate.position.x + Math.sin(yaw) * 2.6, 0, gate.position.z + Math.cos(yaw) * 2.6,
+      );
+      spot.y = this.zone.terrain.heightAt(spot.x, spot.z);
+    }
+    this.player.respawn(spot, yaw);
+    this.player.yaw = this.player.targetYaw = yaw;
+
+    this.spawnRng = makeRng((def.seed ?? 1) * 7919);
+    this.spawnEnemies();
+
+    // Shrines this player has already kindled stay kindled, in every zone.
+    this.progression?.applyLitShrines();
+
+    for (const a of this.allies) {
+      this._placeBeside(a);
+      a.world = this.world;
+      a.addTo(this.scene);
+    }
+
+    this.camera.yaw = yaw + Math.PI;
+    this.camera.snapTo(this.player);
+    this.lockOn.clear?.();
+    // Restoring a save is already the saved state; writing it back mid-restore
+    // would persist a half-applied one.
+    if (save) this.progression?.save();
+
+    if (announce) bus.emit('ui:announce', { text: def.name, kind: 'area', duration: 3.6 });
+    bus.emit('game:zoneChanged', { zone: this.zone });
+    return true;
   }
 
   /** True when the smoke test or a debug link asked to skip the title card. */
@@ -185,7 +277,7 @@ export class Game {
     if (!def) return;
     const archetype = ENEMIES[def.kind];
     if (!archetype) return;
-    if (this.bossDefeated) return;   // a felled boss stays felled across rests
+    if (this.bossesFelled?.has(this.zone.id)) return;   // a felled boss stays felled
 
     const [x, z] = def.at;
     const y = this.zone.terrain.heightAt(x, z);
@@ -352,7 +444,7 @@ export class Game {
       // A boss you have beaten does not come back when you rest. The cinders
       // are paid by the ordinary enemy:died handler; paying again here would
       // double them.
-      this.bossDefeated = true;
+      this.bossesFelled.add(this.zone.id);
       this.progression?.save();
     });
     bus.on('boss:phase', () => this.camera.addShake(0.8));
@@ -636,6 +728,13 @@ export class Game {
       const d = shrine.position.distanceTo(this.player.position);
       if (d < bestD) { bestD = d; best = { type: 'shrine', shrine, position: shrine.position }; }
     }
+    for (const gate of this.zone.gates) {
+      const d = gate.position.distanceTo(this.player.position);
+      if (d < bestD) {
+        bestD = d;
+        best = { type: 'gate', gate, position: gate.position, label: `Cross to ${gate.name}` };
+      }
+    }
     const stain = this.progression?.bloodstain;
     if (stain) {
       const d = stain.position.distanceTo(this.player.position);
@@ -670,6 +769,16 @@ export class Game {
 
     this._tmp.set(-Math.sin(this.camera.yaw), 0, -Math.cos(this.camera.yaw));
     this.renderer.updateShadows(this.player.position, this._tmp);
+
+    // The waygate veil breathes, slowly. It is the one light in a zone that is
+    // not fire, and it should not flicker like one.
+    for (const g of this.zone.gates) {
+      const veil = g.built.veil;
+      if (!veil) continue;
+      const t = this.time * 1.3 + g.position.z;
+      veil.material.opacity = 0.11 + Math.sin(t) * 0.03 + Math.sin(t * 2.3) * 0.015;
+      g.built.light.intensity = 5.5 + Math.sin(t * 0.8) * 1.2;
+    }
 
     // Shrine flames flicker at render rate so they read as fire, not a lamp.
     for (const s of this.zone.shrines) {

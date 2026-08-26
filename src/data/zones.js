@@ -46,6 +46,9 @@ export const ZONES = {
         ['path', [
           [2, 0.2, 96], [0, 0.1, 74], [-8, 0.4, 54], [-20, 1.2, 30],
           [-22, 1.6, 8], [-12, 2.6, -10], [0, 4.6, -28], [6, 6.4, -44], [8, 6.4, -58],
+          // Past the ruin, to the waygate. The Warden stands between the two,
+          // which is the only gate this zone actually has.
+          [7, 6.2, -68], [6, 5.8, -76],
         ], 3.6, { smooth: 7 }],
         // A branch down to the fen.
         // A branch wading down into the fen. Its far end sits under the
@@ -84,6 +87,9 @@ export const ZONES = {
       { kind: 'column', at: [[4, -50, 0], [9, -54, 0]], opts: { height: 5.0, radius: 0.44, broken: true } },
       { kind: 'stairs', at: [[6, -30, 3.1416]], opts: { steps: 12, width: 4.2, rise: 0.3, run: 0.5 } },
       { kind: 'banner', at: [[1, -42, 0], [11, -42, 0]], opts: { height: 4.4, color: 0x7a2f28 } },
+
+      { kind: 'waygate', at: [[6, -77, 0]], opts: { span: 3.2, height: 5.0, veil: 0x7fd8ff },
+        id: 'gate:ashfen:descent', name: 'The Sunken Choir', to: 'choir', arrive: 'gate:choir:mouth' },
 
       // --- shrines ---
       // Two of them: one early, and one on the shelf below the ruin so the walk
@@ -124,6 +130,160 @@ export const ZONES = {
       kind: 'gatewarden',
       at: [6, -52],
       arena: { at: [6, -48], radius: 17 },
+    },
+  },
+
+  choir: {
+    id: 'choir',
+    name: 'The Sunken Choir',
+    mood: 'choir',
+    seed: 8837,
+    start: [0, 84],
+
+    // A cathedral in a sinkhole, flooded to the height of the pew backs. The
+    // shape of the level is one long nave running north to south, and every
+    // decision in it is about whether you fight in the water or out of it.
+    terrain: {
+      size: 220,
+      resolution: 257,
+      amplitude: 4.2,
+      frequency: 2.4,
+      detail: 1.1,
+      shapers: [
+        // The shell: a ring of broken rock standing in for the outer walls.
+        ['ridge', [
+          [-96, 0, 60], [-88, 0, 0], [-94, 0, -60], [-40, 0, -100], [40, 0, -102],
+          [94, 0, -58], [90, 0, 4], [96, 0, 62], [40, 0, 96], [-42, 0, 94], [-96, 0, 60],
+        ], 34, 26, 1.35],
+
+        // The nave. Long and narrow, because a cathedral is a corridor: the
+        // aspect ratio squeezes the pool's x axis so one shaper floods a hall
+        // 34 across and 88 down rather than a lake. The floor is authored flat
+        // so the water over it is an even depth, and turns up near the walls so
+        // the shore is a real line.
+        ['pool', 0, 0, 44, -5.6, 2.2, 16, 2.6],
+
+        // The two aisles: dry stone either side of the nave, and the reason the
+        // Lurkers cannot follow you everywhere.
+        ['plateau', -21, 8, 7, -3.9, 5],
+        ['plateau', 21, -2, 7, -3.9, 5],
+        // The crossing, where the bell came down.
+        ['plateau', 0, -16, 7, -3.95, 5],
+        // The chancel: dry, raised, and where the Precentor waits.
+        ['plateau', 0, -46, 15, -1.6, 10],
+
+        // The causeway down from the rim, and the chancel steps.
+        ['path', [
+          [0, 3.4, 92], [0, 3.0, 80], [0, 1.2, 68], [0, -1.2, 58], [0, -3.2, 50], [0, -4.4, 42],
+        ], 4.2, { smooth: 8 }],
+        ['path', [[0, -4.6, -30], [0, -3.4, -35], [0, -1.6, -40]], 5.0, { smooth: 5 }],
+        // Two causeways out to the aisles, so they are a choice and not a swim.
+        ['path', [[-11, -4.9, 9], [-16, -4.4, 8], [-20, -3.9, 8]], 2.6, { smooth: 4 }],
+        ['path', [[11, -4.9, -1], [16, -4.4, -2], [20, -3.9, -2]], 2.6, { smooth: 4 }],
+      ],
+    },
+
+    water: {
+      centre: [0, 0], size: 128, edgeFade: 0.10,
+      level: -4.4, maxDepth: 1.6,
+      shallow: 0x497f8c, deep: 0x1b4450, foam: 0xc8ecf4,
+      swell: 0.075, choppy: 0.9, opacity: 0.9, flow: 0.8,
+      roughness: 0.26, ripple: 0.5,
+    },
+
+    foliage: {
+      kinds: ['kelp', 'reed'],
+      radius: 62,
+      spacing: 0.8,
+      centre: [0, 0],
+    },
+
+    props: [
+      // --- the nave ---
+      // Vault ribs across the hall, springing from the line of the walls.
+      // Nothing spans between them any more, so the sky comes straight down
+      // the middle of the nave.
+      { kind: 'vaultRib', at: [
+        [0, 34, 0], [0, 22, 0], [0, 10, 0], [0, -2, 0], [0, -14, 0],
+      ], opts: { span: 34, height: 17, thickness: 0.8 } },
+
+      // The outer walls, running the length of the nave.
+      { kind: 'ruinWall', at: [
+        [-19, 32, 1.5708], [-19, 20, 1.5708], [-19, 8, 1.5708], [-19, -4, 1.5708], [-19, -16, 1.5708],
+        [19, 32, 1.5708], [19, 20, 1.5708], [19, 8, 1.5708], [19, -4, 1.5708], [19, -16, 1.5708],
+      ], opts: { length: 11, height: 7.0, thickness: 0.9, ruin: 0.5 } },
+
+      // Pews, in rows, with the water up to their backs.
+      { kind: 'pew', at: [
+        [-8, 28, 0], [-8, 22, 0], [-8, 16, 0], [-8, 10, 0], [-8, 4, 0], [-8, -2, 0],
+        [8, 28, 0], [8, 22, 0], [8, 16, 0], [8, 10, 0], [8, 4, 0], [8, -2, 0],
+      ], opts: { length: 7.0, ruin: 0.34 } },
+
+      // --- the aisles ---
+      { kind: 'column', at: [
+        [-21, 12, 0], [-21, 4, 0], [21, 2, 0], [21, -6, 0],
+      ], opts: { height: 6.5, radius: 0.5, broken: false } },
+      { kind: 'statue', at: [
+        [-21, 8, 2.2], [21, -2, 4.1],
+      ], opts: { height: 3.8, headless: true } },
+
+      // --- the crossing ---
+      { kind: 'drownedBell', at: [[0, -16, 0.8]], opts: { radius: 2.6, height: 3.6, tilt: 0.46 } },
+
+      // --- the chancel ---
+      { kind: 'archway', at: [[0, -34, 0]], opts: { span: 6.0, height: 7.0, thickness: 1.1 } },
+      { kind: 'stairs', at: [[0, -30, 3.1416]], opts: { steps: 10, width: 5.4, rise: 0.28, run: 0.5 } },
+      { kind: 'column', at: [
+        [-9, -44, 0], [9, -44, 0], [-9, -54, 0], [9, -54, 0],
+      ], opts: { height: 7.5, radius: 0.52, broken: false } },
+      { kind: 'statue', at: [[0, -56, 0]], opts: { height: 5.0, headless: false } },
+      { kind: 'banner', at: [[-5, -40, 0], [5, -40, 0]], opts: { height: 5.0, color: 0x1d4a52 } },
+
+      // --- the way in and out ---
+      { kind: 'waygate', at: [[0, 88, 3.1416]], opts: { span: 3.2, height: 5.0, veil: 0xffb257 },
+        id: 'gate:choir:mouth', name: 'Ashfen Approach', to: 'ashfen', arrive: 'gate:ashfen:descent' },
+
+      // --- shrines ---
+      { kind: 'emberwake', at: [[-4, 46, 0.5]], id: 'shrine:choir:causeway', name: 'Ember on the Causeway' },
+      { kind: 'emberwake', at: [[6, -32, -2.0]], id: 'shrine:choir:chancel', name: 'Ember at the Chancel' },
+
+      // --- scatter ---
+      { kind: 'boulder', count: 40, opts: { radius: 1.7 }, minGap: 7,
+        area: { x: 0, z: 0, radius: 92 }, maxSlope: 0.9,
+        avoid: [[-4, 46, 9], [6, -32, 9], [0, -46, 20], [0, -16, 11]] },
+      { kind: 'column', count: 9, opts: { height: 5.0, radius: 0.44, broken: true }, minGap: 8,
+        area: { x: 0, z: 4, radius: 34 }, maxSlope: 0.34,
+        avoid: [[0, -16, 10], [0, -46, 18]] },
+      { kind: 'pew', count: 6, opts: { length: 5.5, ruin: 0.62 }, minGap: 6,
+        area: { x: 0, z: 8, radius: 26 }, maxSlope: 0.3,
+        avoid: [[0, -16, 10]] },
+    ],
+
+    spawns: [
+      // The causeway down: choristers on dry stone, so the first fight here is
+      // fought on footing you understand.
+      { kind: 'drownedChorister', at: [0, 54], count: 2, tier: 1 },
+      { kind: 'drownedChorister', at: [0, 44], count: 2, tier: 1 },
+      // Then the water, and the things that live in it.
+      { kind: 'tideLurker', at: [-4, 30], count: 3, tier: 1 },
+      { kind: 'tideLurker', at: [5, 20], count: 3, tier: 1 },
+      { kind: 'drownedChorister', at: [8, 14], count: 2, tier: 2 },
+      { kind: 'shieldHusk', at: [-8, 8], count: 2, tier: 3 },
+      { kind: 'tideLurker', at: [0, -4], count: 4, tier: 2 },
+      // The aisles are held, so taking one costs something.
+      { kind: 'drownedChorister', at: [-21, 8], count: 2, tier: 2, elite: true },
+      { kind: 'emberPriest', at: [21, -2], count: 1, tier: 3, elite: true },
+      // The crossing, under the bell.
+      { kind: 'drownedChorister', at: [0, -16], count: 3, tier: 3 },
+      { kind: 'choirWisp', at: [0, -22], count: 2, tier: 2, elite: true },
+      // The chancel steps.
+      { kind: 'shieldHusk', at: [0, -34], count: 2, tier: 3, elite: true },
+    ],
+
+    boss: {
+      kind: 'precentor',
+      at: [0, -50],
+      arena: { at: [0, -46], radius: 15 },
     },
   },
 };

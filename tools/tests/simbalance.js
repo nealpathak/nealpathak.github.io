@@ -151,30 +151,58 @@
     }
   };
 
-  const out = { encounters: [] };
+  const out = { encounters: [], bosses: [] };
 
   // --- encounter by encounter, from a rested start ---
-  const encounters = [
-    { name: '1 husk', spawn: [['husk', 1, 1]] },
-    { name: '2 husks', spawn: [['husk', 2, 1]] },
-    { name: '3 houndlings', spawn: [['houndling', 3, 1]] },
-    { name: 'husk + shield warden', spawn: [['husk', 1, 2], ['shieldHusk', 1, 2]] },
-    { name: 'priest + 2 husks', spawn: [['emberPriest', 1, 2], ['husk', 2, 2]] },
+  //
+  // Each zone gets its own list and its own staging ground, because the point
+  // of the Choir's numbers is that they are fought standing in water. Running
+  // its enemies on Ashfen's dry road would measure the wrong fight.
+  const ZONES = [
+    {
+      zone: 'ashfen',
+      stand: [0, 40], place: [0, 46],
+      encounters: [
+        { name: '1 husk', spawn: [['husk', 1, 1]] },
+        { name: '2 husks', spawn: [['husk', 2, 1]] },
+        { name: '3 houndlings', spawn: [['houndling', 3, 1]] },
+        { name: 'husk + shield warden', spawn: [['husk', 1, 2], ['shieldHusk', 1, 2]] },
+        { name: 'priest + 2 husks', spawn: [['emberPriest', 1, 2], ['husk', 2, 2]] },
+      ],
+    },
+    {
+      // Mid-nave, waist deep, which is where this zone actually fights.
+      zone: 'choir', stand: [0, 14], place: [0, 6],
+      // The player arrives here off the back of Ashfen, so level them roughly
+      // to where that leaves them before asking whether the numbers are fair.
+      levels: [['vigour', 3], ['strength', 3], ['endurance', 2]],
+      encounters: [
+        { name: '2 choristers', spawn: [['drownedChorister', 2, 1]] },
+        { name: '3 tide lurkers', spawn: [['tideLurker', 3, 1]] },
+        { name: 'chorister + 2 lurkers', spawn: [['drownedChorister', 1, 2], ['tideLurker', 2, 1]] },
+        { name: '2 choristers + shield warden', spawn: [['drownedChorister', 2, 2], ['shieldHusk', 1, 3]] },
+      ],
+    },
   ];
 
-  const { ENEMIES } = window.__enemyData ?? {};
-  for (const enc of encounters) {
+  const runZone = (plan) => {
+  if (g.zone.id !== plan.zone) { g.travelTo(plan.zone, { announce: false, save: false }); step(20); }
+  for (const [stat, n] of plan.levels ?? []) {
+    for (let i = 0; i < n; i++) { p.cinders = 99999; g.progression.levelUp(stat); }
+  }
+  p.cinders = 0;
+  for (const enc of plan.encounters) {
     // Clear the field, then place exactly this encounter in front of a rested player.
     for (const e of [...g.enemies]) g.removeActor(e);
     g.enemies.length = 0;
     for (const a of [...g.allies]) g._removeAlly(a);   // solo, so the numbers are about the player
     p.health = p.maxHealth; p.stamina = p.maxStamina; p.flask.charges = p.flask.max;
-    p.setPosition(0, g.zone.terrain.heightAt(0, 40), 40);
+    p.setPosition(plan.stand[0], g.zone.terrain.heightAt(plan.stand[0], plan.stand[1]), plan.stand[1]);
     p.setState('idle', { force: true });
     g.lockOn.clear();
 
     const before = { ...stats };
-    const made = g.spawnEncounter(enc.spawn, 0, 46);
+    const made = g.spawnEncounter(enc.spawn, plan.place[0], plan.place[1]);
     step(6);
     for (const e of made) e.provoke(p);
 
@@ -182,6 +210,7 @@
     while (frames < 60 * 100 && p.alive && g.enemies.some((e) => e.alive)) { step(10); frames += 10; }
 
     out.encounters.push({
+      zone: plan.zone,
       name: enc.name,
       survived: p.alive,
       seconds: +(frames / 60).toFixed(1),
@@ -195,14 +224,17 @@
       dps: +((stats.damageDealt - before.damageDealt) / Math.max(1, frames / 60)).toFixed(1),
       incoming: +((stats.damageTaken - before.damageTaken) / Math.max(1, frames / 60)).toFixed(1),
     });
-    if (!p.alive) { p.respawn(new (window.emberwake.THREE.Vector3)(0, g.zone.terrain.heightAt(0, 40), 40), 0); }
+    if (!p.alive) {
+      const [sx, sz] = plan.stand;
+      p.respawn(new (window.emberwake.THREE.Vector3)(sx, g.zone.terrain.heightAt(sx, sz), sz), 0);
+    }
   }
 
-  // --- the boss, solo, at the level a player would plausibly arrive at ---
+  // --- this zone's boss, solo, at the level a player would plausibly arrive at ---
   for (const e of [...g.enemies]) g.removeActor(e);
   g.enemies.length = 0;
   for (const a of [...g.allies]) g._removeAlly(a);
-  g.bossDefeated = false;
+  g.bossesFelled.delete(g.zone.id);
   g.boss = null;
   g._spawnBoss();
   const boss = g.boss;
@@ -222,7 +254,8 @@
 
     let frames = 0;
     while (frames < 60 * 150 && p.alive && boss.alive) { step(10); frames += 10; }
-    out.boss = {
+    out.bosses.push({
+      zone: plan.zone,
       name: boss.name,
       killed: !boss.alive,
       survived: p.alive,
@@ -236,8 +269,11 @@
       rolls: stats.rolls - before.rolls,
       attacks: stats.attacks - before.attacks,
       playerLevel: p.stats.level,
-    };
+    });
   }
+  };
+
+  for (const plan of ZONES) runZone(plan);
 
   out.totals = stats;
   g.loop.start();

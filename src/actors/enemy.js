@@ -55,6 +55,9 @@ export class Enemy extends Actor {
     this.sightAngle = A.sightAngle ?? 1.25;
     this.hearingRange = A.hearingRange ?? 9;
     this.leashRange = A.leashRange ?? 34;
+    // A thing that lives in the water will follow you to the shore and no
+    // further, which is what makes the dry aisles worth fighting for.
+    this.aquatic = !!A.aquatic;
     this.preferredRange = A.preferredRange ?? 1.9;
     this.strafeBias = this.rng() < 0.5 ? -1 : 1;
 
@@ -359,12 +362,29 @@ export class Enemy extends Actor {
       return;
     }
     const speed = dist > this.preferredRange * 3 ? this.runSpeed : this.runSpeed * 0.8;
+    if (this.aquatic && !this._waterAhead(dx, dz)) {
+      // Held at the waterline: still facing you, still ready, but not coming.
+      this.requestMove(0, 0, 0);
+      this._separate();
+      return;
+    }
     this.requestMove(dx, dz, speed);
 
     // Separation: enemies that stack on one tile are unfightable. Push apart
     // from anything else hostile standing too close.
     this._separate();
     void dt;
+  }
+
+  /** Would a step in this direction still leave it in water? */
+  _waterAhead(dx, dz) {
+    const water = this.world?.zone?.water;
+    if (!water) return true;
+    const len = Math.hypot(dx, dz) || 1;
+    const probe = 0.9;
+    const x = this.position.x + (dx / len) * probe;
+    const z = this.position.z + (dz / len) * probe;
+    return water.depthAt(x, z) > 0.12;
   }
 
   _strafe(dt, target, dist, dx, dz) {

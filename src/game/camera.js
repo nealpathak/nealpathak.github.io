@@ -18,6 +18,7 @@ export class ThirdPersonCamera {
     this.collision = collision;
 
     this.yaw = Math.PI;
+    this.water = null;
     this.pitch = -0.16;
     this.minPitch = -1.06;
     this.maxPitch = 0.72;
@@ -159,6 +160,17 @@ export class ThirdPersonCamera {
       );
       this.desired.add(this._shakeOffset);
       this.shake = Math.max(0, this.shake - dt * 3.4);
+    }
+
+    // The camera must never end up under a water surface. A single plane seen
+    // from below is an opaque sheet across the lower half of the screen, and
+    // wading is common enough that letting it happen is not an option.
+    const water = this.water;
+    if (water) {
+      const floor = water.level + 0.45;
+      if (this.desired.y < floor && water.covers(this.desired.x, this.desired.z)) {
+        this.desired.y = floor;
+      }
     }
 
     this.camera.position.copy(this.desired);

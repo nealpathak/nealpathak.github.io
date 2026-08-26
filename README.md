@@ -75,9 +75,16 @@ oscillators and filtered noise at play time, which is why a hit can be pitched
 by how hard it landed rather than picking between three samples.
 
 **The terrain is shaped, not generated.** A zone declares ridges, plateaus,
-basins, escarpments and a walkable path with explicit heights; the noise only
-fills in between them. Reading the shaper list top to bottom is reading the
+basins, pools, escarpments and a walkable path with explicit heights; the noise
+only fills in between them. Reading the shaper list top to bottom is reading the
 level.
+
+**Water is terrain you can be slowed by.** One plane per zone: analytic swell in
+the vertex shader whose derivatives give the normal exactly, a scrolled ripple
+normal map for the chop, and a signed depth map baked from the ground underneath
+that decides colour, opacity, roughness, the foam line and the waterline. How
+deep you are in it is measured every tick and drags on how fast you move, which
+is what makes the dry aisles of a flooded cathedral worth fighting for.
 
 **Animation is authored as data.** Clips are bone names mapped to keyframes in
 degrees, compiled to quaternions once and sampled with smoothstep easing, so a
@@ -129,9 +136,9 @@ Combat, progression, the party and the boss are exercised against the actual
 game, deterministically, in a couple of seconds, without depending on how fast
 the machine can draw. Every non-trivial bug in this project was found that way.
 
-Useful query parameters: `?autostart=1` skips the title card, `?studio=1`
-swaps the zone's art direction for neutral lighting, `?clip=attackHeavy1`
-opens the animation lab.
+Useful query parameters: `?autostart=1` skips the title card, `?zone=choir`
+opens the second zone directly, `?studio=1` swaps the zone's art direction for
+neutral lighting, `?clip=attackHeavy1` opens the animation lab.
 
 ## Licence
 

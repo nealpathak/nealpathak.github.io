@@ -19,6 +19,10 @@ export class Progression {
 
     this.bloodstain = null;        // { position, cinders, mesh }
     this.lastShrine = null;
+    // Kindled shrines are tracked by id across every zone, not by walking the
+    // zone that happens to be loaded: the other one is not in memory.
+    this.litShrines = new Set();
+    this.lastShrineId = null;
     this.deaths = 0;
     this.bindsAttempted = 0;
     this.bindsSucceeded = 0;
@@ -38,6 +42,9 @@ export class Progression {
     bus.on('player:interact', ({ target }) => {
       if (target?.type === 'shrine') this.restAt(target.shrine);
       if (target?.type === 'bloodstain') this.recoverBloodstain();
+      if (target?.type === 'gate') {
+        this.game.travelTo(target.gate.to, { arrive: target.gate.arrive });
+      }
     });
   }
 
@@ -94,6 +101,13 @@ export class Progression {
 
   /** Respawn at the last shrine, or the zone start if there isn't one. */
   respawn() {
+    // Dying in one zone with your last ember in another sends you back to the
+    // ember, not to the mouth of the zone you died in.
+    const homeZone = this.lastShrineId?.split(':')[1];
+    if (homeZone && homeZone !== this.game.zone.id) {
+      this.game.travelTo(homeZone, { announce: false, save: false });
+      this.lastShrine = this.game.zone.shrineById(this.lastShrineId);
+    }
     const shrine = this.lastShrine;
     const point = shrine ? shrine.position : this.game.zone.startPoint;
     const yaw = shrine ? shrine.rotY + Math.PI : 0;
@@ -114,6 +128,8 @@ export class Progression {
 
   restAt(shrine) {
     this.lastShrine = shrine;
+    this.lastShrineId = shrine.id;
+    this.litShrines.add(shrine.id);
     if (!shrine.built.flame.visible) {
       shrine.built.flame.visible = true;
       bus.emit('ui:announce', { text: shrine.name ?? 'Emberwake Kindled', kind: 'area', duration: 3.4 });
@@ -127,6 +143,14 @@ export class Progression {
     this.game.spawnEnemies();
     this.save();
     bus.emit('progression:rested', { shrine });
+  }
+
+  /** Light every shrine in the loaded zone that this player has kindled. */
+  applyLitShrines() {
+    for (const s of this.game.zone.shrines) {
+      s.built.flame.visible = this.litShrines.has(s.id);
+      if (s.built.light) s.built.light.intensity = s.built.flame.visible ? 9 : 0;
+    }
   }
 
   // --- levelling ------------------------------------------------------------
@@ -157,14 +181,14 @@ export class Progression {
   snapshot() {
     return {
       zone: this.game.zone.id,
-      shrine: this.lastShrine?.id ?? null,
+      shrine: this.lastShrineId,
       stats: this.player.stats.toJSON(),
       cinders: this.player.cinders,
       flask: { ...this.player.flask },
       bloodstain: this.bloodstain
         ? { position: this.bloodstain.position.toArray(), cinders: this.bloodstain.cinders }
         : null,
-      litShrines: this.game.zone.shrines.filter((s) => s.built.flame.visible).map((s) => s.id),
+      litShrines: [...this.litShrines],
       covenant: this.game.covenant?.snapshot() ?? null,
       inventory: this.game.inventory?.snapshot() ?? null,
       counters: {
@@ -185,10 +209,14 @@ export class Progression {
     p.cinders = data.cinders ?? 0;
     if (data.flask) Object.assign(p.flask, data.flask);
 
-    for (const s of this.game.zone.shrines) {
-      s.built.flame.visible = (data.litShrines ?? []).includes(s.id);
+    this.litShrines = new Set(data.litShrines ?? []);
+    this.lastShrineId = data.shrine ?? null;
+    // A save made in the far zone reopens there.
+    if (data.zone && data.zone !== this.game.zone.id) {
+      this.game.travelTo(data.zone, { announce: false, save: false });
     }
-    this.lastShrine = data.shrine ? this.game.zone.shrineById(data.shrine) : null;
+    this.applyLitShrines();
+    this.lastShrine = this.lastShrineId ? this.game.zone.shrineById(this.lastShrineId) : null;
 
     if (data.bloodstain) {
       const v = new THREE.Vector3().fromArray(data.bloodstain.position);

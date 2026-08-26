@@ -104,6 +104,7 @@ export class Actor {
     this._lastPosition = new THREE.Vector3();
     this._speed = 0;
     this.submersion = 0;
+    this.aquatic = false;
     this._leanState = { pitch: 0, roll: 0 };
   }
 
@@ -249,8 +250,12 @@ export class Actor {
   /**
    * How much the water is holding this actor back, 1 dry to 0.38 chest-deep.
    * Read every tick by integrate(), and by the animator to pick a wade gait.
+   *
+   * Aquatic actors have the relationship the other way round: the water is
+   * where they are quick, and dry stone is where they are not.
    */
   get wadeDrag() {
+    if (this.aquatic) return this.submersion > 0.05 ? 1.12 : 0.66;
     if (this.submersion <= 0.05) return 1;
     const t = clamp(this.submersion / (this.height * 0.62), 0, 1);
     return 1 - 0.62 * t * t;

@@ -31,6 +31,7 @@ export class Zone {
 
     this.props = [];
     this.shrines = [];
+    this.gates = [];
     this.spawns = [];
     this.interactables = [];
     this.rng = makeRng(def.seed ?? 1);
@@ -105,6 +106,13 @@ export class Zone {
           entry.id = spec.id ?? `shrine:${this.id}:${this.shrines.length}`;
           entry.name = spec.name ?? this.name;
           this.shrines.push(entry);
+        }
+        if (spec.kind === 'waygate') {
+          entry.id = spec.id ?? `gate:${this.id}:${this.gates.length}`;
+          entry.to = spec.to;
+          entry.arrive = spec.arrive ?? null;
+          entry.name = spec.name ?? 'Waygate';
+          this.gates.push(entry);
         }
       }
     }

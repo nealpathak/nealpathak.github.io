@@ -123,15 +123,15 @@ export const FOLIAGE_KINDS = {
     scale: [0.8, 1.35], slopeMax: 0.3, density: 0.4, radiusScale: 0.6, wet: 0.55,
   },
   kelp: {
-    geometry: () => clumpGeometry({ blades: 5, height: 1.5, width: 0.09, spread: 0.14, curve: 0.9, heightVariance: 0.7, seed: 77 }),
+    geometry: () => clumpGeometry({ blades: 5, height: 0.5, width: 0.05, spread: 0.12, curve: 0.9, heightVariance: 0.7, seed: 77 }),
     material: () => makeMaterial({
       color: 0x28453e, roughness: 0.9, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.34, windMask: 'uv', rimColor: 0x9fe0d0, rimStrength: 0.26,
     }),
     // Drowned weed: it only grows where the water is over your knees, and it
     // is the tell that tells you so before you step in.
-    scale: [0.7, 1.6], slopeMax: 0.5, density: 0.5, radiusScale: 0.7,
-    wet: 6.0, wetMin: 0.35,
+    scale: [0.7, 1.4], slopeMax: 0.5, density: 0.22, radiusScale: 0.55,
+    wet: 6.0, wetMin: 0.3,
   },
 };
 

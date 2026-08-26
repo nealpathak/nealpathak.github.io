@@ -32,7 +32,11 @@ export class Compass {
       const t = el('span', 'compass__card', this.ticks, label);
       t.dataset.bearing = String(bearing);
     }
-    bus.on('progression:respawned', () => this._marks.forEach((m) => m.node.remove()) || this._marks.clear());
+    const wipe = () => { this._marks.forEach((m) => m.node.remove()); this._marks.clear(); };
+    bus.on('progression:respawned', wipe);
+    // Marks are keyed by id, and ids from the zone you just left mean nothing
+    // in the one you arrived in.
+    bus.on('game:zoneChanged', wipe);
   }
 
   /** Points of interest worth a bearing, rebuilt each frame — there are few. */
@@ -41,6 +45,9 @@ export class Compass {
     const out = [];
     for (const s of g.zone.shrines) {
       out.push({ id: s.id, kind: 'shrine', position: s.position, label: s.name, lit: s.built.flame.visible });
+    }
+    for (const gate of g.zone.gates) {
+      out.push({ id: gate.id ?? `gate:${gate.name}`, kind: 'gate', position: gate.position, label: gate.name });
     }
     if (g.progression?.bloodstain) {
       out.push({ id: 'stain', kind: 'stain', position: g.progression.bloodstain.position, label: 'Cinders' });

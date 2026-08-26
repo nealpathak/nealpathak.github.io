@@ -113,6 +113,23 @@ export const WISPS = {
       { id: 'dawnbreak', name: 'Dawnbreak', level: 15, kind: 'aoe', affinity: 'radiance', power: 1.4, cost: 30, cooldown: 14, radius: 5 },
     ],
   },
+
+  choirwisp: {
+    id: 'choirwisp',
+    name: 'Choir Wisp',
+    affinity: 'radiance',
+    colour: 0xffe9a8,
+    blurb: 'One voice of a hymn that drowned mid-verse. It has been holding the note ever since.',
+    base: { health: 165, power: 58, speed: 4.3, poise: 9 },
+    scale: 0.74,
+    evolvesTo: 'lampbearer',
+    evolveLevel: 18,
+    moves: [
+      { id: 'sunlance', name: 'Sunlance', level: 1, kind: 'projectile', affinity: 'radiance', power: 1.1, cost: 12, cooldown: 2.8 },
+      { id: 'descant', name: 'Descant', level: 6, kind: 'debuff', affinity: 'radiance', cost: 18, cooldown: 16, defenceDown: 0.2, duration: 9 },
+      { id: 'vigil', name: 'Vigil', level: 12, kind: 'heal', affinity: 'radiance', cost: 24, cooldown: 20, heal: 0.24 },
+    ],
+  },
 };
 
 export const WISP_IDS = Object.keys(WISPS);

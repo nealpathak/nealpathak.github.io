@@ -1,8 +1,27 @@
-// The game shell. For now: a lit test scene so the render path can be verified
-// end to end. The world, actors and systems land on top of this.
+// Temporary animation lab. Replaced by the real game shell once the world and
+// player controller land; for now it is how the rig gets looked at.
 
 import * as THREE from 'three';
 import { makeMaterial } from '../render/materials.js';
+import { Character } from '../actors/character.js';
+import { clip } from '../anim/library.js';
+import { equipWeapon } from '../actors/weapons.js';
+import { skyUniforms } from '../render/atmosphere.js';
+
+const POSE_ROW = [
+  { name: 'idle', kind: 'blend', speed: 0 },
+  { name: 'walk', kind: 'blend', speed: 1.42 },
+  { name: 'run', kind: 'blend', speed: 3.9 },
+  { name: 'sprint', kind: 'blend', speed: 5.6 },
+  { name: 'idleGuard', kind: 'clip' },
+  { name: 'attackLight1', kind: 'clip' },
+  { name: 'attackHeavy1', kind: 'clip' },
+  { name: 'roll', kind: 'clip' },
+  { name: 'guard', kind: 'clip' },
+  { name: 'stagger', kind: 'clip' },
+  { name: 'death', kind: 'clip' },
+  { name: 'rest', kind: 'clip' },
+];
 
 export class Game {
   static async create(engine) {
@@ -16,54 +35,98 @@ export class Game {
     this.scene = engine.renderer.scene;
     this.camera = engine.renderer.camera;
     this.time = 0;
+    this.characters = [];
+    this.params = new URLSearchParams(location.search);
   }
 
   async init() {
+    if (this.params.has('studio')) this._studio();
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(400, 400, 1, 1),
-      makeMaterial({ color: 0x8f7a5e, surface: 'dirt', roughness: 1 }),
+      new THREE.PlaneGeometry(600, 600),
+      makeMaterial({ color: 0x9a8468, surface: 'dirt', roughness: 1 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    const pillarMat = makeMaterial({
-      color: 0x9c968c, surface: 'stone', roughness: 0.92,
-      rimColor: 0xffc38a, rimStrength: 0.16, rimPower: 3.2,
+    const single = this.params.get('clip');
+    const specs = single
+      ? [{ name: single, kind: 'clip' }]
+      : POSE_ROW;
+
+    const spacing = 1.9;
+    specs.forEach((spec, i) => {
+      const c = new Character({
+        scale: 1,
+        look: {
+          helm: i % 4 === 1 ? 'hood' : i % 4 === 2 ? 'none' : 'greathelm',
+          pauldrons: i % 3 === 2 ? 'cloth' : 'plate',
+          cape: true,
+        },
+      });
+      const weap = this.params.get('weapon') ?? 'longsword';
+      if (weap !== 'none') equipWeapon(c, weap);
+      if (this.params.get('shield') !== '0') equipWeapon(c, 'shield');
+      c.addTo(this.scene);
+      c.root.position.set((i - (specs.length - 1) / 2) * spacing, 0, 0);
+      c.root.rotation.y = Math.PI;    // face the camera (+Z is forward)
+      if (spec.kind === 'blend') c.setSpeed(spec.speed);
+      else c.playFull(clip(spec.name), { fade: 0, loop: true });
+      c.label = spec.name;
+      this.characters.push(c);
     });
-    const group = new THREE.Group();
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      const h = 4 + (i % 4) * 1.6;
-      const m = new THREE.Mesh(new THREE.BoxGeometry(1.2, h, 1.2), pillarMat);
-      m.position.set(Math.cos(a) * 14, h / 2, Math.sin(a) * 14);
-      m.rotation.y = a;
-      m.castShadow = m.receiveShadow = true;
-      group.add(m);
+
+    this.focus = this.characters[Math.floor(this.characters.length / 2)];
+    this._forward = new THREE.Vector3();
+  }
+
+  // Neutral three-point lighting for judging silhouette and proportion without
+  // the zone's art direction in the way.
+  _studio() {
+    const r = this.engine.renderer;
+    r.hemi.intensity = 1.15;
+    r.hemi.color.set(0xc6d6f2);
+    r.hemi.groundColor.set(0x7a6a58);
+    r.sun.intensity = 2.4;
+    r.sun.color.set(0xfff4e4);
+    r.fill.intensity = 0.7;
+    r.fill.color.set(0xa8c4ff);
+    r.scene.fog.density = 0.0016;
+    r.scene.fog.color.set(0x8a93a4);
+    // A neutral sky so nothing about the character is judged through a sunset.
+    skyUniforms.uTopColor.value.set(0x6d7e9c);
+    skyUniforms.uHorizon.value.set(0xa9b3c2);
+    skyUniforms.uBottomColor.value.set(0x4a4f58);
+    skyUniforms.uSunColor.value.set(0xfff0d8);
+    skyUniforms.uSunIntensity.value = 0.35;
+    skyUniforms.uSunDir.value.set(0.42, 0.62, -0.66).normalize();
+    this.engine.post.grade.uniforms.uVignette.value = 0.18;
+    this.engine.post.grade.uniforms.uSplitAmount.value = 0.04;
+    this.engine.renderer.gl.toneMappingExposure = 1.15;
+  }
+
+  fixedUpdate(dt) { this.time += dt; }
+
+  update(realDt, alpha, dt) {
+    for (const c of this.characters) {
+      // Non-looping clips restart so the lab keeps showing them.
+      if (c.base.finished) c.base.play(c.base.motion, { fade: 0, restart: true });
+      c.update(dt);
     }
-    this.scene.add(group);
 
-    this.probe = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.4, 1.0, 6, 14),
-      makeMaterial({ color: 0xc8b49a, roughness: 0.6, rimColor: 0xffd7a0, rimStrength: 0.5 }),
-    );
-    this.probe.position.set(0, 1.0, 0);
-    this.probe.castShadow = true;
-    this.scene.add(this.probe);
+    const p = this.params;
+    const orbit = p.has('orbit') ? this.time * 0.35 : Number(p.get('angle') ?? 0);
+    const dist = Number(p.get('dist') ?? (this.characters.length > 3 ? 13 : 4.2));
+    const height = Number(p.get('height') ?? 1.9);
+    const cx = this.focus.root.position.x;
+    this.camera.position.set(cx + Math.sin(orbit) * dist, height, Math.cos(orbit) * dist);
+    this.camera.lookAt(cx, 0.95, 0);
+
+    this._forward.set(0, 0, 0).sub(this.camera.position).setY(0).normalize();
+    this.engine.renderer.updateShadows(new THREE.Vector3(cx, 0.9, 0), this._forward);
   }
 
-  fixedUpdate(dt) {
-    this.time += dt;
-  }
-
-  update(realDt) {
-    const t = this.time;
-    const r = 11;
-    this.camera.position.set(Math.cos(t * 0.18) * r, 4.2, Math.sin(t * 0.18) * r);
-    this.camera.lookAt(0, 1.4, 0);
-    this.engine.renderer.updateShadows(
-      this.probe.position,
-      new THREE.Vector3().subVectors(this.probe.position, this.camera.position).setY(0).normalize(),
-    );
+  debugStats() {
+    return { characters: this.characters.length, clips: this.characters.map((c) => c.label) };
   }
 }

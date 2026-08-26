@@ -120,10 +120,32 @@ things die. Measured against the same pair of husks, with the same bot:
 
 | Class | Time | Damage per swing | Staggers | Damage taken |
 |---|---|---|---|---|
-| Sword | 9s | 93 | 5 | none to light |
-| Greatsword | 10s | 242 | 6 | the most — slow means exposed |
-| Spear | 15s | 71 | 3 | none — reach keeps you out of it |
-| Staff | 21s | 51 | 0 | light, but it is a catalyst; bring a spirit |
+| Sword | 9s | 93 | 6 | none — the baseline everything else is read against |
+| Greatsword | 8s | 404 | 6 | the most: three swings to clear, and exposed for all of them |
+| Spear | 14s | 79 | 4 | none — two metres of reach and nothing came back |
+| Staff | 14s | 57 | 0 | light, but it is a catalyst; bring a spirit |
+
+The bot is not an expert and the AI is stochastic, so these move by a second or
+two between runs. The shape is what matters: the greatsword trades exposure for
+swings, the spear trades damage for never being hit, and the staff does not
+stagger anything at all.
+
+## Authoring animation by measurement
+
+Poses in this project are argued about badly and measured well. `attackThrust`
+was authored on a bench that plays a candidate clip, reads the weapon head's
+world position every frame and expresses it in the player's own frame. Two
+things fell straight out of it that were invisible from reading the clip data:
+
+- The torso chain points +Y while limbs point -Y, so a **positive** x rotation
+  on hips, spine and chest leans forward — the opposite sign to an arm.
+- The grip tilts the blade about twenty degrees up from the arm's own axis, so
+  an upper arm at exactly -90 does not point a sword level. It points it at the
+  ceiling of the room in front of you.
+
+Measured at full extension, the thrust puts the weapon head 2.00m in front of
+the player, 1.17m off the ground and 0.03m off the centre line, having
+travelled about 1.2m from the chamber. That is the number the clip is for.
 
 ## Water
 
@@ -163,20 +185,11 @@ Kindled shrines are tracked by id across every zone rather than by walking the
 zone that happens to be loaded, because the other one is not there to walk. Die
 in one zone with your last ember in another and you wake at the ember.
 
-## Known limitations
-
-`attackRunning` is named a thrust but does not behave like one: measured
-mid-swing the weapon ends up pointing up and back rather than forward. A short
-sword survives that; a two-metre polearm built on it did eight damage a swing.
-The spear is built on the sweeping clips instead until there is a thrust
-animation that measurably drives the head forward.
-
 ## Still open
 
 - The Cinderreach zone
 - A hub with vendors, and quests with dialogue trees
 - Companion dialogue beyond the one-line barks
-- A thrust animation that actually thrusts
 - Touch controls
 
 ## Non-goals

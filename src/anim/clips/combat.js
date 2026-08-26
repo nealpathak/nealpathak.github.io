@@ -197,31 +197,95 @@ export const COMBAT = {
   },
 
   // A running attack: a lunging thrust that carries the sprint's momentum.
+  /**
+   * The running attack: the same measured thrust as attackThrust, carried in
+   * on a stride.
+   *
+   * This clip used to be named a thrust and behave like a salute. Measured
+   * frame by frame, its weapon head sat 2.68m off the ground and half a metre
+   * forward for the whole of its hit window — above the head of everything it
+   * was supposed to hit. A short sword survived that because its hitbox is
+   * short and the sweep is generous; a two-metre polearm built on it did eight
+   * damage a swing, which is what kept the spear off this clip for a release.
+   */
   attackRunning: {
     duration: 0.82, loop: false, ease: 'smooth', rootMotion: 2.2,
-    hips: [[0, 0, -0.05, 0], [0.26, 0, -0.10, 0.20], [0.44, 0, -0.16, 0.44], [1, 0, -0.04, 0.06]],
+    hips: [[0, 0, -0.05, 0], [0.24, 0, -0.08, 0.06], [0.40, 0, -0.13, 0.32], [0.56, 0, -0.12, 0.28], [1, 0, -0.04, 0.04]],
     events: [
       { t: 0.24, name: 'hitStart', data: { arc: 'thrust' } },
       { t: 0.24, name: 'swoosh', data: { pitch: 1.3 } },
-      { t: 0.44, name: 'hitEnd' },
+      { t: 0.46, name: 'hitEnd' },
       { t: 0.76, name: 'recovered' },
     ],
     tracks: {
-      hips:      [[0, -12, 18, 0], [0.26, -18, 8, 2], [0.44, -22, 4, 0], [1, -6, 24, 2]],
-      spine:     [[0, -6, -6, 0], [0.26, -12, -4, 0], [0.44, -16, -2, 0], [1, 2, -8, -1]],
-      chest:     [[0, -6, -10, 0], [0.44, -18, -2, 0], [1, 2, -12, -1]],
-      neck:      [[0, 10, -2, 0], [0.44, 16, 0, 0], [1, -2, -4, 0]],
-      upperArmR: [[0, -55, -10, -30], [0.16, -48, -6, -16], [0.26, -80, 0, -4], [0.40, -90, 0, 0], [0.58, -84, -2, -6], [1, -55, -10, -30]],
-      forearmR:  [[0, -75, 0, 0], [0.16, -116, 0, 0], [0.28, -30, 0, 0], [0.40, -6, 0, 0], [0.62, -34, 0, 0], [1, -75, 0, 0]],
-      handR:     [[0, -4, 0, -8], [0.40, 0, 0, 0], [1, -4, 0, -8]],
-      upperArmL: [[0, -52, 18, -30], [0.44, -30, 34, -46], [1, -34, 20, -30]],
-      forearmL:  [[0, -80, 8, -6], [0.44, -60, 8, -6], [1, -62, 10, -6]],
-      thighL:    [[0, -48, 10, -4], [0.26, -56, 10, -6], [0.44, -58, 10, -6], [1, -16, 12, -4]],
-      shinL:     [[0, 40, 0, 0], [0.26, 30, 0, 0], [0.44, 24, 0, 0], [1, 22, 0, 0]],
-      footL:     [[0, -14, -8, 0], [1, -8, -8, 0]],
-      thighR:    [[0, 26, -14, 5], [0.26, 40, -14, 6], [0.44, 44, -14, 6], [1, 14, -16, 5]],
-      shinR:     [[0, 40, 0, 0], [0.26, 24, 0, 0], [0.44, 16, 0, 0], [1, 26, 0, 0]],
-      footR:     [[0, -10, 6, 0], [1, -14, 6, 0]],
+      hips:      [[0, 2, 14, 0], [0.24, 1, -4, 0], [0.40, 7, 2, 0], [0.56, 6, 3, 0], [1, 2, 12, 2]],
+      spine:     [[0, 2, 6, 0], [0.24, 0, -8, 0], [0.40, 5, 2, 0], [1, 2, 4, 0]],
+      chest:     [[0, 3, 2, 0], [0.24, -2, -14, 0], [0.40, 6, 6, 0], [1, 3, 0, 0]],
+      neck:      [[0, 0, -2, 0], [0.40, -4, -2, 0], [1, 0, -2, 0]],
+      clavR:     [[0, 0, -4, 8], [0.24, 0, -8, 8], [0.40, 0, 7, 8], [1, 0, -2, 8]],
+      upperArmR: [[0, -30, -10, 10], [0.24, -42, -6, 6], [0.40, -90, 0, 4], [0.56, -88, 0, 4], [1, -30, -10, 10]],
+      forearmR:  [[0, -70, 0, 0], [0.24, -48, 0, 0], [0.40, -2, 0, 0], [0.56, -6, 0, 0], [1, -70, 0, 0]],
+      handR:     [[0, 0, 0, 0], [0.40, 0, 0, 0], [1, 0, 0, 0]],
+      upperArmL: [[0, -40, 20, -32], [0.40, -50, 32, -48], [1, -40, 20, -32]],
+      forearmL:  [[0, -78, 8, -6], [0.40, -58, 8, -8], [1, -78, 8, -6]],
+      thighL:    [[0, -34, 10, -4], [0.24, -8, 10, -4], [0.40, -50, 10, -5], [1, -20, 10, -4]],
+      shinL:     [[0, 30, 0, 0], [0.24, 40, 0, 0], [0.40, 24, 0, 0], [1, 26, 0, 0]],
+      footL:     [[0, -10, -8, 0], [0.40, -14, -8, 0], [1, -8, -8, 0]],
+      thighR:    [[0, 20, -12, 5], [0.24, -20, -12, 5], [0.40, 36, -14, 6], [1, 16, -14, 5]],
+      shinR:     [[0, 26, 0, 0], [0.24, 20, 0, 0], [0.40, 34, 0, 0], [1, 24, 0, 0]],
+      footR:     [[0, -8, 6, 0], [0.40, -18, 6, 0], [1, -12, 6, 0]],
+    },
+  },
+
+  /**
+   * A thrust that thrusts.
+   *
+   * Every pose in it was measured rather than argued about. The bench that did
+   * it is worth remembering: play a candidate clip, read the weapon head's
+   * world position each frame, express it in the player's own frame. Two things
+   * fall out of that immediately and are invisible from the numbers alone.
+   *
+   * The torso chain points +Y while limbs point -Y, so a POSITIVE x rotation on
+   * hips, spine and chest leans forward — the opposite sign to an arm. And the
+   * grip tilts the blade about twenty degrees up from the arm's own axis, so an
+   * upper arm at exactly -90 does not point a sword level; it points it at the
+   * ceiling of the room in front of you.
+   *
+   * Measured at the extension: the head reaches 2.00m in front of the player at
+   * 1.17m off the ground and 0.03m off the centre line. The chamber holds it at
+   * 1.18m forward and out to the side, so the point travels about 1.2m through
+   * the strike. That is what the old attackRunning never did: its head sat 2.7m
+   * in the air and half a metre forward for the whole of its hit window, which
+   * is why a two-metre polearm built on it did eight damage a swing.
+   */
+  attackThrust: {
+    duration: 0.62, loop: false, ease: 'smooth', rootMotion: 1.5,
+    hips: [[0, 0, -0.03, 0], [0.30, 0, -0.02, -0.10], [0.46, 0, -0.10, 0.28], [0.60, 0, -0.10, 0.26], [1, 0, -0.04, 0.02]],
+    events: [
+      { t: 0.31, name: 'swoosh', data: { pitch: 1.45 } },
+      { t: 0.33, name: 'hitStart', data: { arc: 'thrust' } },
+      { t: 0.54, name: 'hitEnd' },
+      { t: 0.70, name: 'recoverable' },
+      { t: 0.88, name: 'recovered' },
+    ],
+    tracks: {
+      hips:      [[0, 0, 6, 0], [0.30, 0, -6, 0], [0.46, 6, 0, 0], [0.60, 6, 2, 0], [1, 0, 4, 0]],
+      spine:     [[0, 1, 2, 0], [0.30, -1, -8, 0], [0.46, 4, 2, 0], [0.60, 4, 3, 0], [1, 1, 2, 0]],
+      chest:     [[0, 2, 0, 0], [0.30, -2, -14, 0], [0.46, 5, 6, 0], [0.60, 5, 7, 0], [1, 2, 0, 0]],
+      neck:      [[0, 0, 0, 0], [0.46, -4, -2, 0], [1, 0, 0, 0]],
+      head:      [[0, 0, 0, 0], [0.46, -2, -4, 0], [1, 0, 0, 0]],
+      clavR:     [[0, 0, 0, 8], [0.30, 0, -6, 8], [0.46, 0, 6, 8], [1, 0, 0, 8]],
+      upperArmR: [[0, -34, -8, 10], [0.30, -40, -6, 6], [0.46, -88, 0, 4], [0.60, -86, 0, 4], [1, -34, -8, 10]],
+      forearmR:  [[0, -62, 0, 0], [0.30, -50, 0, 0], [0.46, -2, 0, 0], [0.60, -4, 0, 0], [1, -62, 0, 0]],
+      handR:     [[0, 0, 0, 0], [0.46, 0, 0, 0], [1, 0, 0, 0]],
+      upperArmL: [[0, -30, 18, -34], [0.30, -22, 26, -40], [0.46, -46, 30, -46], [1, -30, 18, -34]],
+      forearmL:  [[0, -74, 6, -6], [0.46, -58, 8, -8], [1, -74, 6, -6]],
+      thighL:    [[0, -6, 8, -3], [0.30, 10, 8, -3], [0.46, -42, 10, -5], [0.60, -40, 10, -5], [1, -6, 8, -3]],
+      shinL:     [[0, 8, 0, 0], [0.30, 22, 0, 0], [0.46, 26, 0, 0], [1, 8, 0, 0]],
+      footL:     [[0, -4, -6, 0], [0.46, -12, -6, 0], [1, -4, -6, 0]],
+      thighR:    [[0, 4, -8, 4], [0.30, -12, -8, 4], [0.46, 30, -12, 5], [0.60, 28, -12, 5], [1, 4, -8, 4]],
+      shinR:     [[0, 10, 0, 0], [0.30, 16, 0, 0], [0.46, 30, 0, 0], [1, 10, 0, 0]],
+      footR:     [[0, -6, 6, 0], [0.46, -16, 6, 0], [1, -6, 6, 0]],
     },
   },
 

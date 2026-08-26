@@ -35,7 +35,7 @@ export const ITEMS = {
   choirSpear: {
     id: 'choirSpear', name: 'Choir Spear', kind: 'weapon', slot: 'weapon', model: 'spear',
     blurb: 'Reach enough to fight something twice your size, and no more.',
-    damage: 54, poiseDamage: 16, weight: 7, speed: 1.12, affinity: 'tide',
+    damage: 42, poiseDamage: 16, weight: 7, speed: 1.12, affinity: 'tide',
     scaling: { finesse: 'B', strength: 'D' }, stability: 0.44,
     status: 'frost', statusAmount: 11, trailColor: 0x9fe4ff,
     visual: { steel: 0xcdd6e2, shaft: 0x6b5436 },

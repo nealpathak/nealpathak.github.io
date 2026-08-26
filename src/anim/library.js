@@ -46,6 +46,7 @@ export function makeStrafeBlend() {
 export const CHAINS = {
   light: ['attackLight1', 'attackLight2', 'attackLight3'],
   heavy: ['attackHeavy1', 'attackHeavy2'],
+  thrust: ['attackThrust'],
 };
 
 /**
@@ -77,17 +78,14 @@ export const MOVESETS = {
     speed: 0.78, lunge: { light: 2.6, heavy: 3.2 }, cost: { light: 30, heavy: 46 }, poise: 1.9,
   },
   spear: {
-    // Built on the sweeping clips rather than attackRunning. That clip is
-    // named a thrust but does not behave like one: measured mid-swing the
-    // weapon ends up pointing up and back rather than forward, which a short
-    // sword survives and a two-metre polearm does not — it turned the spear
-    // into an eight-damage-a-swing joke. Until there is a thrust animation
-    // that measurably drives the head forward, the spear earns its identity
-    // from reach, speed and low poise damage instead of from a bad animation.
-    light: ['attackLight1', 'attackLight2', 'attackLight1'],
-    heavy: ['attackHeavy1', 'attackLight3'],
-    running: 'attackLight1',
-    speed: 1.16, lunge: { light: 1.1, heavy: 1.8 }, cost: { light: 15, heavy: 27 }, poise: 0.82,
+    // Thrust, sweep, thrust. The polearm is the one class whose identity is the
+    // shape of its strike rather than its weight, so it is built on the clip
+    // that measurably drives the head forward — two metres in front of the
+    // player at chest height — rather than on a sweep that happens to reach.
+    light: ['attackThrust', 'attackLight2', 'attackThrust'],
+    heavy: ['attackHeavy1', 'attackThrust'],
+    running: 'attackRunning',
+    speed: 1.12, lunge: { light: 1.4, heavy: 2.0 }, cost: { light: 16, heavy: 28 }, poise: 0.88,
   },
   axe: {
     light: ['attackLight1', 'attackHeavy2'],

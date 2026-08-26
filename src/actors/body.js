@@ -11,10 +11,28 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeMaterial, makeGlowMaterial } from '../render/materials.js';
 import { radialSprite } from '../render/textures.js';
 
 const geoCache = new Map();
+
+/**
+ * Materials are shared between every character built from the same look.
+ * Twenty husks want one set of materials, not twenty: each distinct material
+ * is a distinct shader program, and compiling a hundred and fifty of them at
+ * load is a visible stall.
+ */
+const materialCache = new Map();
+
+function lookSignature(look) {
+  const p = look.palette;
+  return [
+    look.helm, look.pauldrons, look.fauld, look.cape, look.eyeGlow,
+    look.rimStrength, look.metalness, look.capeColor,
+    p.flesh, p.cloth, p.cloth2, p.leather, p.metal, p.metalDark, p.accent, p.eye,
+  ].join('|');
+}
 
 function cached(key, build) {
   let g = geoCache.get(key);
@@ -114,9 +132,98 @@ export class Body {
 
     this._buildMaterials();
     this._build();
+    this.bakeSkinned();
+  }
+
+  /**
+   * Collapse the forty-odd meshes a character is assembled from into one
+   * SkinnedMesh per material.
+   *
+   * Each part is rigidly bound to the single bone it was parented to — weight
+   * 1.0, no blending — so the result is pixel-identical to the parented
+   * hierarchy it replaces. What changes is the cost: a crowd of twenty actors
+   * goes from roughly eight hundred draw calls (doubled again by the shadow
+   * pass) to about sixty.
+   */
+  bakeSkinned() {
+    const bones = this.skeleton.bones;
+    const root = this.skeleton.root;
+    root.updateMatrixWorld(true);
+
+    // Everything is baked into the skeleton root's frame, so the bind matrix
+    // can be identity and the mesh can be parented straight to the root.
+    const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const relative = (obj) => new THREE.Matrix4().multiplyMatrices(rootInverse, obj.matrixWorld);
+    const boneInverses = bones.map((b) => relative(b).invert());
+
+    const byMaterial = new Map();
+    for (const part of this.parts) {
+      const boneIndex = bones.indexOf(part.parent);
+      if (boneIndex < 0) continue;
+      part.updateMatrixWorld(true);
+
+      const g = part.geometry.index ? part.geometry.toNonIndexed() : part.geometry.clone();
+      g.applyMatrix4(relative(part));
+      for (const name of Object.keys(g.attributes)) {
+        if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+      }
+      const count = g.attributes.position.count;
+      if (!g.attributes.uv) {
+        g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(count * 2), 2));
+      }
+      const idx = new Uint16Array(count * 4);
+      const wgt = new Float32Array(count * 4);
+      for (let i = 0; i < count; i++) { idx[i * 4] = boneIndex; wgt[i * 4] = 1; }
+      g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(idx, 4));
+      g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(wgt, 4));
+
+      const list = byMaterial.get(part.material) ?? [];
+      list.push(g);
+      byMaterial.set(part.material, list);
+    }
+    if (!byMaterial.size) return;
+
+    const skeleton = new THREE.Skeleton(bones, boneInverses);
+    this.skinned = [];
+    for (const [material, geos] of byMaterial) {
+      const merged = geos.length === 1 ? geos[0] : BufferGeometryUtils.mergeGeometries(geos, false);
+      if (!merged) continue;
+      merged.computeBoundingSphere();
+      const mesh = new THREE.SkinnedMesh(merged, material);
+      // A skinned character's bounds move with the pose, so the bind-pose
+      // sphere is wrong the moment anything animates. Rather than switching
+      // culling off — which forces every character in the level to be drawn —
+      // widen the sphere to something no pose can leave.
+      const reach = 2.2 * this.skeleton.scaleFactor;
+      merged.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, reach * 0.45, 0), reach);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.bind(skeleton, new THREE.Matrix4());
+      root.add(mesh);
+      this.skinned.push(mesh);
+      for (const g of geos) if (g !== merged) g.dispose();
+    }
+
+    // The originals are now redundant; keep the named attachment points so
+    // callers can still find the visor and the hands.
+    for (const part of this.parts) {
+      if (part.name && this.attachments[part.name] === part) continue;
+      part.removeFromParent();
+      part.visible = false;
+    }
+    this.parts = this.parts.filter((p) => p.parent);
+    this.bakedSkeleton = skeleton;
   }
 
   _buildMaterials() {
+    const signature = lookSignature(this.look);
+    const cached = materialCache.get(signature);
+    if (cached) {
+      this.mat = cached;
+      this.sharedMaterials = true;
+      return;
+    }
+
     const p = this.look.palette;
     const rim = this.look.rimStrength;
     const mk = (color, opts) => {
@@ -134,6 +241,7 @@ export class Body {
     };
     this.mat.glow = makeGlowMaterial(p.eye, { opacity: this.look.eyeGlow });
     this.materials.push(this.mat.glow);
+    materialCache.set(signature, this.mat);
   }
 
   _add(boneName, geo, mat, { pos = null, rot = null, scale = null, shadow = true, name = '' } = {}) {
@@ -338,13 +446,37 @@ export class Body {
     if (this.attachments.visor) this.attachments.visor.material.opacity = v;
   }
 
-  /** Tint the whole body — used for the white flash on a hit. */
+  /** Hide or show the whole body — used by distance culling. */
+  setVisible(v) {
+    for (const m of this.skinned ?? []) m.visible = v;
+    for (const p of this.parts) p.visible = v;
+    if (this.cape) this.cape.mesh.visible = v;
+  }
+
+  /**
+   * Tint the whole body — the white flash on a hit.
+   *
+   * Materials are shared between identical characters, so flashing through the
+   * material would light up every husk in the zone at once. The tint goes on
+   * this body's own meshes instead, via a per-object uniform override.
+   */
   setEmissive(color, intensity) {
-    for (const m of this.materials) {
-      if (m.isMeshStandardMaterial) {
-        m.emissive.set(color);
-        m.emissiveIntensity = intensity;
+    const meshes = this.skinned ?? [];
+    for (const m of meshes) {
+      if (intensity <= 0.001) {
+        if (m.userData.flashMaterial) { m.material = m.userData.baseMaterial; }
+        continue;
       }
+      if (!m.userData.flashMaterial) {
+        m.userData.baseMaterial = m.material;
+        const clone = m.material.clone();
+        clone.customProgramCacheKey = m.material.customProgramCacheKey;
+        clone.onBeforeCompile = m.material.onBeforeCompile;
+        m.userData.flashMaterial = clone;
+      }
+      const f = m.userData.flashMaterial;
+      if (f.isMeshStandardMaterial) { f.emissive.set(color); f.emissiveIntensity = intensity; }
+      m.material = f;
     }
   }
 
@@ -353,7 +485,10 @@ export class Body {
   }
 
   dispose() {
+    // `materials` is empty when this body borrowed a cached set, so shared
+    // materials survive one actor being removed.
     for (const m of this.materials) m.dispose();
+    for (const m of this.skinned ?? []) m.geometry.dispose();
     this.cape?.dispose();
   }
 }

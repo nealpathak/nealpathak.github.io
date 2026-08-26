@@ -5,6 +5,7 @@ import { HUD } from './hud.js';
 import { TitleScreen } from './title.js';
 import { PauseMenu } from './pause.js';
 import { RestMenu } from './rest.js';
+import { Coach } from './coach.js';
 import { bus } from '../core/events.js';
 import { MODE } from '../game/game.js';
 
@@ -16,6 +17,7 @@ export function mountUI(engine, game) {
   const title = new TitleScreen(root, engine, game);
   const pause = new PauseMenu(root, engine, game);
   const rest = new RestMenu(root, game);
+  const coach = new Coach(root, game);
 
   hud.setVisible(false);
 
@@ -50,9 +52,9 @@ export function mountUI(engine, game) {
   if (game.wantsAutostart) queueMicrotask(() => game.start());
 
   return {
-    hud, title, pause, rest,
+    hud, title, pause, rest, coach,
     update(dt) {
-      if (hud.visible) hud.update(dt);
+      if (hud.visible) { hud.update(dt); coach.update(dt); }
       title.update(dt);
     },
   };

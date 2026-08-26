@@ -108,7 +108,10 @@ export async function boot() {
   game.loop = loop;
   loop.start();
 
-  window.emberwake = { engine, game, THREE, bus, settings };
+  // A console handle for debugging and for the headless test harness. Exposing
+  // resolveHit lets a test drive a hit without having to pose a weapon first.
+  const { resolveHit } = await import('./combat/damage.js');
+  window.emberwake = { engine, game, THREE, bus, settings, resolveHit };
 
   await nextFrame();
   document.getElementById('boot')?.classList.add('boot--done');

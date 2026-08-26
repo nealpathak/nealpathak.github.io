@@ -81,15 +81,38 @@ Elite spirits can be bound with an **Ember Sigil** once below a health
 threshold. Chance scales with missing HP, Attunement, sigil quality, and
 status. Bound Wisps join your covenant, gain levels, and evolve at thresholds.
 
-## Content targets for v1
+## What is built
 
-- Hub: **Wakestone Rest**
-- Zones: **Ashfen Approach**, **The Sunken Choir**, **Cinderreach**
-- 6 enemy archetypes, 2 bosses
-- 6 weapons across 3 classes, 8 bindable Wisps
-- 2 companions with dialogue and bonds
+**Zone.** Ashfen Approach: a shaped valley with authored ridges, a fen basin,
+a walkable road, a ruin on a shelf, and the Wayside Ember shrine.
+
+**Enemies.** Ashen Husk, Warden of the Gate (shield), Fen Houndling (pack),
+Priest of the Kindle (ranged), Fen Wisp (bindable), and the boss, The Warden of
+Ashfen — two phases, hyper-armour, an arena it will not leave.
+
+**Player.** Three-hit light chain, two heavies, a running thrust, roll and
+backstep with i-frames, guard with stability and guard-break, parry into
+riposte, backstabs, a flask, and fall damage.
+
+**Party.** Mote and Seryn as companions; bound Wisps summoned into the field.
+Four standing orders, bonds that accrue from fighting together.
+
+**Wisps.** Seven definitions with affinities, move lists learned by level, and
+two evolution lines.
+
+**Systems.** Six stats on soft-cap curves, equip load bands, three status
+effects, an affinity triangle, cinders as both XP and currency, the death loop,
+and a save.
+
+## Still open
+
+- The Sunken Choir and Cinderreach zones
+- A hub with vendors, and quests with dialogue trees
+- Paired Strikes at bond rank A (the rank unlocks; the move is not implemented)
+- Wisp skills bound to `V` (the input and the data exist; the effects do not)
+- A map screen
 
 ## Non-goals
 
-Photoreal rendering. Downloadable multi-gigabyte assets. Multiplayer. A build
+Photoreal rendering. Downloadable assets of any kind. Multiplayer. A build
 pipeline — everything here is hand-written ES modules served as static files.

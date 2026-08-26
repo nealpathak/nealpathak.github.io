@@ -321,9 +321,9 @@ export function makeTerrainMaterial({
         vec2 uvWall = vec2( dot( vTerrainWorld.xz, normalize( vec2( -vTerrainNormal.z, vTerrainNormal.x ) + 1e-5 ) ), vTerrainWorld.y ) * uRockScale;
 
         float slope = 1.0 - clamp( vTerrainNormal.y, 0.0, 1.0 );
-        float rockW = smoothstep( 0.16, 0.46, slope );
+        float rockW = smoothstep( 0.24, 0.58, slope );
         rockW = max( rockW, vColor.r );
-        float mossW = vColor.g * ( 1.0 - rockW );
+        float mossW = vColor.g * 0.8 * ( 1.0 - rockW );
         float pathW = vColor.b * ( 1.0 - rockW );
 
         vec4 cDirt = texture2D( tDirt, uvFlat );

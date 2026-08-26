@@ -91,7 +91,7 @@ export const FOLIAGE_KINDS = {
   grass: {
     geometry: () => clumpGeometry({ blades: 5, height: 0.32, width: 0.05, spread: 0.11, curve: 0.5, seed: 3 }),
     material: () => makeMaterial({
-      color: 0x7d8148, roughness: 0.96, side: THREE.DoubleSide, vertexColors: true,
+      color: 0x6e7247, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.16, windMask: 'uv', rimColor: 0xd8dc90, rimStrength: 0.30, rimPower: 2.2,
     }),
     scale: [0.75, 1.4], slopeMax: 0.58, density: 1.0, radiusScale: 0.46,
@@ -99,7 +99,7 @@ export const FOLIAGE_KINDS = {
   scrub: {
     geometry: () => clumpGeometry({ blades: 7, height: 0.52, width: 0.085, spread: 0.16, curve: 0.62, seed: 11 }),
     material: () => makeMaterial({
-      color: 0x5b6236, roughness: 0.96, side: THREE.DoubleSide, vertexColors: true,
+      color: 0x525838, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.13, windMask: 'uv', rimColor: 0xc8d884, rimStrength: 0.26,
     }),
     scale: [0.8, 1.5], slopeMax: 0.48, density: 0.16, radiusScale: 0.8,
@@ -115,7 +115,7 @@ export const FOLIAGE_KINDS = {
   reed: {
     geometry: () => clumpGeometry({ blades: 6, height: 1.05, width: 0.035, spread: 0.09, curve: 0.28, heightVariance: 0.6, seed: 41 }),
     material: () => makeMaterial({
-      color: 0x776d3c, roughness: 0.96, side: THREE.DoubleSide, vertexColors: true,
+      color: 0x6c6440, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.26, windMask: 'uv', rimColor: 0xe0d69a, rimStrength: 0.34,
     }),
     scale: [0.8, 1.35], slopeMax: 0.3, density: 0.4, radiusScale: 0.6,

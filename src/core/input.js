@@ -195,10 +195,26 @@ export class Input {
     this.move.x = this.move.y = 0;
   }
 
+  /**
+   * Ask for pointer lock. Browsers refuse this outside a user gesture and some
+   * refuse `unadjustedMovement` outright, so every path here swallows its own
+   * failure: a refused lock is a normal thing that happens, not an error the
+   * player should ever see.
+   */
   requestPointerLock(el) {
-    if (document.pointerLockElement === el) return;
-    const p = el.requestPointerLock?.({ unadjustedMovement: true });
-    if (p && p.catch) p.catch(() => el.requestPointerLock());
+    if (!el || document.pointerLockElement === el) return;
+    // Both the options form and the bare form can throw synchronously OR
+    // return a promise that rejects, depending on the browser and on whether a
+    // gesture is in progress. Every one of those four paths has to be
+    // swallowed, or a refused lock surfaces as an uncaught error.
+    const attempt = (arg) => {
+      try {
+        const p = arg === undefined ? el.requestPointerLock?.() : el.requestPointerLock?.(arg);
+        return p && typeof p.catch === 'function' ? p : null;
+      } catch { return null; }
+    };
+    const first = attempt({ unadjustedMovement: true });
+    if (first) first.catch(() => { const second = attempt(); if (second) second.catch(() => {}); });
   }
 
   exitPointerLock() { if (document.pointerLockElement) document.exitPointerLock(); }

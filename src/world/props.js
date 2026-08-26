@@ -9,6 +9,7 @@ import { makeMaterial, makeGlowMaterial } from '../render/materials.js';
 import { cachedGeometry as cached, boxGeo, mergeGeometries } from '../actors/body.js';
 import { BoxCollider, CylinderCollider } from './collision.js';
 import { makeRng } from '../core/rng.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 const _mats = new Map();
 function surfaceMat(key, opts) {
@@ -67,6 +68,66 @@ export const PROP_MATERIALS = {
     });
   },
 };
+
+/**
+ * Collapse a group of static meshes into one mesh per material.
+ *
+ * A ruined wall is authored as ninety individual blocks because that is how it
+ * crumbles convincingly, but ninety draw calls per wall (and ninety more in the
+ * shadow pass) is not a price worth paying for geometry that never moves again.
+ * Baking each block's transform into a single merged buffer takes the whole
+ * zone from four figures of draw calls to a few hundred.
+ */
+export function bakeStatic(group) {
+  const byMaterial = new Map();
+  const keep = [];
+  group.updateMatrixWorld(true);
+
+  group.traverse((o) => {
+    if (!o.isMesh) return;
+    // Anything animated, lit or transparent stays as it is.
+    if (o.userData.noBake || o.material.transparent) { keep.push(o); return; }
+    const list = byMaterial.get(o.material) ?? [];
+    const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    o.updateMatrix();
+    g.applyMatrix4(o.matrix);
+    // Merging needs a consistent attribute set.
+    for (const name of Object.keys(g.attributes)) {
+      if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+    }
+    if (!g.attributes.uv) {
+      g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    }
+    list.push(g);
+    byMaterial.set(o.material, list);
+  });
+
+  if (!byMaterial.size) return group;
+
+  const out = new THREE.Group();
+  out.name = group.name;
+  out.position.copy(group.position);
+  out.rotation.copy(group.rotation);
+  out.scale.copy(group.scale);
+
+  for (const [material, geos] of byMaterial) {
+    const merged = geos.length === 1 ? geos[0] : BufferGeometryUtils.mergeGeometries(geos, false);
+    if (!merged) continue;
+    merged.computeBoundingSphere();
+    const m = new THREE.Mesh(merged, material);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    out.add(m);
+    for (const g of geos) if (g !== merged) g.dispose();
+  }
+  for (const k of keep) {
+    k.updateMatrix();
+    // Re-parent survivors, preserving their world placement inside the group.
+    k.removeFromParent();
+    out.add(k);
+  }
+  return out;
+}
 
 function mesh(geo, material, { pos, rot, scale, shadow = true } = {}) {
   const m = new THREE.Mesh(geo, material);
@@ -173,7 +234,7 @@ export function deadTree({ height = 7, seed = 3, lean = 0.12 } = {}) {
   }
 
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin) => [new CylinderCollider(
       new THREE.Vector3(origin.x, origin.y, origin.z), trunkR * 1.6, height * 0.8, { tag: 'tree' },
     )],
@@ -206,7 +267,7 @@ export function paleTree({ height = 9, seed = 5 } = {}) {
   }
 
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin) => [new CylinderCollider(
       new THREE.Vector3(origin.x, origin.y, origin.z), trunkR * 1.8, height * 0.6, { tag: 'tree' },
     )],
@@ -242,7 +303,7 @@ export function ruinWall({ length = 6, height = 3.4, thickness = 0.7, seed = 11,
   }
 
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin, rotY = 0) => [new BoxCollider(
       new THREE.Vector3(origin.x, origin.y + height * 0.45, origin.z),
       new THREE.Vector3(length / 2, height * 0.45, thickness / 2),
@@ -282,7 +343,7 @@ export function column({ height = 4.2, radius = 0.42, broken = false, seed = 2 }
   }
 
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin) => [new CylinderCollider(
       new THREE.Vector3(origin.x, origin.y, origin.z), radius * 1.15, h + 0.4, { tag: 'column' },
     )],
@@ -304,7 +365,7 @@ export function stairs({ steps = 8, width = 3.2, rise = 0.26, run = 0.42 } = {})
     }
   }
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin, rotY = 0) => {
       const out = [];
       const c = Math.cos(rotY), s = Math.sin(rotY);
@@ -344,7 +405,7 @@ export function archway({ span = 4.4, height = 5.2, thickness = 0.9, seed = 21 }
     }));
   }
   return {
-    object: group,
+    object: bakeStatic(group),
     colliders: (origin, rotY = 0) => [-1, 1].map((side) => new BoxCollider(
       new THREE.Vector3(
         origin.x + Math.cos(rotY) * side * (span / 2 + pierW / 2),

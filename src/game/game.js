@@ -292,6 +292,19 @@ export class Game {
       this.progression?.save();
     });
     bus.on('boss:phase', () => this.camera.addShake(0.8));
+
+    // A parry has to pay out or it is just a worse dodge: the attacker is
+    // opened, and the player gets a window to press E for the riposte.
+    bus.on('combat:parried', ({ defender, attacker }) => {
+      if (defender !== this.player || !attacker?.alive) return;
+      this.engine.loop.hitStop(0.13, 0.03);
+      this.camera.addShake(0.3);
+      attacker.beCriticallyHit?.(this.player);
+      attacker.poiseRecoveryDelay = 2.2;
+      this.player.onParrySuccess();
+      this._riposteWindow = { target: attacker, time: 2.4 };
+      bus.emit('ui:toast', { text: 'Riposte — press E', kind: 'good', duration: 2 });
+    });
   }
 
   _queueProjectile(enemy, attack) {
@@ -403,6 +416,24 @@ export class Game {
     if (this.mode !== MODE.PLAYING) return;
 
     this.lockOn.update(dt, this.enemies);
+
+    // Criticals: a riposte on something you just parried, or a backstab on
+    // something that has not noticed you. Both go on the interact button,
+    // which is free whenever there is nothing else in reach.
+    if (this._riposteWindow) {
+      this._riposteWindow.time -= dt;
+      if (this._riposteWindow.time <= 0 || !this._riposteWindow.target.alive) this._riposteWindow = null;
+    }
+    // A generous buffer here: the riposte prompt appears mid-animation, and
+    // players press the button the moment they see it.
+    if (!this.player.interactTarget && this.input.buffered('interact', 0.5)) {
+      const candidates = this._riposteWindow ? [this._riposteWindow.target] : this.enemies;
+      if (this.player.tryCritical(candidates)) {
+        this.input.clearBuffer('interact');
+        this._riposteWindow = null;
+      }
+    }
+
     if (this.input.consume('lockOn', 0.2)) this.lockOn.toggle(this.enemies);
     if (this.input.consume('swapTarget', 0.2)) this.lockOn.cycle(this.enemies, 1);
     this.player.handleInput(this.input, this.camera, dt);

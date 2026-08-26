@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
-# Render the game headlessly and drop a screenshot. Usage: tools/shot.sh [out.png] [waitMs] [eval.js]
-SP=/tmp/claude-0/-home-user-nealpathak-github-io/f25d9a19-6136-51e8-be3a-5e51f2c76b7e/scratchpad
-cd "$SP" && node shot.mjs "$@"
+# Render the game headlessly and drop a screenshot.
+#
+#   tools/shot.sh out.png [waitMs] [eval.js]
+#
+# EW_Q sets a query string (e.g. EW_Q='?autostart=1'), EW_AFTER names a second
+# script to evaluate after the wait.
+set -u
+cd "$(dirname "$0")/.."
+exec node tools/harness.mjs "$@"

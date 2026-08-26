@@ -488,3 +488,28 @@ select.setting__control option { background: #17141c; }
 .bestiary { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .45rem; }
 .bestiary__card { display: flex; flex-direction: column; gap: .15rem; padding: .55rem .7rem; border: 1px solid var(--line); background: rgba(255,255,255,.03); }
 .bestiary__card small { font-size: .64rem; color: var(--ink-faint); }
+
+/* ---------- coaching and speech ---------- */
+
+.coach {
+  position: absolute; left: 50%; bottom: calc(6.2rem * var(--hud-scale));
+  transform: translateX(-50%) translateY(8px);
+  max-width: min(34rem, 84vw); padding: .6rem 1.1rem;
+  background: rgba(9,7,12,.78); border: 1px solid var(--line);
+  border-left: 2px solid var(--ember-dim);
+  backdrop-filter: blur(6px);
+  opacity: 0; transition: opacity .4s ease, transform .4s ease;
+}
+.coach--in { opacity: 1; transform: translateX(-50%) translateY(0); }
+.coach__text { margin: 0; font-size: .8rem; line-height: 1.55; color: var(--ink-dim); text-align: center; }
+
+.speech {
+  position: absolute; left: calc(2.2rem * var(--hud-scale)); bottom: calc(6.5rem * var(--hud-scale));
+  max-width: min(26rem, 60vw); padding: .55rem .9rem;
+  background: rgba(9,7,12,.72); border-left: 2px solid var(--focus);
+  opacity: 0; transform: translateX(-10px);
+  transition: opacity .35s ease, transform .35s ease;
+}
+.speech--in { opacity: 1; transform: none; }
+.speech__who { font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--focus); }
+.speech__text { margin: .2rem 0 0; font-size: .82rem; line-height: 1.5; color: var(--ink); }

@@ -8,7 +8,7 @@ import * as THREE from 'three';
 import { Actor } from './actor.js';
 import { equipWeapon } from './weapons.js';
 import { MeleeHitbox, WeaponTrail } from '../combat/hitbox.js';
-import { isBackstab, HIT_RESULT } from '../combat/damage.js';
+import { isBackstab, resolveHit } from '../combat/damage.js';
 import { attackRating, loadBand } from '../combat/stats.js';
 import { CHAINS, clip } from '../anim/library.js';
 import { bus } from '../core/events.js';
@@ -509,7 +509,7 @@ export class Player extends Actor {
       point: t.position.clone().setY(t.position.y + t.height * 0.55),
       direction: new THREE.Vector3().subVectors(t.position, this.position).setY(0).normalize(),
     };
-    import('../combat/damage.js').then(({ resolveHit }) => resolveHit(t, spec));
+    resolveHit(t, spec);
   }
 
   /** Attempt a critical: riposte a staggered enemy, or backstab an unaware one. */
@@ -519,8 +519,10 @@ export class Player extends Actor {
       if (!t.alive || t.faction === this.faction) continue;
       const d = Math.hypot(t.position.x - this.position.x, t.position.z - this.position.z);
       if (d > 1.7) continue;
+      // Riposte a staggered enemy, or backstab one that has not seen you.
       const staggered = t.state === 'stagger' || t.staggered;
-      if (staggered || isBackstab(this, t)) {
+      const unaware = !t.aggro;
+      if (staggered || ((unaware || t.target !== this) && isBackstab(this, t))) {
         this.pendingRiposte = t;
         t.beCriticallyHit?.(this);
         this.faceTowards(t.position.x, t.position.z, true);
@@ -546,6 +548,18 @@ export class Player extends Actor {
     }
     this.character.flash(0xffffff, 0.08);
     bus.emit('player:damaged', { player: this, report });
+  }
+
+  /**
+   * A successful parry cuts its own recovery short. The parry clip is long on
+   * purpose — whiffing one should hurt — but landing one has to leave you free
+   * to riposte before the window closes, or the reward never arrives.
+   */
+  onParrySuccess() {
+    if (this.state !== PS.PARRY) return;
+    const cur = this.character.base.cur;
+    if (cur.motion) cur.time = Math.max(cur.time, (cur.motion.duration ?? 0.6) * 0.86);
+    this.canCombo = true;
   }
 
   onBlock(report) {

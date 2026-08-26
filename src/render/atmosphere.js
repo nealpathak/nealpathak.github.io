@@ -204,12 +204,15 @@ export function createSky(radius = 4000) {
  */
 export const MOODS = {
   ashfen: {
-    top: 0x24304f, horizon: 0xc97a4a, bottom: 0x120e13,
-    sun: [0.34, 0.40, -0.85], sunColor: 0xffb374, sunIntensity: 1.0,
-    fog: 0xa9764f, fogDensity: 0.0085, heightFalloff: 0.05, heightOffset: 3,
-    inscatter: 0xffbd7d, inscatterAmt: 0.6,
-    ambientSky: 0xa2949a, ambientGround: 0x94724f, ambientIntensity: 1.0,
-    sunLight: 0xffd2a1, sunLightIntensity: 3.1,
+    top: 0x2b3552, horizon: 0xc4855c, bottom: 0x14111a,
+    sun: [0.34, 0.40, -0.85], sunColor: 0xffbe86, sunIntensity: 0.9,
+    // A cooler, greyer fog than the horizon it sits under. Tinting fog to match
+    // the sunset turned every distant ridge the same red as the sky, which
+    // flattened the whole valley into one colour.
+    fog: 0x8b7a72, fogDensity: 0.0090, heightFalloff: 0.05, heightOffset: 3,
+    inscatter: 0xffc79a, inscatterAmt: 0.38,
+    ambientSky: 0x9d99a4, ambientGround: 0x8a6f56, ambientIntensity: 1.0,
+    sunLight: 0xffd6ae, sunLightIntensity: 2.9,
   },
   choir: {
     top: 0x101a2e, horizon: 0x3f6f7e, bottom: 0x060a10,

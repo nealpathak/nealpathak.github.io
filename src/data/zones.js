@@ -27,8 +27,13 @@ export const ZONES = {
         // A cross ridge behind the ruin, closing the far end.
         ['ridge', [[-80, 0, -92], [0, 0, -104], [80, 0, -96]], 34, 22, 1.8],
 
-        // The fen itself: a shallow bowl of standing water and reeds.
-        ['basin', -14, 26, 26, 4.2, 14],
+        // The fen itself: a bowl with a lip all the way round, so the water in
+        // it stays in it. Deepest at the middle and waist-high at worst.
+        //
+        // Set clear of the road on purpose. The path shaper runs last and wins
+        // wherever the two overlap, so a pond drawn under the road is simply
+        // filled back in by it.
+        ['pool', -2, 26, 15, -2.5, 2.0, 9],
 
         // The ruin sits on a shelf above the fen.
         ['plateau', 6, -48, 22, 6.4, 12],
@@ -43,8 +48,20 @@ export const ZONES = {
           [-22, 1.6, 8], [-12, 2.6, -10], [0, 4.6, -28], [6, 6.4, -44], [8, 6.4, -58],
         ], 3.6, { smooth: 7 }],
         // A branch down to the fen.
-        ['path', [[-20, 1.2, 30], [-16, -1.4, 20], [-14, -3.2, 10]], 2.4, { smooth: 5 }],
+        // A branch wading down into the fen. Its far end sits under the
+        // waterline, which is the point: the shortcut costs you your footing.
+        ['path', [[-19, 1.1, 29], [-12, -0.4, 27], [-6, -2.1, 26]], 2.4, { smooth: 5 }],
       ],
+    },
+
+    water: {
+      centre: [-2, 26], size: 48, edgeFade: 0.16,
+      level: -1.2, maxDepth: 2.0,
+      shallow: 0x5c6f52, deep: 0x1b2a24, foam: 0xd2d8bd,
+      // Still, silted water under a low sun. A mirror finish here turns the
+      // whole pond into one blown-out specular highlight.
+      swell: 0.05, choppy: 0.7, opacity: 0.94, flow: 0.5,
+      roughness: 0.44, ripple: 0.7,
     },
 
     foliage: {
@@ -77,10 +94,10 @@ export const ZONES = {
       // --- scatter ---
       { kind: 'boulder', count: 34, opts: { radius: 1.5 }, minGap: 6,
         area: { x: 0, z: 10, radius: 100 }, maxSlope: 0.85,
-        avoid: [[-26, 6, 9], [13, -32, 9], [6, -48, 26]] },
+        avoid: [[-26, 6, 9], [13, -32, 9], [6, -48, 26], [-2, 26, 17]] },
       { kind: 'deadTree', count: 26, opts: { height: 8 }, minGap: 9,
         area: { x: 0, z: 20, radius: 96 }, maxSlope: 0.42,
-        avoid: [[-26, 6, 11], [13, -32, 11], [6, -48, 28], [-14, 26, 20]] },
+        avoid: [[-26, 6, 11], [13, -32, 11], [6, -48, 28], [-2, 26, 19]] },
       { kind: 'paleTree', count: 14, opts: { height: 10 }, minGap: 14,
         area: { x: 0, z: 60, radius: 70 }, maxSlope: 0.36,
         avoid: [[-26, 6, 12]] },
@@ -100,7 +117,7 @@ export const ZONES = {
       { kind: 'shieldHusk', at: [10, -46], count: 1, tier: 2 },
       { kind: 'emberPriest', at: [6, -54], count: 1, tier: 3, elite: true },
       // Fen creatures, guarding the optional bowl.
-      { kind: 'fenWisp', at: [-14, 24], count: 3, tier: 2, elite: true },
+      { kind: 'fenWisp', at: [-3, 25], count: 3, tier: 2, elite: true },
     ],
 
     boss: {

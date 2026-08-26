@@ -163,6 +163,33 @@ export class FX {
     }
   }
 
+  /**
+   * Water thrown up by a foot, a roll or a body. Droplets arc and fall; the
+   * ring of mist at the base is what actually sells the weight.
+   */
+  splash(point, { power = 1, colour = 0xa9d8e2 } = {}) {
+    const n = Math.round(10 * power);
+    for (let i = 0; i < n; i++) {
+      const a = rng() * Math.PI * 2;
+      const s = randRange(rng, 0.6, 2.4) * power;
+      this.sparks.emit({
+        x: point.x + Math.cos(a) * 0.18, y: point.y + 0.06, z: point.z + Math.sin(a) * 0.18,
+        vx: Math.cos(a) * s, vy: randRange(rng, 1.6, 4.2) * power, vz: Math.sin(a) * s,
+        life: randRange(rng, 0.22, 0.5), size: randRange(rng, 0.03, 0.09) * power,
+        colour,
+      });
+    }
+    for (let i = 0; i < Math.round(5 * power); i++) {
+      const a = rng() * Math.PI * 2;
+      this.dust.emit({
+        x: point.x + Math.cos(a) * 0.3, y: point.y + 0.04, z: point.z + Math.sin(a) * 0.3,
+        vx: Math.cos(a) * 1.1 * power, vy: randRange(rng, 0.1, 0.5), vz: Math.sin(a) * 1.1 * power,
+        life: randRange(rng, 0.35, 0.8), size: randRange(rng, 0.18, 0.42) * power,
+        colour: 0xdff0f4,
+      });
+    }
+  }
+
   /** The ambient drift of embers that gives every zone its air. */
   ambientEmber(centre, radius, count = 1) {
     for (let i = 0; i < count; i++) {

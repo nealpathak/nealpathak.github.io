@@ -286,10 +286,17 @@ export class Game {
     });
     bus.on('player:landed', ({ hard, impactSpeed }) => {
       this.camera.addShake(clamp(impactSpeed / 40, 0.05, 0.5) * (hard ? 1.6 : 1));
-      this.fx.dustPuff(this.player.position, { count: hard ? 16 : 8, power: hard ? 1.6 : 1 });
+      if (this.player.submersion > 0.06) this.fx.splash(this.player.position, { power: hard ? 2.0 : 1.2 });
+      else this.fx.dustPuff(this.player.position, { count: hard ? 16 : 8, power: hard ? 1.6 : 1 });
     });
     bus.on('sfx:footstep', ({ actor, speed }) => {
-      if (speed > 2.4) this.fx.dustPuff(actor.position, { count: 3, power: 0.6 });
+      // In water a footfall throws spray instead of dust, and does it at any
+      // speed — you cannot creep through a flooded nave.
+      if (actor.submersion > 0.06) {
+        this.fx.splash(actor.position, { power: 0.35 + Math.min(speed, 5) * 0.14 });
+      } else if (speed > 2.4) {
+        this.fx.dustPuff(actor.position, { count: 3, power: 0.6 });
+      }
     });
     bus.on('combat:hit', ({ defender, report }) => {
       const point = report.point ?? defender.position;
@@ -658,6 +665,7 @@ export class Game {
     this._resolveHits();
 
     this.fx.update(realDt);
+    this.zone.water?.update(realDt);
     this.camera.update(realDt, this.player);
 
     this._tmp.set(-Math.sin(this.camera.yaw), 0, -Math.cos(this.camera.yaw));

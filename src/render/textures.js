@@ -236,6 +236,15 @@ export function surface(name) {
       };
       break;
     }
+    case 'ripple': {   // water: fine wind chop, normals only
+      const f = fbmField(S, { octaves: 5, frequency: 7, seed: 4021, warp: 0.18 });
+      result = {
+        map: null,
+        normalMap: fieldToNormalTexture(f, S, 1.6, 1),
+        roughnessMap: null,
+      };
+      break;
+    }
     case 'cloth': {
       const f = fbmField(S, { octaves: 4, frequency: 30, seed: 17 });
       result = {

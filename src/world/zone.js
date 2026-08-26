@@ -4,14 +4,15 @@
 // Zone data lives in src/data/zones.js. This file is the machine that reads it.
 
 import * as THREE from 'three';
-import { Terrain, plateau, ridge, basin, path, escarpment } from './terrain.js';
+import { Terrain, plateau, ridge, basin, path, pool, escarpment } from './terrain.js';
 import { CollisionWorld, BoxCollider } from './collision.js';
 import { FoliageField } from './foliage.js';
+import { Water } from './water.js';
 import * as PROPS from './props.js';
 import { makeRng } from '../core/rng.js';
 import { settings } from '../core/settings.js';
 
-const SHAPERS = { plateau, ridge, basin, path, escarpment };
+const SHAPERS = { plateau, ridge, basin, path, pool, escarpment };
 
 export class Zone {
   /**
@@ -35,6 +36,7 @@ export class Zone {
     this.rng = makeRng(def.seed ?? 1);
 
     this._buildTerrain();
+    this._buildWater();
     this._buildProps();
     this._buildFoliage();
     this._collectSpawns();
@@ -68,6 +70,13 @@ export class Zone {
         new THREE.Vector3(sx, h, sz), 0, { tag: 'bounds' },
       ));
     }
+  }
+
+  _buildWater() {
+    const w = this.def.water;
+    if (!w) return;
+    this.water = new Water(this.terrain, w);
+    this.group.add(this.water.mesh);
   }
 
   _buildProps() {
@@ -142,6 +151,7 @@ export class Zone {
     this.foliage = new FoliageField(this.terrain, {
       ...f, quality, seed: (this.def.seed ?? 1) + 991,
       centre: f.centre ?? this.terrain.origin,
+      water: this.water ?? null,
     });
     this.group.add(this.foliage.group);
   }
@@ -167,6 +177,7 @@ export class Zone {
     this.scene.remove(this.group);
     this.terrain?.dispose();
     this.foliage?.dispose();
+    this.water?.dispose();
     this.group.traverse((o) => { if (o.isMesh && o.geometry) o.geometry.dispose?.(); });
   }
 }

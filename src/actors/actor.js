@@ -103,6 +103,7 @@ export class Actor {
     this._tmp = new THREE.Vector3();
     this._lastPosition = new THREE.Vector3();
     this._speed = 0;
+    this.submersion = 0;
     this._leanState = { pitch: 0, roll: 0 };
   }
 
@@ -192,8 +193,11 @@ export class Actor {
     const control = this.grounded ? 1 : airControl;
     const want = this._desiredMove;
     const accel = want.lengthSq() > 0 ? acceleration : deceleration;
-    this.velocity.x = damp(this.velocity.x, want.x, accel * control * 0.35, dt);
-    this.velocity.z = damp(this.velocity.z, want.z, accel * control * 0.35, dt);
+    // Water fights you. Knee-deep is a nuisance; chest-deep is a commitment,
+    // which is the whole reason the Choir is worth wading into at all.
+    const wade = this.wadeDrag;
+    this.velocity.x = damp(this.velocity.x, want.x * wade, accel * control * 0.35, dt);
+    this.velocity.z = damp(this.velocity.z, want.z * wade, accel * control * 0.35, dt);
 
     this.velocity.y += this.gravity * dt;
     if (this.velocity.y < -55) this.velocity.y = -55;
@@ -232,6 +236,24 @@ export class Actor {
     const dz = this.position.z - this._lastPosition.z;
     this._speed = Math.hypot(dx, dz) / Math.max(dt, 1e-5);
     this._lastPosition.copy(this.position);
+
+    const water = this.world?.zone?.water;
+    const was = this.submersion;
+    this.submersion = water ? water.submersionAt(this.position.x, this.position.z, this.position.y) : 0;
+    // Crossing the line either way throws a sheet, and the game listens for it.
+    if ((was <= 0.02) !== (this.submersion <= 0.02) && Math.abs(this.velocity.y) + this._speed > 1.2) {
+      this.onSplash?.(this.submersion > was);
+    }
+  }
+
+  /**
+   * How much the water is holding this actor back, 1 dry to 0.38 chest-deep.
+   * Read every tick by integrate(), and by the animator to pick a wade gait.
+   */
+  get wadeDrag() {
+    if (this.submersion <= 0.05) return 1;
+    const t = clamp(this.submersion / (this.height * 0.62), 0, 1);
+    return 1 - 0.62 * t * t;
   }
 
   /** Turn toward the requested facing. */

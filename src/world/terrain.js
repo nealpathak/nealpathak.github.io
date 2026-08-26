@@ -49,6 +49,38 @@ export function basin(cx, cz, radius, depth, falloff = 10) {
   };
 }
 
+/**
+ * A contained pool: a dish flattened to `floor` at the centre, rising to a lip
+ * at the shore, with the surrounding land pulled up to meet it.
+ *
+ * A plain basin over noisy ground does not give you a pond — the noise breaches
+ * the rim somewhere and the water runs out of the level. This guarantees a
+ * shore all the way round while still letting enough noise through that the bed
+ * has hummocks in it.
+ */
+export function pool(cx, cz, radius, floor, rise = 1.6, falloff = 10) {
+  const lip = floor + rise;
+  return (x, z, h, blend) => {
+    const d = Math.hypot(x - cx, z - cz);
+    if (d > radius + falloff) return h;
+    const inner = clamp01(d / radius);
+    if (d <= radius) {
+      // A flat bed that turns up sharply near the shore. A smoothstep dish is
+      // already half way up its own bank at the middle, which gives a puddle
+      // with no depth anywhere rather than a pond.
+      const dish = floor + (lip - floor) * inner * inner * inner;
+      blend.moss = Math.max(blend.moss, (1 - inner) * 0.8);
+      // Keep a little noise for hummocks, but never enough to breach the lip or
+      // to punch through the floor: the deepest the water gets is authored.
+      const v = lerp(h, dish, 0.94);
+      return v < floor ? floor : v > lip - 0.05 ? lip - 0.05 : v;
+    }
+    const t = 1 - smoothstep(clamp01((d - radius) / falloff));
+    blend.moss = Math.max(blend.moss, t * 0.3);
+    return lerp(h, lip, t);
+  };
+}
+
 /** Flatten a corridor along a polyline, so a route is always walkable. */
 export function path(points, width, { smooth = 6, drop = 0.0 } = {}) {
   // Precompute the height along the path from its own control points, which

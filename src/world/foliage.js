@@ -94,7 +94,7 @@ export const FOLIAGE_KINDS = {
       color: 0x66684c, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.16, windMask: 'uv', rimColor: 0xc4c894, rimStrength: 0.16, rimPower: 3.0,
     }),
-    scale: [0.75, 1.4], slopeMax: 0.42, density: 1.0, radiusScale: 0.46,
+    scale: [0.75, 1.4], slopeMax: 0.42, density: 1.0, radiusScale: 0.46, wet: 0.0,
   },
   scrub: {
     geometry: () => clumpGeometry({ blades: 7, height: 0.52, width: 0.085, spread: 0.16, curve: 0.62, seed: 11 }),
@@ -102,7 +102,7 @@ export const FOLIAGE_KINDS = {
       color: 0x50543c, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.13, windMask: 'uv', rimColor: 0xb8c088, rimStrength: 0.15,
     }),
-    scale: [0.8, 1.5], slopeMax: 0.38, density: 0.16, radiusScale: 0.8,
+    scale: [0.8, 1.5], slopeMax: 0.38, density: 0.16, radiusScale: 0.8, wet: 0.0,
   },
   ash: {
     geometry: () => clumpGeometry({ blades: 4, height: 0.16, width: 0.05, spread: 0.10, curve: 0.34, seed: 23 }),
@@ -110,7 +110,7 @@ export const FOLIAGE_KINDS = {
       color: 0x4e483f, roughness: 1.0, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.20, windMask: 'uv', rimColor: 0xd8b088, rimStrength: 0.24,
     }),
-    scale: [0.7, 1.3], slopeMax: 0.72, density: 0.4, radiusScale: 0.5,
+    scale: [0.7, 1.3], slopeMax: 0.72, density: 0.4, radiusScale: 0.5, wet: 0.0,
   },
   reed: {
     geometry: () => clumpGeometry({ blades: 6, height: 1.05, width: 0.035, spread: 0.09, curve: 0.28, heightVariance: 0.6, seed: 41 }),
@@ -118,7 +118,20 @@ export const FOLIAGE_KINDS = {
       color: 0x6c6440, roughness: 0.97, side: THREE.DoubleSide, vertexColors: true,
       wind: 0.26, windMask: 'uv', rimColor: 0xcfc79a, rimStrength: 0.20,
     }),
-    scale: [0.8, 1.35], slopeMax: 0.3, density: 0.4, radiusScale: 0.6,
+    // Reeds are the one thing here that wants its feet wet, and the only
+    // thing that should be standing in the fen at all.
+    scale: [0.8, 1.35], slopeMax: 0.3, density: 0.4, radiusScale: 0.6, wet: 0.55,
+  },
+  kelp: {
+    geometry: () => clumpGeometry({ blades: 5, height: 1.5, width: 0.09, spread: 0.14, curve: 0.9, heightVariance: 0.7, seed: 77 }),
+    material: () => makeMaterial({
+      color: 0x28453e, roughness: 0.9, side: THREE.DoubleSide, vertexColors: true,
+      wind: 0.34, windMask: 'uv', rimColor: 0x9fe0d0, rimStrength: 0.26,
+    }),
+    // Drowned weed: it only grows where the water is over your knees, and it
+    // is the tell that tells you so before you step in.
+    scale: [0.7, 1.6], slopeMax: 0.5, density: 0.5, radiusScale: 0.7,
+    wet: 6.0, wetMin: 0.35,
   },
 };
 
@@ -141,7 +154,7 @@ export class FoliageField {
    */
   constructor(terrain, {
     kinds = ['grass'], radius = 90, spacing = 1.1, centre = [0, 0],
-    quality = 1, seed = 4242, mask = null, maxPerKind = 42000,
+    quality = 1, seed = 4242, mask = null, maxPerKind = 42000, water = null,
   } = {}) {
     this.terrain = terrain;
     this.meshes = [];
@@ -176,7 +189,18 @@ export class FoliageField {
           if (kindName === 'reed') d *= blend.moss;
           if (hash2(wx * 13 | 0, wz * 17 | 0, seed + 7) > d) continue;
 
-          placements.push([wx, terrain.heightAt(wx, wz), wz]);
+          const wy = terrain.heightAt(wx, wz);
+          if (water) {
+            // Nothing grows out of open water except what is meant to. Without
+            // this the fen sprouts a lawn in the middle of the pond.
+            const depth = water.depthAt(wx, wz);
+            if (depth > (kind.wet ?? 0)) continue;
+            if (kind.wetMin !== undefined && depth < kind.wetMin) continue;
+          } else if (kind.wetMin !== undefined) {
+            continue;
+          }
+
+          placements.push([wx, wy, wz]);
           if (placements.length >= maxPerKind) break;
         }
         if (placements.length >= maxPerKind) break;

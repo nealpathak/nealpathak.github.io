@@ -1,6 +1,0 @@
-{
-  "name": "exposure-ledger-engine",
-  "private": true,
-  "type": "module",
-  "description": "Node type hint so the browser engine can be unit-tested with `node selftest.mjs`. Not a build step; the site ships as static files."
-}

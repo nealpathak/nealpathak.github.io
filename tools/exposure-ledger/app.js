@@ -10,7 +10,7 @@ import {
 } from './assume.js';
 import { loadRegister, loadProgram, buildLedger, money, ceilingFor } from './data.js';
 import { prepare, simulate, simulateWithAttribution, withCeilings, withLayers } from './sim.js';
-import { landingChart, exceedanceChart, towerChart, contributorChart } from './charts.js';
+import { landingChart, exceedanceChart, towerChart, contributorChart, defenceStrip } from './charts.js';
 import { deriveFindings, rankContributors } from './findings.js';
 import { boardMemo, contractCSV, findingsCSV, aggregateCSV, exceedanceCSV } from './memo.js';
 import { sampleRegisterCSV, SAMPLE_PROGRAM_CSV, SAMPLE_NOTE } from './samples.js';
@@ -157,7 +157,7 @@ function renderHeadline(c) {
 }
 
 function renderLanding(c) {
-  $('landingChart').innerHTML = landingChart(c.result.split);
+  $('landingChart').innerHTML = landingChart(c.result.split) + defenceStrip(c.result);
 }
 
 function renderFindings(c) {

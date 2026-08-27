@@ -47,6 +47,18 @@ export function boardMemo(ctx) {
   w('Only the first line is risk transfer. Everything below it is the group paying, on a different schedule.');
   w('');
 
+  if (result.defence && result.defence.total > 0) {
+    const d = result.defence;
+    w('### Defence costs');
+    w('');
+    w(`Of the ${short(result.gross.mean)} gross, **${short(d.total)} — ${pct(d.shareOfGross, 0)} — is the cost of defending the claims** rather than settling them. ${short(d.retained)} of that is retained. A liability cap caps damages, not what your own lawyers cost, so defence sits outside every ceiling in the register.`);
+    w('');
+    if (d.erodingLimits > 0) {
+      w(`**${short(d.erodingLimits)} a year of purchased limit is consumed by defence before a settlement is signed**, on the lines where defence erodes rather than sitting outside the limit. That is capacity paid for and not received, and it is the reason the towers exhaust earlier than the schedule suggests.`);
+      w('');
+    }
+  }
+
   w('## By peril class');
   w('');
   w('| Class | Claims a year | Gross | Retained | Retained share |');

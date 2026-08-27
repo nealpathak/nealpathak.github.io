@@ -203,6 +203,43 @@ ok('the same seed returns the same number', again.retained.p99 === res.retained.
 const different = simulate(prepared, { ...settings, seed: settings.seed + 1 });
 ok('a different seed moves the number', different.retained.p99 !== res.retained.p99);
 
+/* ------------------------------------------------------------ defence --- */
+
+section('Defence costs');
+const noDefence = simulate(prepare(contracts, program, ledger, { ...settings, defenceLoad: 0 }), { ...settings, defenceLoad: 0 });
+ok('turning defence off costs nothing', noDefence.defence.total === 0);
+ok('defence makes the book more expensive', res.gross.mean > noDefence.gross.mean,
+  `${Math.round(res.gross.mean)} vs ${Math.round(noDefence.gross.mean)}`);
+ok('defence increases retained exposure', res.retained.mean > noDefence.retained.mean);
+near('defence splits with no dollars unaccounted for',
+  res.defence.transferred + res.defence.captive + res.defence.retained, res.defence.total,
+  Math.max(1, res.defence.total * 1e-9),
+  `${res.defence.transferred + res.defence.captive + res.defence.retained} vs ${res.defence.total}`);
+ok('defence eroding limits never exceeds what the towers paid',
+  res.defence.erodingLimits <= res.defence.transferred + res.defence.captive + 1e-6);
+ok('the schedule decides where defence sits',
+  prepared.lines.find((l) => l.code === 'GL').defenceOutside === true &&
+  prepared.lines.find((l) => l.code === 'PROF').defenceOutside === false,
+  prepared.lines.map((l) => `${l.code}=${l.defenceOutside ? 'OUTSIDE' : 'INSIDE'}`).join(' '));
+
+// Two identical towers differing only in where defence sits. The one that pays
+// defence out of the limit has to run out of limit sooner.
+const twinTower = (treatment) => [
+  'line,layer,attachment,limit,aggregate_limit,aggregate_eroded,retention,agg_group,captive,defence',
+  `PROF,Primary,1000000,5000000,6000000,0,1000000,T1,N,${treatment}`,
+].join('\n');
+const twinLedger = buildLedger(contracts, loadProgram(twinTower('INSIDE')));
+const insideRun = simulate(prepare(contracts, loadProgram(twinTower('INSIDE')), twinLedger, settings), settings);
+const outsideRun = simulate(prepare(contracts, loadProgram(twinTower('OUTSIDE')), twinLedger, settings), settings);
+ok('defence inside the limit spends more of the aggregate',
+  insideRun.aggregates[0].meanUsed > outsideRun.aggregates[0].meanUsed,
+  `inside ${Math.round(insideRun.aggregates[0].meanUsed)} vs outside ${Math.round(outsideRun.aggregates[0].meanUsed)}`);
+ok('defence inside the limit exhausts the tower more often',
+  insideRun.aggregates[0].exhaustionProb >= outsideRun.aggregates[0].exhaustionProb,
+  `inside ${insideRun.aggregates[0].exhaustionProb} vs outside ${outsideRun.aggregates[0].exhaustionProb}`);
+ok('only the inside tower reports defence eroding limits',
+  insideRun.defence.erodingLimits > 0 && outsideRun.defence.erodingLimits === 0);
+
 /* ------------------------------------------------------------- levers --- */
 
 section('Levers');

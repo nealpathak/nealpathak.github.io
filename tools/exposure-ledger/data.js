@@ -217,7 +217,7 @@ export function loadRegister(text) {
 
 export const PROGRAM_COLUMNS = [
   'line', 'layer', 'attachment', 'limit', 'aggregate_limit',
-  'aggregate_eroded', 'retention', 'agg_group', 'captive', 'premium',
+  'aggregate_eroded', 'retention', 'agg_group', 'captive', 'premium', 'defence',
 ];
 
 export function loadProgram(text) {
@@ -253,6 +253,7 @@ export function loadProgram(text) {
       aggGroup: String(r.agg_group || '').trim().toUpperCase() || `${lineCode}#${r.__line}`,
       captive: /^(y|yes|true|1)$/i.test(String(r.captive || '')),
       premium: isFinite(money(r.premium)) ? money(r.premium) : 0,
+      defence: r.defence || '',
       src: r.__line,
     });
   });

@@ -44,6 +44,20 @@ export function deriveFindings(ctx) {
     });
   }
 
+  /* ------------------------------------------------------- defence cost --- */
+  if (result.defence && result.defence.total > 0) {
+    const d = result.defence;
+    const insideLines = prepared.lines.filter((l) => !l.defenceOutside && l.layers.length).map((l) => l.code);
+    out.push({
+      severity: d.retained / Math.max(retained, 1) >= 0.2 ? 'high' : 'note',
+      title: `Defence costs are ${pct(d.shareOfGross, 0)} of the loss, and ${short(d.retained)} of it is yours`,
+      detail: `Defending these claims runs at ${short(d.total)} a year on top of what is paid to settle them. A liability cap caps damages; it does not cap what your own lawyers cost, so this sits outside every ceiling in the register.${insideLines.length ? ` Worse, on ${insideLines.join(' and ')} defence erodes the limit — ${short(d.erodingLimits)} a year of capacity you bought is consumed before a settlement is signed.` : ''}`,
+      action: insideLines.length
+        ? 'Ask the broker what defence-outside-the-limit costs on renewal, and price it against the capacity it gives back. It is often cheaper than buying the equivalent limit.'
+        : 'Keep defence in the risk budget. It is the largest line item that never appears in a contract summary.',
+    });
+  }
+
   /* -------------------------------------------- aggregate exhaustion ----- */
   result.aggregates
     .filter((a) => a.exhaustionProb >= 0.12)

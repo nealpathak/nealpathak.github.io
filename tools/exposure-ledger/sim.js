@@ -13,7 +13,7 @@
 // inside each trial. Same inputs give the same number every time, which is the
 // difference between a model and a rumour.
 
-import { PERILS, perilParams } from './assume.js';
+import { PERILS, perilParams, defenceTreatment } from './assume.js';
 
 /* --------------------------------------------------------------- random --- */
 
@@ -101,7 +101,15 @@ export function prepare(contracts, program, ledger, settings) {
         code,
       };
     }).sort((a, b) => a.attach - b.attach);
-    return { code, layers, sir: layers.length ? layers[0].attach : Infinity };
+    const stated = (program.byLine[code] || []).map((l) => l.defence).find(Boolean);
+    return {
+      code,
+      layers,
+      sir: layers.length ? layers[0].attach : Infinity,
+      // Defence inside the limit means every dollar of legal spend is a dollar
+      // of capacity gone. Outside means the carrier pays it on top.
+      defenceOutside: defenceTreatment(code, stated) === 'OUTSIDE',
+    };
   });
 
   // Exposure units: one per contract per peril that can actually produce a claim.
@@ -112,6 +120,7 @@ export function prepare(contracts, program, ledger, settings) {
   const uLine = [];
   const uContract = [];
   const uPeril = [];
+  const uDefence = [];
   const meta = [];
 
   ledger.forEach((u) => {
@@ -125,6 +134,7 @@ export function prepare(contracts, program, ledger, settings) {
     uLine.push(lineIndex.has(u.lineCode) ? lineIndex.get(u.lineCode) : -1);
     uContract.push(u.contractIndex);
     uPeril.push(PERILS.indexOf(u.peril));
+    uDefence.push(p.defence || 0);
     meta.push({ ...u, lambda: p.lambda, median: p.median, effectiveCeiling: isFinite(u.ceiling) ? u.ceiling : settings.uncappedTruncation });
   });
 
@@ -143,6 +153,7 @@ export function prepare(contracts, program, ledger, settings) {
       line: Int32Array.from(uLine),
       contract: Int32Array.from(uContract),
       peril: Int8Array.from(uPeril),
+      defence: Float64Array.from(uDefence),
       n: uLambda.length,
     },
     meta,
@@ -262,6 +273,11 @@ export function simulate(prepared, settings, opts = {}) {
   let tailTrials = 0;
   let maxSingleClaim = 0;
   let claimCount = 0;
+  let defenceTotal = 0;
+  let defenceTransferred = 0;
+  let defenceCaptive = 0;
+  let defenceRetained = 0;
+  let defenceEroding = 0;
 
   for (let t = 0; t < trials; t++) {
     aggRemaining.set(aggRemainingStart);
@@ -283,14 +299,22 @@ export function simulate(prepared, settings, opts = {}) {
       const li = units.line[i];
       const ci = units.contract[i];
       const pi = units.peril[i];
+      const dr = units.defence[i];
 
       for (let c = 0; c < k; c++) {
-        let loss = Math.exp(mu + sigma * normal());
-        if (loss > ceiling) loss = ceiling;
-        if (loss > truncation) loss = truncation;
-        if (!(loss > 0)) continue;
+        let indemnity = Math.exp(mu + sigma * normal());
+        if (indemnity > ceiling) indemnity = ceiling;
+        if (indemnity > truncation) indemnity = truncation;
+        if (!(indemnity > 0)) continue;
+
+        // A liability cap caps damages. It does not cap what defending the
+        // claim costs, so defence is taken off the already-capped indemnity and
+        // added on top of it.
+        const defence = indemnity * dr;
+        const loss = indemnity + defence;
 
         gross += loss;
+        defenceTotal += defence;
         claimCount++;
         grossByPeril[pi] += loss;
         claimsByPeril[pi] += 1;
@@ -300,17 +324,23 @@ export function simulate(prepared, settings, opts = {}) {
         if (li < 0) {
           // No form responds. The whole loss is the corporation's.
           uninsured += loss;
+          defenceRetained += defence;
           retainedByPeril[pi] += loss;
           retainedByContractMean[ci] += loss;
           continue;
         }
 
-        const layers = lines[li].layers;
+        const line = lines[li];
+        const layers = line.layers;
+        // Inside the limit, defence rides with the indemnity through the tower
+        // and erodes it on the way. Outside, the tower only ever sees damages.
+        const through = line.defenceOutside ? indemnity : loss;
         let recovered = 0;
+        let ceded = 0;
         for (let z = 0; z < layers.length; z++) {
           const L = layers[z];
-          if (loss <= L.attach) break;
-          let cover = loss - L.attach;
+          if (through <= L.attach) break;
+          let cover = through - L.attach;
           if (cover > L.limit) cover = L.limit;
           const gi = L.aggIdx;
           const avail = aggRemaining[gi];
@@ -319,16 +349,36 @@ export function simulate(prepared, settings, opts = {}) {
           aggRemaining[gi] -= actual;
           aggUsedTotal[gi] += actual;
           recovered += actual;
-          if (L.captive) captive += actual; else transferred += actual;
+          if (L.captive) captive += actual; else { transferred += actual; ceded += actual; }
         }
 
-        const retained = loss - recovered;
+        const retainedTower = through - recovered;
         // Everything under the first attachment is the retention proper.
-        const sirPart = Math.min(retained, lines[li].sir === Infinity ? retained : Math.min(loss, lines[li].sir));
+        const sirPart = line.sir === Infinity
+          ? retainedTower
+          : Math.min(retainedTower, Math.min(through, line.sir));
         sir += sirPart;
-        above += retained - sirPart;
-        retainedByPeril[pi] += retained;
-        retainedByContractMean[ci] += retained;
+        above += retainedTower - sirPart;
+        let retainedTotal = retainedTower;
+
+        if (line.defenceOutside) {
+          // Paid in addition to the limit, but only once the claim has pierced
+          // the retention and actually triggered the policy.
+          if (ceded > 0) { transferred += defence; defenceTransferred += defence; }
+          else if (recovered > 0) { captive += defence; defenceCaptive += defence; }
+          else { retainedTotal += defence; sir += defence; defenceRetained += defence; }
+        } else {
+          // Attributed pro rata: defence and indemnity travelled through the
+          // tower together, so they are apportioned the same way.
+          const share = loss > 0 ? defence / loss : 0;
+          defenceEroding += recovered * share;
+          defenceTransferred += ceded * share;
+          defenceCaptive += (recovered - ceded) * share;
+          defenceRetained += retainedTower * share;
+        }
+
+        retainedByPeril[pi] += retainedTotal;
+        retainedByContractMean[ci] += retainedTotal;
       }
     }
 
@@ -378,20 +428,25 @@ export function simulate(prepared, settings, opts = {}) {
         const ceiling = units.ceiling[i];
         const li = units.line[i];
         const ci = units.contract[i];
+        const dr = units.defence[i];
         for (let c = 0; c < k; c++) {
-          let loss = Math.exp(mu + sigma * normal2());
-          if (loss > ceiling) loss = ceiling;
-          if (loss > truncation) loss = truncation;
-          if (!(loss > 0)) continue;
+          let indemnity = Math.exp(mu + sigma * normal2());
+          if (indemnity > ceiling) indemnity = ceiling;
+          if (indemnity > truncation) indemnity = truncation;
+          if (!(indemnity > 0)) continue;
+          const defence = indemnity * dr;
+          const loss = indemnity + defence;
           grossT += loss;
           if (li < 0) { trialContract[ci] += loss; continue; }
-          const layers = lines[li].layers;
+          const line = lines[li];
+          const layers = line.layers;
+          const through = line.defenceOutside ? indemnity : loss;
           let recovered = 0;
           let ceded = 0;
           for (let z = 0; z < layers.length; z++) {
             const L = layers[z];
-            if (loss <= L.attach) break;
-            let cover = loss - L.attach;
+            if (through <= L.attach) break;
+            let cover = through - L.attach;
             if (cover > L.limit) cover = L.limit;
             const avail = aggRemaining[L.aggIdx];
             if (avail <= 0) continue;
@@ -400,8 +455,13 @@ export function simulate(prepared, settings, opts = {}) {
             recovered += actual;
             if (!L.captive) ceded += actual;
           }
+          let retainedHere = through - recovered;
+          if (line.defenceOutside) {
+            if (ceded > 0) ceded += defence;
+            else if (recovered <= 0) retainedHere += defence;
+          }
           transferredT += ceded;
-          trialContract[ci] += loss - ceded;
+          trialContract[ci] += retainedHere;
         }
       }
       if (grossT - transferredT >= attributionThreshold) {
@@ -433,6 +493,15 @@ export function simulate(prepared, settings, opts = {}) {
       tvar95: tvar(0.95),
       tvar99: tvar(0.99),
       max: sorted[sorted.length - 1],
+    },
+    defence: {
+      total: defenceTotal / trials,
+      transferred: defenceTransferred / trials,
+      captive: defenceCaptive / trials,
+      retained: defenceRetained / trials,
+      /** Defence dollars that consumed tower capacity — the limit you paid for and did not get. */
+      erodingLimits: defenceEroding / trials,
+      shareOfGross: sumGross > 0 ? defenceTotal / sumGross : 0,
     },
     split: {
       retention: sumSir / trials,

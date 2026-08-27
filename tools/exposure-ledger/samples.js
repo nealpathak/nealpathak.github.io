@@ -146,14 +146,14 @@ export function sampleRegisterCSV(seed, count) {
  * the only thing standing behind every data carve-out in the register.
  */
 export const SAMPLE_PROGRAM_CSV = [
-  'line,layer,attachment,limit,aggregate_limit,aggregate_eroded,retention,agg_group,captive,premium',
-  'PROF,Captive working layer,0,2500000,7500000,3100000,2500000,CAPTIVE-PROF,Y,0',
-  'PROF,Primary professional liability,2500000,10000000,10000000,0,0,PROF-PRIMARY,N,1650000',
-  'PROF,Excess professional liability,12500000,25000000,50000000,0,0,SHARED-UMBRELLA,N,1080000',
-  'GL,Primary general liability,1000000,2000000,8000000,2900000,1000000,GL-PRIMARY,N,940000',
-  'GL,Umbrella,3000000,50000000,50000000,0,0,SHARED-UMBRELLA,N,2100000',
-  'GL,First excess,53000000,50000000,50000000,0,0,GL-EXCESS-1,N,1240000',
-  'CYBER,Cyber primary,1000000,25000000,25000000,0,1000000,CYBER-PRIMARY,N,1420000',
+  'line,layer,attachment,limit,aggregate_limit,aggregate_eroded,retention,agg_group,captive,premium,defence',
+  'PROF,Captive working layer,0,2500000,7500000,3100000,2500000,CAPTIVE-PROF,Y,0,INSIDE',
+  'PROF,Primary professional liability,2500000,10000000,10000000,0,0,PROF-PRIMARY,N,1650000,INSIDE',
+  'PROF,Excess professional liability,12500000,25000000,50000000,0,0,SHARED-UMBRELLA,N,1080000,INSIDE',
+  'GL,Primary general liability,1000000,2000000,8000000,2900000,1000000,GL-PRIMARY,N,940000,OUTSIDE',
+  'GL,Umbrella,3000000,50000000,50000000,0,0,SHARED-UMBRELLA,N,2100000,OUTSIDE',
+  'GL,First excess,53000000,50000000,50000000,0,0,GL-EXCESS-1,N,1240000,OUTSIDE',
+  'CYBER,Cyber primary,1000000,25000000,25000000,0,1000000,CYBER-PRIMARY,N,1420000,INSIDE',
 ].join('\n');
 
 export const SAMPLE_NOTE =

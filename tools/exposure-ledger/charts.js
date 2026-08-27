@@ -53,6 +53,33 @@ export function landingChart(split) {
     </table>`;
 }
 
+/* ------------------------------------------------------- defence split ---- */
+
+/** What the claims cost to settle, against what they cost to fight. */
+export function defenceStrip(result) {
+  const d = result.defence;
+  if (!d || !(d.total > 0)) return '';
+  const gross = result.gross.mean;
+  const settle = Math.max(0, gross - d.total);
+  const defShare = d.total / gross;
+
+  return `
+  <div class="defence">
+    <svg class="stackbar" viewBox="0 0 100 26" preserveAspectRatio="none" role="img"
+         aria-label="Defence is ${pct(defShare, 0)} of gross annual loss">
+      <rect class="seg dsettle" x="0" y="0" width="${((settle / gross) * 100).toFixed(2)}%" height="26" rx="1">
+        <title>Settling the claims: ${short(settle)} a year</title></rect>
+      <rect class="seg ddefend" x="${((settle / gross) * 100).toFixed(2)}%" y="0" width="${(defShare * 100).toFixed(2)}%" height="26" rx="1">
+        <title>Defending the claims: ${short(d.total)} a year</title></rect>
+    </svg>
+    <div class="dlegend">
+      <span><span class="swatch dsettle"></span>Settling ${short(settle)}</span>
+      <span><span class="swatch ddefend"></span>Defending <b>${short(d.total)}</b> · ${pct(defShare, 0)} of gross</span>
+      <span class="dnote">${short(d.retained)} of the defence bill is retained${d.erodingLimits > 0 ? `, and ${short(d.erodingLimits)} of purchased limit is eaten by it` : ''}.</span>
+    </div>
+  </div>`;
+}
+
 /* --------------------------------------------------- exceedance curve ----- */
 
 /**

@@ -116,6 +116,42 @@ export const CATEGORIES = {
   },
 };
 
+/**
+ * Defence cost as a fraction of the indemnity finally paid.
+ *
+ * This is the line item that quietly halves a tower. Two facts sit behind it and
+ * both are ordinary: on most claims-made professional and cyber forms defence
+ * erodes the limit, so every dollar spent on lawyers is a dollar of capacity
+ * gone before a settlement is signed; and a contractual liability cap caps
+ * damages, not what your own defence costs you. IP is the outlier because IP
+ * litigation is the outlier — it is routinely defended past the point where the
+ * damages at stake would justify it.
+ */
+export const DEFENCE_RATIO = {
+  GENERAL: 0.30,
+  INDEMNITY: 0.40,
+  IP: 0.75,
+  DATA: 0.35,
+  GROSS: 0.45,
+};
+
+/**
+ * Where defence sits by default when the schedule of insurance does not say.
+ * The occurrence-based general liability form pays defence in addition to the
+ * limit; claims-made professional and cyber forms almost always erode it.
+ */
+export const DEFENCE_TREATMENT = {
+  GL: 'OUTSIDE',
+  AUTO: 'OUTSIDE',
+  PROPERTY: 'OUTSIDE',
+  PROF: 'INSIDE',
+  CYBER: 'INSIDE',
+  DNO: 'INSIDE',
+  EPL: 'INSIDE',
+};
+
+export const DEFAULT_DEFENCE_TREATMENT = 'INSIDE';
+
 /** Sub-linear scaling. A contract worth ten times as much does not carry ten times the claims. */
 export const SCALING = {
   freqExponent: 0.60,
@@ -135,6 +171,10 @@ export const DEFAULT_SETTINGS = {
   sevExponent: SCALING.sevExponent,
   /** Applied to every frequency at once. The single dial for "we think the book is running hot". */
   frequencyLoad: 1.0,
+  /** Applied to every severity median at once. The other half of that dial. */
+  severityScale: 1.0,
+  /** Applied to every defence ratio at once. Set to 0 to see the tower without defence in it. */
+  defenceLoad: 1.0,
   /** Where an uncapped peril is truncated, so the mean stays finite and arguable. */
   uncappedTruncation: 250e6,
 };
@@ -161,9 +201,19 @@ export function perilParams(category, peril, annualValue, settings = DEFAULT_SET
     Math.pow(scale, settings.freqExponent ?? SCALING.freqExponent) *
     (settings.frequencyLoad ?? 1);
   const median =
-    (cat.sev[peril] || 0) * Math.pow(scale, settings.sevExponent ?? SCALING.sevExponent);
+    (cat.sev[peril] || 0) *
+    Math.pow(scale, settings.sevExponent ?? SCALING.sevExponent) *
+    (settings.severityScale ?? 1);
   const cv = settings.severityCV ?? SCALING.severityCV;
   const sigma = Math.sqrt(Math.log(1 + cv * cv));
   const mu = Math.log(Math.max(median, 1));
-  return { lambda, mu, sigma, median };
+  const defence = (DEFENCE_RATIO[peril] || 0) * (settings.defenceLoad ?? 1);
+  return { lambda, mu, sigma, median, defence };
+}
+
+/** How a line treats defence, from the schedule if stated and from the form if not. */
+export function defenceTreatment(lineCode, stated) {
+  const v = String(stated || '').trim().toUpperCase();
+  if (v === 'INSIDE' || v === 'OUTSIDE') return v;
+  return DEFENCE_TREATMENT[String(lineCode || '').toUpperCase()] || DEFAULT_DEFENCE_TREATMENT;
 }

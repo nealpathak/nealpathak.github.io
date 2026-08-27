@@ -67,6 +67,13 @@ python3 -m http.server 4174
 Roughly fifteen thousand lines of hand-written ES modules, plus Three.js
 vendored under `vendor/`. Some of the choices worth knowing about:
 
+**It plays on a phone.** Movement is a stick that centres wherever your thumb
+lands, the camera is a drag on the right half, and the buttons are a grid in the
+corner a right thumb actually reaches. They drive the same named actions the
+keyboard does, so tap-to-roll and hold-to-sprint work identically. The camera's
+projection is corrected for a narrow viewport, because a phone held upright
+otherwise parks it in the back of your head.
+
 **Nothing is downloaded.** Every surface texture is fBm noise rendered into a
 canvas at boot and turned into albedo, normal and roughness maps. Every
 character is assembled from tapered capsules and rounded plates parented to a
@@ -137,8 +144,18 @@ game, deterministically, in a couple of seconds, without depending on how fast
 the machine can draw. Every non-trivial bug in this project was found that way.
 
 Useful query parameters: `?autostart=1` skips the title card, `?zone=choir`
-opens the second zone directly, `?studio=1` swaps the zone's art direction for
-neutral lighting, `?clip=attackHeavy1` opens the animation lab.
+opens the second zone directly, `?touch=1` forces the on-screen controls on a
+desktop (and `?touch=0` forces them off on a phone), `?studio=1` swaps the
+zone's art direction for neutral lighting, `?clip=attackHeavy1` opens the
+animation lab.
+
+A suite can ask for a different browser than the default by declaring it in a
+comment on a line of its own, which is how the touch suite gets a phone-shaped
+page with a coarse pointer:
+
+```
+// @env EW_TOUCH=1 EW_VIEW=844x390 EW_Q=?autostart=1&touch=1
+```
 
 ## Licence
 

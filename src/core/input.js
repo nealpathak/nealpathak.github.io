@@ -1,11 +1,21 @@
-// Input: keyboard + mouse (pointer lock) + gamepad, unified behind named actions.
+// Input: keyboard + mouse (pointer lock), gamepad and touch, unified behind
+// named actions.
 //
-// Two things here matter for how the game feels:
+// Three things here matter for how the game feels:
 //   1. Input buffering. Souls-likes let you queue the next attack during the
 //      recovery of the current one. `consume()` is that queue.
-//   2. Tap vs hold on the same button. Tap dodge = roll, hold = sprint.
+//   2. Tap vs hold on the same button. Tap dodge = roll, hold = sprint. This
+//      is what makes the on-screen dodge button worth having: the same control
+//      is a roll and a sprint on a phone exactly as it is on a keyboard.
+//   3. Touch drives `move` and `look` through the same fields the stick and the
+//      mouse write, so nothing downstream of here knows or cares which it was.
 
 import { clamp } from './math.js';
+import { bus } from './events.js';
+
+// The on-screen stick is drawn by the UI, not here, so the input layer stays
+// free of DOM beyond the listeners it needs.
+function bus_emitStick(stick) { bus.emit('input:stick', { stick }); }
 
 export const ACTIONS = {
   moveF: 'moveF', moveB: 'moveB', moveL: 'moveL', moveR: 'moveR',
@@ -91,8 +101,17 @@ export class Input {
     this.invertY = false;
     this.pointerLocked = false;
     this.usingGamepad = false;
+    this.usingTouch = false;
+    // Set by the on-screen controls when they exist. Pointers that begin on a
+    // button belong to that button and must not also steer the camera.
+    this.touchEnabled = false;
+    this._stick = null;          // { id, ox, oy, x, y }
+    this._lookTouch = null;      // { id, x, y }
+    this._touchMove = { x: 0, y: 0 };
     this.padIndex = -1;
     this.deadzone = 0.18;
+    this.stickRadius = 58;         // px from the thumb's landing point to full tilt
+    this.touchLookScale = 1.35;    // px of drag -> px of mouse-equivalent look
     this.enabled = true;
     this.modifier = false;
 
@@ -147,6 +166,58 @@ export class Input {
     this._onBlur = () => this.releaseAll();
     this._onPadConnect = (e) => { this.padIndex = e.gamepad.index; };
 
+    // Touch. Pointer events rather than touch events, so a stylus or a
+    // touchscreen laptop behaves the same as a phone.
+    this._onPointerDown = (e) => {
+      if (!this.touchEnabled || e.pointerType === 'mouse') return;
+      if (e.target?.closest?.('.touch-btn, .menu, .rest, .pause, button')) return;
+      this.usingTouch = true;
+      this.usingGamepad = false;
+      const half = window.innerWidth * 0.5;
+      if (e.clientX < half && !this._stick) {
+        // The stick centres wherever the thumb lands, which is the only way a
+        // virtual stick is usable without looking at it.
+        this._stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0 };
+        bus_emitStick(this._stick);
+      } else if (!this._lookTouch) {
+        this._lookTouch = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
+      }
+    };
+    this._onPointerMove = (e) => {
+      if (!this.touchEnabled || e.pointerType === 'mouse') return;
+      const st = this._stick;
+      if (st && st.id === e.pointerId) {
+        const dx = e.clientX - st.ox, dy = e.clientY - st.oy;
+        const r = this.stickRadius;
+        const len = Math.hypot(dx, dy);
+        const k = len > r ? r / len : 1;
+        st.x = (dx * k) / r;
+        st.y = (dy * k) / r;
+        // Dragging past the ring drags the ring with it, so a long push does
+        // not run out of stick.
+        if (len > r) { st.ox += dx * (1 - k); st.oy += dy * (1 - k); }
+        this._touchMove.x = st.x;
+        this._touchMove.y = -st.y;
+        bus_emitStick(st);
+        return;
+      }
+      const lk = this._lookTouch;
+      if (lk && lk.id === e.pointerId) {
+        this._rawLook.x += (e.clientX - lk.x) * this.touchLookScale;
+        this._rawLook.y += (e.clientY - lk.y) * this.touchLookScale;
+        lk.moved += Math.abs(e.clientX - lk.x) + Math.abs(e.clientY - lk.y);
+        lk.x = e.clientX; lk.y = e.clientY;
+      }
+    };
+    this._onPointerUp = (e) => {
+      if (this._stick?.id === e.pointerId) {
+        this._stick = null;
+        this._touchMove.x = this._touchMove.y = 0;
+        bus_emitStick(null);
+      }
+      if (this._lookTouch?.id === e.pointerId) this._lookTouch = null;
+    };
+
     t.addEventListener('keydown', this._onKeyDown);
     t.addEventListener('keyup', this._onKeyUp);
     t.addEventListener('mousedown', this._onMouseDown);
@@ -155,6 +226,10 @@ export class Input {
     t.addEventListener('wheel', this._onWheel, { passive: true });
     t.addEventListener('contextmenu', this._onContext);
     t.addEventListener('blur', this._onBlur);
+    t.addEventListener('pointerdown', this._onPointerDown);
+    t.addEventListener('pointermove', this._onPointerMove);
+    t.addEventListener('pointerup', this._onPointerUp);
+    t.addEventListener('pointercancel', this._onPointerUp);
     document.addEventListener('pointerlockchange', this._onLockChange);
     window.addEventListener('gamepadconnected', this._onPadConnect);
   }
@@ -169,6 +244,10 @@ export class Input {
     t.removeEventListener('wheel', this._onWheel);
     t.removeEventListener('contextmenu', this._onContext);
     t.removeEventListener('blur', this._onBlur);
+    t.removeEventListener('pointerdown', this._onPointerDown);
+    t.removeEventListener('pointermove', this._onPointerMove);
+    t.removeEventListener('pointerup', this._onPointerUp);
+    t.removeEventListener('pointercancel', this._onPointerUp);
     document.removeEventListener('pointerlockchange', this._onLockChange);
     window.removeEventListener('gamepadconnected', this._onPadConnect);
   }
@@ -193,6 +272,10 @@ export class Input {
     this._mouseHeld.clear();
     this.modifier = false;
     this.move.x = this.move.y = 0;
+    this._stick = null;
+    this._lookTouch = null;
+    this._touchMove.x = this._touchMove.y = 0;
+    bus_emitStick(null);
   }
 
   /**
@@ -202,7 +285,9 @@ export class Input {
    * player should ever see.
    */
   requestPointerLock(el) {
-    if (!el || document.pointerLockElement === el) return;
+    // A touch device has no pointer to lock, and asking wakes a permission
+    // prompt on some browsers for a capability the player will never use.
+    if (this.touchEnabled || !el || document.pointerLockElement === el) return;
     // Both the options form and the bare form can throw synchronously OR
     // return a promise that rejects, depending on the browser and on whether a
     // gesture is in progress. Every one of those four paths has to be
@@ -289,6 +374,8 @@ export class Input {
       this.move.x = pad.mx; this.move.y = pad.my;
       this.look.x += pad.lx * this.padSensitivity * dt;
       this.look.y += pad.ly * this.padSensitivity * dt * (this.invertY ? -1 : 1);
+    } else if (this.usingTouch && (this._stick || kLen === 0)) {
+      this.move.x = this._touchMove.x; this.move.y = this._touchMove.y;
     } else {
       this.move.x = kx; this.move.y = ky;
     }

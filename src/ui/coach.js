@@ -9,19 +9,49 @@ import { settings } from '../core/settings.js';
 
 const SEEN_KEY = 'emberwake.hints.v1';
 
-/** [id, text] — kept short enough to read without stopping. */
+/**
+ * [id, text] — kept short enough to read without stopping.
+ *
+ * Hints that name a key have a touch wording too, because telling someone on a
+ * phone to press R is worse than saying nothing: it teaches them the game was
+ * not built for the thing they are holding.
+ */
 const HINTS = {
-  move: ['Move with W A S D. The camera follows the mouse.'],
-  sprint: ['Hold Space to sprint. Tap it to roll — rolling has invincibility frames, sprinting does not.'],
-  firstEnemy: ['Lock on with Q. Locked on, you strafe instead of turning, and the camera keeps both of you in frame.'],
+  move: [
+    'Move with W A S D. The camera follows the mouse.',
+    'Drag the left of the screen to move. Drag the right to look.',
+  ],
+  sprint: [
+    'Hold Space to sprint. Tap it to roll — rolling has invincibility frames, sprinting does not.',
+    'Hold Roll to sprint. Tap it to roll — rolling has invincibility frames, sprinting does not.',
+  ],
+  firstEnemy: [
+    'Lock on with Q. Locked on, you strafe instead of turning, and the camera keeps both of you in frame.',
+    'Tap Lock to lock on. Locked on, you strafe instead of turning, and the camera keeps both of you in frame.',
+  ],
   stamina: ['Attacks, rolls and blocking all cost stamina. Running out mid-guard breaks it.'],
-  lowHealth: ['Press R to drink. It takes a moment — make the space first.'],
-  guard: ['Hold right mouse to guard. Shift + right mouse parries, which is riskier and far better.'],
-  parry: ['Parried. Press E now for a riposte, before they recover.'],
-  backstab: ['Something has not noticed you. Get behind it and press E.'],
+  lowHealth: [
+    'Press R to drink. It takes a moment — make the space first.',
+    'Tap Heal to drink. It takes a moment — make the space first.',
+  ],
+  guard: [
+    'Hold right mouse to guard. Shift + right mouse parries, which is riskier and far better.',
+    'Hold Grd to guard. Par parries, which is riskier and far better.',
+  ],
+  parry: [
+    'Parried. Press E now for a riposte, before they recover.',
+    'Parried. Tap Use now for a riposte, before they recover.',
+  ],
+  backstab: [
+    'Something has not noticed you. Get behind it and press E.',
+    'Something has not noticed you. Get behind it and tap Use.',
+  ],
   shrine: ['Resting refills your flask and heals you — and wakes every enemy in the vale.'],
   cindersLost: ['Your cinders are where you fell. Reach them without dying again and they are yours.'],
-  bindable: ['That spirit can be bound. Get it below a third of its health, then press G to throw a sigil.'],
+  bindable: [
+    'That spirit can be bound. Get it below a third of its health, then press G to throw a sigil.',
+    'That spirit can be bound. Get it below a third of its health, then tap Bind.',
+  ],
   affinity: ['Ember beats Bloom beats Tide beats Ember. Radiance and Void tear each other apart.'],
   levelUp: ['You can afford a level. Rest at an Emberwake to spend cinders.'],
   boss: ['It will not follow you out of this ground. Neither will your mistakes.'],
@@ -71,7 +101,11 @@ export class Coach {
     if (this.seen.has(id) || !HINTS[id]) return;
     this.seen.add(id);
     this._save();
-    this.queue.push(HINTS[id][0]);
+    // Index 1 is the touch wording where a hint has one; most do not, because
+    // most hints name a system rather than a control.
+    const lines = HINTS[id];
+    const touch = document.documentElement.classList.contains('is-touch');
+    this.queue.push((touch && lines[1]) || lines[0]);
   }
 
   say(who, text, duration = 4.5) {

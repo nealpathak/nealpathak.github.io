@@ -10,11 +10,16 @@
 set -u
 cd "$(dirname "$0")/.."
 
+# A suite can ask for a different browser than the default by declaring it on a
+# line of its own, e.g.
+#   // @env EW_TOUCH=1 EW_VIEW=390x844 EW_Q=?autostart=1&touch=1
+# which is how the touch suite gets a phone-shaped page with a coarse pointer.
 fail=0
 for f in tools/tests/*.js; do
   name=$(basename "$f" .js)
   printf '\n=== %s ===\n' "$name"
-  out=$(EW_Q='?autostart=1' node tools/harness.mjs /tmp/emberwake-test.png 300 "$f" 2>&1)
+  envline=$(sed -n 's|^// *@env *||p' "$f" | head -1)
+  out=$(env EW_Q='?autostart=1' $envline node tools/harness.mjs /tmp/emberwake-test.png 300 "$f" 2>&1)
   echo "$out" | sed -n '/\[eval\]/,$p' | head -60
   if echo "$out" | grep -qE '\[eval-error\]|\[pageerror\]|\[error\]|"error":'; then
     echo "FAILED: $name"

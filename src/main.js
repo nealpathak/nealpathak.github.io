@@ -113,7 +113,7 @@ export async function boot() {
   const { resolveHit } = await import('./combat/damage.js');
   const { BONE_INDEX } = await import('./anim/skeleton.js');
   window.__BI = BONE_INDEX;   // bone lookup, for the animation probes in tools/
-  window.emberwake = { engine, game, THREE, bus, settings, resolveHit };
+  window.emberwake = { engine, game, THREE, bus, settings, resolveHit, ui: engine.uiRoot };
 
   await nextFrame();
   document.getElementById('boot')?.classList.add('boot--done');

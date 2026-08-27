@@ -10,6 +10,10 @@
 
 import * as THREE from 'three';
 import { clamp, damp, dampAngle, shortestAngle, smoothstep, TAU } from '../core/math.js';
+
+// 16:9 is the aspect the framing was tuned against; anything narrower than
+// this — a phone held upright, most of all — is corrected for.
+const REF_ASPECT = 16 / 9;
 import { settings } from '../core/settings.js';
 
 export class ThirdPersonCamera {
@@ -117,6 +121,13 @@ export class ThirdPersonCamera {
       this.targetDistance = 4.4;
     }
 
+    // A phone held upright shows barely a third of the horizontal field a
+    // monitor does at the same vertical fov, which parks the camera in the back
+    // of the player's head. Widening the fov alone fixes the framing and ruins
+    // the look, so the correction is split: a little wider, and a little
+    // further back.
+    this.targetDistance *= this._narrowPull();
+
     // Pull in when looking steeply down, or the camera ends up in the floor.
     const pitchPull = smoothstep((-this.pitch - 0.35) / 0.7) * 1.5;
     let want = this.targetDistance - pitchPull;
@@ -187,11 +198,35 @@ export class ThirdPersonCamera {
 
     // FOV: eased so a sprint boost feels like acceleration, not a cut.
     this._fovCurrent = damp(this._fovCurrent, this._fovTarget, 5, dt);
-    if (Math.abs(this.camera.fov - this._fovCurrent) > 0.01) {
-      this.camera.fov = this._fovCurrent;
+    const fov = this._fovForAspect(this._fovCurrent);
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov = fov;
       this.camera.updateProjectionMatrix();
     }
     this._fovTarget = this._fovBase;   // callers re-assert a boost each frame
+  }
+
+  /**
+   * Vertical fov corrected for a narrow viewport.
+   *
+   * Holding the horizontal field exactly would ask for 130 degrees vertical on
+   * a portrait phone, which is a fisheye. This holds 70% of it and caps at 78,
+   * and the rest of the framing is bought by pulling the camera back.
+   */
+  _fovForAspect(vFovDeg) {
+    const aspect = this.camera.aspect || REF_ASPECT;
+    if (aspect >= REF_ASPECT) return vFovDeg;
+    const v = vFovDeg * Math.PI / 180;
+    const wantH = 2 * Math.atan(Math.tan(v / 2) * REF_ASPECT) * 0.70;
+    const v2 = 2 * Math.atan(Math.tan(wantH / 2) / aspect) * 180 / Math.PI;
+    return clamp(Math.max(vFovDeg, v2), vFovDeg, 78);
+  }
+
+  /** How much further back to sit on a narrow viewport. 1 on anything wide. */
+  _narrowPull() {
+    const aspect = this.camera.aspect || REF_ASPECT;
+    if (aspect >= REF_ASPECT) return 1;
+    return Math.sqrt(clamp(REF_ASPECT / aspect, 1, 1.5));
   }
 
   setBaseFov(deg) {

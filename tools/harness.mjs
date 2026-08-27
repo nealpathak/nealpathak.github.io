@@ -60,7 +60,15 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader',
          '--enable-webgl','--ignore-gpu-blocklist','--no-sandbox','--disable-dev-shm-usage'],
 });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+// EW_VIEW=WxH renders at another size; EW_TOUCH=1 makes the page report a
+// coarse pointer with no hover, which is what the on-screen controls test for.
+const [vw, vh] = (process.env.EW_VIEW || '1280x720').split('x').map(Number);
+const page = await browser.newPage({
+  viewport: { width: vw, height: vh },
+  deviceScaleFactor: 1,
+  hasTouch: process.env.EW_TOUCH === '1',
+  isMobile: process.env.EW_TOUCH === '1',
+});
 
 const logs = [];
 page.on('console', m => logs.push(`[${m.type()}] ${m.text()}`));

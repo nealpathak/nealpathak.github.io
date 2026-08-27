@@ -185,12 +185,42 @@ Kindled shrines are tracked by id across every zone rather than by walking the
 zone that happens to be loaded, because the other one is not there to walk. Die
 in one zone with your last ember in another and you wake at the ember.
 
+## Playing on a phone
+
+A personal site is opened on a phone far more often than on a desktop, and
+until the on-screen controls existed a phone visitor got a game they could look
+at and not play.
+
+Movement is a stick that centres wherever the left thumb lands — the only way a
+virtual stick is usable without looking at it — and drags its own ring along
+when pushed past full tilt, so a long push does not run out of stick. The
+camera is a drag anywhere in the right half that is not a button. The buttons
+are a grid anchored to the bottom-right corner, in the order a right thumb
+reaches them: reflex actions lowest and rightmost, deliberate ones above and to
+the left, and the pause, skill and sigil buttons out of the reflex zone
+entirely at the top. The middle of the screen carries nothing, because that is
+where the game is.
+
+Everything drives the same named actions the keyboard does, so the tap-versus-
+hold on dodge works on a phone exactly as it does on a keyboard: tap to roll,
+hold to sprint.
+
+The camera is corrected for narrow viewports. A phone held upright shows barely
+a third of the horizontal field a monitor does at the same vertical fov, which
+parks the camera in the back of the player's head. Holding the horizontal field
+exactly would ask for 130 degrees vertical, which is a fisheye, so the
+correction is split: hold 70% of it, cap at 78 degrees, and buy the rest of the
+framing by pulling the camera back.
+
+Hints that name a key carry a touch wording too. Telling someone on a phone to
+press R is worse than saying nothing: it teaches them the game was not built
+for the thing they are holding.
+
 ## Still open
 
 - The Cinderreach zone
 - A hub with vendors, and quests with dialogue trees
 - Companion dialogue beyond the one-line barks
-- Touch controls
 
 ## Non-goals
 

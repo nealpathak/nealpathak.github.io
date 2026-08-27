@@ -584,3 +584,118 @@ select.setting__control option { background: #17141c; }
   font-family: var(--font-display); font-size: .68rem;
   letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
 }
+
+/* --- on-screen controls ---------------------------------------------------
+ *
+ * Laid out around where thumbs reach on a held phone, not around where the
+ * boxes look tidy: the stick floats wherever the left thumb lands, the primary
+ * buttons are a grid anchored to the bottom-right corner, and the middle of
+ * the screen — where the game is — carries nothing at all.
+ *
+ * Anchored rather than offset. The first version placed every button with its
+ * own right/bottom pair, and on a landscape phone half of them fell off the
+ * bottom edge while the pause button landed in the middle of the cluster.
+ */
+.touch { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+
+.touch-stick {
+  position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px;
+  border-radius: 50%; opacity: 0; transition: opacity .12s ease;
+  border: 1px solid var(--line); background: rgba(16, 14, 20, 0.26);
+}
+.touch-stick.is-live { opacity: 1; }
+.touch-stick__knob {
+  position: absolute; left: 50%; top: 50%; width: 48px; height: 48px;
+  margin: -24px 0 0 -24px; border-radius: 50%;
+  background: rgba(255, 154, 77, 0.24);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 0 14px rgba(255, 154, 77, 0.22);
+}
+
+.touch-pad {
+  --tb: 58px;
+  position: absolute;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 7px;
+  grid-template-columns: repeat(3, var(--tb));
+  grid-template-rows: repeat(3, var(--tb));
+  pointer-events: none;
+}
+.touch-top {
+  position: absolute;
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  display: flex; gap: 8px; pointer-events: none;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  display: grid; place-items: center;
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: rgba(16, 14, 20, 0.44);
+  color: var(--ink-dim);
+  font-family: var(--font-display); font-size: .56rem;
+  letter-spacing: .08em; text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none; user-select: none; padding: 0;
+  transition: background .08s ease, color .08s ease, transform .08s ease;
+}
+.touch-btn.is-down {
+  background: rgba(255, 154, 77, 0.30);
+  color: var(--ink);
+  transform: scale(0.93);
+}
+.touch-btn__label { pointer-events: none; }
+
+/* Row by row, bottom-right is nearest the thumb and carries the attack. */
+.tb--lock  { grid-area: 1 / 1; }
+.tb--parry { grid-area: 1 / 2; }
+.tb--guard { grid-area: 1 / 3; }
+.tb--use   { grid-area: 2 / 1; }
+.tb--hvy   { grid-area: 2 / 2; }
+.tb--atk   { grid-area: 2 / 3; border-color: var(--ember-dim); color: var(--ember-glow); }
+.tb--heal  { grid-area: 3 / 1; border-color: var(--blood-dark); }
+.tb--dodge { grid-area: 3 / 2 / 4 / 4; border-radius: 999px; }
+
+.touch-top .touch-btn { width: 44px; height: 44px; font-size: .5rem; }
+
+/* On a touch device the whole page is the game: no scroll, no text selection,
+ * no long-press callout. */
+html.is-touch, html.is-touch body {
+  overscroll-behavior: none; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Keyboard prompts are noise on a device with no keyboard. */
+html.is-touch .prompt__key { display: none; }
+/* The bottom-right corner belongs to the thumb now. Move the cinder count out
+ * from under the roll button rather than letting the two sit on top of one
+ * another. */
+html.is-touch .hud__cinders {
+  right: auto; left: calc(2.2rem * var(--hud-scale));
+  bottom: calc(0.9rem * var(--hud-scale)); text-align: left;
+}
+html.is-touch .hud__cinders-value { font-size: 1.1rem; }
+/* The coach box is centred, which on a phone puts it behind the character.
+ * Slide it up and narrow it so it clears both thumbs and the player. */
+html.is-touch .coach {
+  max-width: min(30rem, 62vw);
+  bottom: auto; top: calc(3.4rem * var(--hud-scale));
+  font-size: .74rem;
+}
+html.is-touch .hud__flask { bottom: calc(4.6rem * var(--hud-scale)); }
+html.is-touch .speech { bottom: calc(8.4rem * var(--hud-scale)); max-width: min(22rem, 46vw); }
+
+/* Landscape phones are short. Shrink the grid rather than let it climb the
+ * screen, and keep the HUD out of the cluster. */
+@media (max-height: 460px) {
+  .touch-pad { --tb: 48px; gap: 6px; }
+  .touch-stick { width: 104px; height: 104px; margin: -52px 0 0 -52px; }
+  .touch-stick__knob { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
+  .touch-top .touch-btn { width: 38px; height: 38px; }
+}
+@media (max-width: 420px) {
+  .touch-pad { --tb: 50px; gap: 6px; }
+}

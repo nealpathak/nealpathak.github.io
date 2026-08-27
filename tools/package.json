@@ -1,0 +1,7 @@
+{
+  "name": "emberwake-tools",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only harness. The game itself has no dependencies.",
+  "devDependencies": { "playwright": "^1.49.0" }
+}

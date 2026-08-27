@@ -1,5 +1,0 @@
-node_modules
-*.png
-!assets/**/*.png
-!docs/*.png
-.DS_Store

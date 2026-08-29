@@ -93,9 +93,14 @@ void main() {
   float slope = 1.0 - clamp(N.y, 0.0, 1.0);
 
   // Horizontal strata banding, warped by noise so it never looks like a ramp.
+  // Two frequencies: broad beds with a finer seam inside them, which stops the
+  // cliffs reading as one repeating stripe.
   float warp = vnoise(vWorld.xz * 0.021) * 3.4;
-  float band = fract((vWorld.y - uFloorY) * 0.055 + warp * 0.25);
+  float h0 = (vWorld.y - uFloorY);
+  float band = fract(h0 * 0.055 + warp * 0.25);
   band = smoothstep(0.18, 0.82, band);
+  float seam = smoothstep(0.35, 0.5, fract(h0 * 0.17 + warp * 0.4));
+  band = clamp(band * 0.82 + seam * 0.24, 0.0, 1.0);
   vec3 rock = mix(uRockLo, uRockHi, band);
   // Sampled across a plane that includes Y: an XZ-only lookup is constant up a
   // vertical cliff face and smears into stripes.
@@ -103,8 +108,8 @@ void main() {
 
   // The corridor floor gets its own sediment colour, blended in where the
   // surface is both low-lying and near the centreline.
-  float floorMix = (1.0 - smoothstep(0.55, 1.15, vLat)) * (1.0 - smoothstep(0.25, 0.7, slope));
-  vec3 albedo = mix(rock, uFloorCol, floorMix * 0.8);
+  float floorMix = (1.0 - smoothstep(0.70, 1.25, vLat)) * (1.0 - smoothstep(0.22, 0.62, slope));
+  vec3 albedo = mix(rock, uFloorCol, floorMix * 0.92);
 
   float sun = max(dot(N, uSunDir), 0.0);
   // Hemispheric ambient: sky above, warm bounce from the canyon below.
@@ -116,6 +121,11 @@ void main() {
   vec3 fillDir = normalize(vec3(-uSunDir.x, 0.40, -uSunDir.z));
   float fill = max(dot(N, fillDir), 0.0);
   vec3 lit = albedo * (ambient + uSunColor * sun * 1.15 + uSkyHorizon * fill * 0.42);
+
+  // Cheap occlusion: steep faces sit in their own shadow and between crags.
+  // A pure lambert term leaves faceted cliffs looking flat, and this is what
+  // makes the relief read as rock depth rather than a painted gradient.
+  lit *= mix(1.0, 0.70, smoothstep(0.30, 0.95, slope));
 
   // Rim light picks the cliff edges out against the sky.
   vec3 V = normalize(uCamPos - vWorld);
@@ -184,6 +194,7 @@ uniform vec3 uSunColor;
 uniform vec3 uBodyColor;
 uniform float uBoost;
 uniform float uAlpha;
+uniform float uRim;      // ghost outline strength; 0 for the player's own ship
 out vec4 fragColor;
 void main() {
   vec3 N = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
@@ -194,7 +205,13 @@ void main() {
   // Engine bloom scales with the slipstream charge.
   vec3 fire = mix(vec3(0.30, 0.75, 1.0), vec3(1.0, 0.55, 0.20), uBoost);
   col += fire * vGlow * (1.2 + uBoost * 3.5);
-  fragColor = vec4(col, uAlpha);
+
+  // A translucent hull alone is nearly invisible against pale rock. Lighting
+  // the silhouette edges gives the ghost a readable outline on every palette,
+  // which matters because it is the only opponent in the game.
+  float fres = pow(1.0 - max(dot(N, V), 0.0), 2.0);
+  col += vec3(0.42, 0.88, 1.0) * fres * uRim;
+  fragColor = vec4(col, clamp(uAlpha + fres * uRim * 0.5, 0.0, 1.0));
 }`;
 
 // --- speed streaks ---------------------------------------------------------
@@ -236,6 +253,7 @@ uniform float uBlur;     // radial blur strength, driven by speed
 uniform float uChroma;
 uniform float uFlash;    // white-out on impact
 uniform float uVignette;
+uniform float uSlip;     // slipstream charge / proximity, 0..1
 out vec4 fragColor;
 
 void main() {
@@ -268,6 +286,12 @@ void main() {
   col = mix(col, vec3(1.0, 0.93, 0.88), uFlash);
   float v = 1.0 - dot(dir, dir) * uVignette;
   col *= clamp(v, 0.0, 1.0);
+
+  // Slipstream tell: the frame edges warm and close in as charge builds. The
+  // HUD bar states the number, but this is what the player actually feels, and
+  // it is the only feedback that reaches them while they are watching the rock.
+  float edge = smoothstep(0.16, 0.55, dot(dir, dir));
+  col += vec3(1.0, 0.55, 0.22) * edge * uSlip * 0.34;
 
   // Filmic-ish shoulder keeps the emissive gates from clipping to flat white.
   col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);

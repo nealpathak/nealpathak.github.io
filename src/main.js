@@ -8,6 +8,7 @@ import { GhostRecorder, GhostPlayer } from './game/ghost.js';
 import { Input } from './core/input.js';
 import { Audio } from './audio/audio.js';
 import { Hud } from './ui/hud.js';
+import { Coach } from './ui/coach.js';
 import { todayKey, dayNumber, seedForKey, hashString } from './core/rng.js';
 import { getRecord, saveRecord, encodeFloats, decodeFloats } from './core/storage.js';
 
@@ -23,6 +24,7 @@ class Game {
     this.input = new Input(this.canvas);
     this.audio = new Audio();
     this.hud = new Hud();
+    this.coach = new Coach(document.getElementById('hud-coach'));
     this.mode = 'title';
     this.acc = 0;
     this.last = 0;
@@ -93,6 +95,7 @@ class Game {
     this.mode = 'title';
     this.ship.reset();
     this.run.reset();
+    this.coach.reset();
     document.body.dataset.mode = 'title';
     el('title-best').textContent = this.best != null ? formatTime(this.best) : '—';
   }
@@ -105,6 +108,8 @@ class Game {
     this.run.start();
     this.recorder = new GhostRecorder();
     this.ghost._cursor = 0;
+    this.coach.reset();
+    this._prevCharge = 0;
     this.mode = 'flying';
     document.body.dataset.mode = 'flying';
     this.hud.buildProgress(this.course);
@@ -157,6 +162,12 @@ class Game {
     this.input.update();
     if (this.input.takePress() && this.mode === 'title') this.startRun();
 
+    if (this.frozen) {
+      // Held still by a verification tool so successive frames are comparable.
+      this.renderer.render({ ship: this.ship, run: this.run, ghostPose: null }, dt);
+      return;
+    }
+
     if (this.mode === 'flying') {
       this.acc += dt;
       let guard = 0;
@@ -168,6 +179,11 @@ class Game {
         if (this.run.state === State.FINISHED) break;
       }
       this.handleEvents();
+      // Announce a full charge once per build-up: the payoff needs a moment.
+      const c = this.ship.charge;
+      if (c > 0.95 && this._prevCharge <= 0.95) this.audio.boostReady();
+      this._prevCharge = c;
+      this.coach.update(dt, this.ship);
       if (this.run.state === State.FINISHED) this.finishRun();
     } else {
       // Idle drift on the title and results screens keeps the scene alive.

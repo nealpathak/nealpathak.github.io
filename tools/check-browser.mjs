@@ -100,7 +100,14 @@ const res = await page.evaluate(() => ({
   stored: localStorage.getItem('slipstream.v1') ? JSON.parse(localStorage.getItem('slipstream.v1')) : null,
 }));
 console.log('--- results screen ---');
-console.log(JSON.stringify({ ...res, stored: res.stored ? Object.fromEntries(Object.entries(res.stored).map(([k,v])=>[k,{best:+v.best.toFixed(2), ghostKB:+(v.ghost?v.ghost.length/1024:0).toFixed(1)}])) : null }, null, 2));
+// The stored blob also carries a __flags object (tutorial progress), which is
+// not a course record -- summarise only the entries that have a time.
+const storedSummary = res.stored
+  ? Object.fromEntries(Object.entries(res.stored)
+      .filter(([k, v]) => k !== '__flags' && v && typeof v.best === 'number')
+      .map(([k, v]) => [k, { best: +v.best.toFixed(2), ghostKB: +(v.ghost ? v.ghost.length / 1024 : 0).toFixed(1) }]))
+  : null;
+console.log(JSON.stringify({ ...res, stored: storedSummary, flags: res.stored && res.stored.__flags || null }, null, 2));
 await page.screenshot({ path: shot('play-results.png') });
 
 // Reload: the PB and ghost must survive.

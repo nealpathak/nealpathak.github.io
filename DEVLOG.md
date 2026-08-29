@@ -97,3 +97,71 @@ to break, no version drift, and nothing external that can fail to load.
    roll or a vertical squeeze through a slot.
 7. **No tutorial.** The slipstream mechanic is explained in one line of text and nothing
    in-game teaches it. A first-run coaching prompt when charge stays at zero would help.
+
+---
+
+## Day 1, second pass — 2026-08-29 — rock that reads as rock, and a game that teaches itself
+
+Three things were wrong with the first playable, and all three were things a
+player would notice before anything on the backlog.
+
+**The cliffs read as dunes, not rock.** The relief ran at one low frequency, so
+every face was a smooth gradient. Added a short-wavelength ridged term at 0.058
+(≈17m and 8m octaves — the finest relief a 2m vertex grid can actually carry),
+gated on `climb` so the flyable corridor floor stays smooth and collisions stay
+fair. In the shader: a second strata frequency for seams inside the broad beds,
+and a slope-driven darkening that fakes the occlusion between crags. That last
+one does more work than anything else — a pure lambert term leaves faceted rock
+looking painted on.
+
+Cost went from 1.64 ms to 2.03 ms per chunk (+24%). Corridor, gates and balance
+all unchanged: narrowest free span still 15 m over 33,000 slices, worst gate
+aperture still 5.3 m, wall-hugging bot still wins 12/12 by a mean of 3.5 s.
+
+**Nothing taught the slipstream.** The entire game rests on "fly close to rock
+to go faster", and a player who never happens to fly low just has a slow, dull
+run and leaves. Added `src/ui/coach.js`, which watches what the player is
+actually doing: if charge stays under 0.15 for nine seconds it prompts once, and
+the first time charge passes 0.6 it says so and never mentions it again
+(persisted, so it does not nag a returning player). Also wired `audio.boostReady()`
+— it had been written on day 1 and never called — and added a warm edge glow in
+the post pass driven by charge and proximity, so the mechanic is felt at the
+edges of the frame rather than only shown on a HUD bar.
+
+**The ghost was nearly invisible.** It rendered correctly the whole time — I
+confirmed the pose was in frustum at NDC (0.00, −0.06) — but a translucent hull
+at alpha 0.38 disappears against pale rock, which makes the only opponent in
+the game useless. Added a fresnel rim term to the ship shader (`uRim`, 0 for the
+player) so the silhouette edges glow. It now reads on every palette.
+
+**Bugs found and fixed:**
+
+- The coach's `if (learned && praised) return;` sat *above* the message
+  countdown, so the final message never got cleared and stuck on screen for the
+  rest of the session. Countdown now runs before any early-out.
+- The praise could fire off an incidental skim in the first seconds off the
+  launch pad. Gated on 3.5 s elapsed.
+- Adding `__flags` to the stored blob broke `tools/check-browser.mjs`, which had
+  assumed every top-level key was a course record. Hardened.
+
+**Also added:** `tools/check-palettes.mjs`, which freezes the simulation and
+re-renders the identical stretch of canyon under all six palettes. Palette work
+was previously unverifiable — one seed at a time, different geometry each time —
+which is why the pale palettes stayed bad. With the board it took one pass to
+see that the real problem was shared across all six and was about rock, not
+colour.
+
+**Backlog, re-ordered after this pass:**
+
+1. **No leaderboard.** Times are local-only. A shareable result string (seed +
+   time + checksum) would let people compare with no backend.
+2. **Gate variety is thin** — gates alternate lateral bias but never demand a
+   roll or a vertical squeeze through a slot.
+3. **The ship model is very plain**, and the engine trail is a shader term
+   rather than geometry or particles.
+4. **No attract mode** — the title screen could fly the day's best ghost line.
+5. **Palettes are monochromatic.** Each is one hue; a second accent (a mineral
+   seam, a differently-lit talus) would add depth.
+6. **Floor detail is flat** compared to the walls now, since crag relief is
+   deliberately gated off inside the corridor. Some non-colliding visual detail
+   (a texture-space term, not geometry) would close the gap.

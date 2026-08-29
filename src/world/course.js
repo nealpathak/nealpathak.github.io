@@ -89,8 +89,15 @@ export class Course {
     let h = fy + this.wallHeight * climb;
 
     // Rock detail scales with wall height: the floor stays smooth and flyable.
-    const rock = ridged(x * 0.0135, z * 0.0135, this.noiseSeed, 4);
-    h += (rock - 0.4) * (2.0 + this.wallHeight * climb * 0.42);
+    const rock = ridged(x * 0.0125, z * 0.0125, this.noiseSeed, 5);
+    h += (rock - 0.42) * (2.2 + this.wallHeight * climb * 0.44);
+
+    // Short-wavelength crags. At 2m vertex spacing this is the finest relief
+    // the mesh can actually represent, and it is what makes a cliff read as
+    // rock rather than a dune. Gated on `climb` so the flyable corridor floor
+    // stays smooth -- roughness there would just be unfair collisions.
+    const crag = ridged(x * 0.058, z * 0.058, this.noiseSeed + 313, 2);
+    h += (crag - 0.45) * climb * 6.5;
 
     // Gentle floor undulation, faded out as the walls take over.
     const floorFade = 1 - smoothstep(0, 10, outside);

@@ -243,9 +243,10 @@ export class Renderer {
       gl.depthMask(false);
       composeTRS(this.model, [ghostPose.x, ghostPose.y, ghostPose.z], ghostPose.yaw, ghostPose.pitch, ghostPose.roll, 1);
       gl.uniformMatrix4fv(p.u.uModel, false, this.model);
-      gl.uniform3f(p.u.uBodyColor, 0.30, 0.62, 0.85);
+      gl.uniform3f(p.u.uBodyColor, 0.26, 0.66, 0.95);
       gl.uniform1f(p.u.uBoost, 0.15);
-      gl.uniform1f(p.u.uAlpha, 0.38);
+      gl.uniform1f(p.u.uAlpha, 0.42);
+      gl.uniform1f(p.u.uRim, 1.5);
       gl.drawArrays(gl.TRIANGLES, 0, this.shipCount);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
@@ -256,6 +257,7 @@ export class Renderer {
     gl.uniform3f(p.u.uBodyColor, 0.88, 0.90, 0.94);
     gl.uniform1f(p.u.uBoost, ship.boostFactor);
     gl.uniform1f(p.u.uAlpha, 1.0);
+    gl.uniform1f(p.u.uRim, 0.0);
     gl.drawArrays(gl.TRIANGLES, 0, this.shipCount);
 
     // --- speed streaks -----------------------------------------------------
@@ -296,6 +298,10 @@ export class Renderer {
     gl.uniform1f(p.u.uChroma, fast * 0.0042);
     gl.uniform1f(p.u.uFlash, this.flash);
     gl.uniform1f(p.u.uVignette, 0.42 + fast * 0.30);
+    // Proximity counts a little even before it converts into charge, so the
+    // effect responds the instant the player commits to the rock.
+    const near = clamp(1 - (ship.clearance - 3) / 15, 0, 1);
+    gl.uniform1f(p.u.uSlip, Math.max(ship.boostFactor, near * 0.5));
     gl.bindVertexArray(this.emptyVao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.enable(gl.DEPTH_TEST);

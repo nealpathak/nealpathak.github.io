@@ -45,15 +45,30 @@ export function saveRecord(courseKey, timeSec, ghostB64) {
 
 // Keeps every best time but drops ghost blobs for all but the newest days.
 function prune(all) {
-  const keys = Object.keys(all).sort();
+  const keys = Object.keys(all).filter((k) => k !== '__flags').sort();
   const stale = keys.slice(0, Math.max(0, keys.length - KEEP_DAYS));
   for (const k of stale) if (all[k]) all[k].ghost = null;
+}
+
+// Small persistent flags (tutorial progress and the like), kept beside the
+// records so one key holds everything the game remembers.
+export function getFlag(name, fallback = 0) {
+  const all = readAll();
+  const f = all.__flags;
+  return f && f[name] !== undefined ? f[name] : fallback;
+}
+
+export function setFlag(name, value) {
+  const all = readAll();
+  if (!all.__flags) all.__flags = {};
+  all.__flags[name] = value;
+  writeAll(all);
 }
 
 export function allRecords() {
   const all = readAll();
   return Object.entries(all)
-    .filter(([, r]) => r && typeof r.best === 'number')
+    .filter(([k, r]) => k !== '__flags' && r && typeof r.best === 'number')
     .map(([key, r]) => ({ key, best: r.best, at: r.at || 0 }))
     .sort((a, b) => (a.key < b.key ? 1 : -1));
 }

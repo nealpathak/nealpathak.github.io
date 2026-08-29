@@ -92,6 +92,15 @@ body[data-mode="flying"] #hud { opacity: 1; }
 #hud-boost-fill.full { background: linear-gradient(90deg, #ffb648, #ff7a3d); }
 .boostlabel { font-family: var(--mono); font-size: clamp(9px, 1.5vmin, 12px); color: #a9b4c4; letter-spacing: .14em; margin-top: 5px; }
 
+#hud-coach {
+  position: absolute; left: 50%; bottom: 12vmin; transform: translate(-50%, 6px);
+  font-family: var(--mono); font-size: clamp(11px, 1.9vmin, 15px); letter-spacing: .13em;
+  color: var(--accent); opacity: 0; transition: opacity .3s, transform .3s;
+  text-align: center; white-space: nowrap; max-width: 92vw; overflow: hidden;
+}
+#hud-coach.show { opacity: 1; transform: translate(-50%, 0); }
+#hud-coach.good { color: var(--good); }
+
 #hud-progress {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: 3vmin;
   width: min(52vw, 460px); height: 3px; background: rgba(255,255,255,.14); border-radius: 3px;
@@ -248,6 +257,7 @@ body[data-mode="flying"] #btn-mute:hover { opacity: 1; }
   </div>
   <div id="hud-warn"></div>
   <div id="hud-toast"></div>
+  <div id="hud-coach"></div>
 </div>
 
 <button id="btn-mute" aria-pressed="false">♪ on</button>

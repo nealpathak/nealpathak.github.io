@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0c12">
+<title>SLIPSTREAM — a daily canyon run</title>
+<meta name="description" content="A 3D canyon time trial that reseeds every day. Fly close to the rock to build slipstream boost, thread every gate, and race your own ghost.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0c12'/><path d='M16 5 L26 26 L16 21 L6 26 Z' fill='%2364e6ff'/></svg>">
+<style>
+:root {
+  --bg: #0a0c12;
+  --fg: #e8edf5;
+  --dim: #7c8798;
+  --accent: #64e6ff;
+  --good: #5cff9d;
+  --bad: #ff5d6c;
+  --panel: rgba(10, 13, 20, 0.82);
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+#view {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  display: block; touch-action: none; cursor: crosshair;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed; inset: 0; pointer-events: none;
+  padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+           max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  opacity: 0; transition: opacity .25s;
+  /* Inherited by every HUD child: keeps readouts legible over bright palettes. */
+  text-shadow: 0 1px 3px rgba(0,0,0,.55), 0 2px 16px rgba(0,0,0,.75);
+}
+body[data-mode="flying"] #hud { opacity: 1; }
+/* Scrim behind the readouts. A ::before paints beneath the element's children,
+   so the HUD text stays legible over a bright noon palette as well as a dark one. */
+#hud::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(4,6,10,.46), rgba(4,6,10,0) 20%),
+    linear-gradient(0deg, rgba(4,6,10,.46), rgba(4,6,10,0) 18%);
+}
+.hud-tl { position: absolute; top: 3vmin; left: 3vmin; }
+.hud-tr { position: absolute; top: 3vmin; right: 3vmin; text-align: right; }
+.hud-bl { position: absolute; bottom: 5vmin; left: 3vmin; }
+
+#hud-time {
+  font-family: var(--mono); font-size: clamp(28px, 6vmin, 52px);
+  font-weight: 600; letter-spacing: -.02em; line-height: 1;
+  text-shadow: 0 2px 18px rgba(0,0,0,.75);
+  font-variant-numeric: tabular-nums;
+}
+#hud-delta {
+  font-family: var(--mono); font-size: clamp(14px, 2.6vmin, 22px);
+  margin-top: 4px; font-variant-numeric: tabular-nums; min-height: 1.2em;
+  text-shadow: 0 2px 12px rgba(0,0,0,.8);
+}
+#hud-delta.ahead { color: var(--good); }
+#hud-delta.behind { color: var(--bad); }
+
+#hud-day { font-family: var(--mono); font-size: clamp(11px, 1.9vmin, 15px); color: var(--accent); letter-spacing: .12em; }
+#hud-best { font-family: var(--mono); font-size: clamp(11px, 1.9vmin, 15px); color: #a9b4c4; margin-top: 3px; }
+#hud-gates { font-family: var(--mono); font-size: clamp(14px, 2.6vmin, 22px); margin-top: 8px; font-variant-numeric: tabular-nums; }
+
+.speedrow { display: flex; align-items: baseline; gap: 8px; }
+#hud-speed {
+  font-family: var(--mono); font-size: clamp(26px, 5.4vmin, 46px); font-weight: 600;
+  font-variant-numeric: tabular-nums; line-height: 1;
+  text-shadow: 0 2px 18px rgba(0,0,0,.75);
+}
+.unit { font-family: var(--mono); font-size: clamp(10px, 1.7vmin, 14px); color: #a9b4c4; letter-spacing: .1em; }
+
+#hud-boost {
+  margin-top: 8px; width: clamp(120px, 26vmin, 240px); height: 7px;
+  background: rgba(255,255,255,.12); border-radius: 4px; overflow: hidden;
+}
+#hud-boost-fill {
+  height: 100%; width: 100%; transform-origin: left; transform: scaleX(0);
+  background: linear-gradient(90deg, var(--accent), #9dfcff);
+  transition: background .2s;
+}
+#hud-boost-fill.full { background: linear-gradient(90deg, #ffb648, #ff7a3d); }
+.boostlabel { font-family: var(--mono); font-size: clamp(9px, 1.5vmin, 12px); color: #a9b4c4; letter-spacing: .14em; margin-top: 5px; }
+
+#hud-progress {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: 3vmin;
+  width: min(52vw, 460px); height: 3px; background: rgba(255,255,255,.14); border-radius: 3px;
+}
+#hud-progress-fill { height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(0); border-radius: 3px; }
+#hud-progress-marks { position: absolute; inset: -4px 0; }
+#hud-progress-marks i {
+  position: absolute; top: 0; width: 2px; height: 11px; margin-left: -1px;
+  background: rgba(255,255,255,.42); border-radius: 1px;
+}
+#hud-progress-marks i.ok { background: var(--good); }
+#hud-progress-marks i.bad { background: var(--bad); }
+
+#hud-warn {
+  position: absolute; left: 50%; top: 26%; transform: translateX(-50%);
+  font-family: var(--mono); font-size: clamp(12px, 2.2vmin, 18px); letter-spacing: .18em;
+  color: var(--bad); opacity: 0; transition: opacity .18s; text-align: center;
+  text-shadow: 0 0 20px rgba(255,60,80,.6);
+}
+#hud-warn.show { opacity: 1; }
+
+#hud-toast {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, 0) scale(.9);
+  font-family: var(--mono); font-size: clamp(18px, 4vmin, 34px); letter-spacing: .16em;
+  opacity: 0; transition: opacity .18s, transform .18s; white-space: nowrap;
+  text-shadow: 0 2px 24px rgba(0,0,0,.8);
+}
+#hud-toast.show { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+#hud-toast.perfect { color: var(--accent); }
+#hud-toast.bad { color: var(--bad); }
+#hud-toast.go { color: var(--good); }
+
+/* ---------- overlays ---------- */
+.overlay {
+  position: fixed; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  background: radial-gradient(120% 90% at 50% 40%, rgba(10,13,20,.42), rgba(6,8,13,.93));
+  backdrop-filter: blur(3px);
+  padding: 24px;
+}
+body[data-mode="title"] #title { display: flex; }
+body[data-mode="results"] #results { display: flex; }
+
+.card {
+  width: min(560px, 94vw); text-align: center;
+  animation: rise .32s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+h1 {
+  margin: 0; font-size: clamp(38px, 10vmin, 82px); font-weight: 800;
+  letter-spacing: -.045em; line-height: .92;
+  background: linear-gradient(180deg, #ffffff, #7fd8ee);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tagline { color: var(--dim); font-size: clamp(12px, 2.1vmin, 15px); margin: 10px 0 22px; line-height: 1.55; }
+.tagline b { color: var(--fg); font-weight: 600; }
+
+.meta {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 12px; margin-bottom: 22px;
+}
+.chip {
+  padding: 6px 11px; border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px; color: var(--dim); letter-spacing: .06em;
+}
+.chip b { color: var(--accent); font-weight: 600; }
+.chip.ghost b { color: #8fd4ff; }
+
+button {
+  font-family: var(--ui); font-size: 15px; font-weight: 600;
+  padding: 13px 26px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.07); color: var(--fg);
+  transition: background .15s, transform .1s, border-color .15s;
+}
+button:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+button:active { transform: translateY(1px); }
+button.primary {
+  background: linear-gradient(180deg, #7ceeff, #35bcd8);
+  color: #04222b; border-color: transparent; padding: 15px 40px; font-size: 17px;
+}
+button.primary:hover { filter: brightness(1.08); background: linear-gradient(180deg, #7ceeff, #35bcd8); }
+.row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+
+.controls {
+  margin-top: 26px; color: var(--dim); font-size: 12.5px; line-height: 1.9;
+  border-top: 1px solid rgba(255,255,255,.1); padding-top: 18px;
+}
+kbd {
+  font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 5px;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); color: var(--fg);
+}
+.desktop-only { display: block; }
+.touch-only { display: none; }
+@media (pointer: coarse) {
+  .desktop-only { display: none; }
+  .touch-only { display: block; }
+}
+
+#res-time {
+  font-family: var(--mono); font-size: clamp(44px, 11vmin, 88px); font-weight: 700;
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 6px 0;
+}
+#res-title { font-family: var(--mono); font-size: clamp(13px, 2.4vmin, 18px); letter-spacing: .3em; color: var(--dim); }
+#res-title.best { color: var(--good); }
+#res-delta { font-family: var(--mono); font-size: 15px; margin-bottom: 4px; min-height: 1.3em; }
+#res-delta.ahead { color: var(--good); }
+#res-delta.behind { color: var(--bad); }
+#res-clean { font-family: var(--mono); font-size: 12px; letter-spacing: .2em; color: var(--accent); min-height: 1.2em; margin-bottom: 14px; }
+.stats { display: flex; gap: 22px; justify-content: center; margin: 18px 0 22px; flex-wrap: wrap; }
+.stat { font-family: var(--mono); }
+.stat span { display: block; font-size: 21px; }
+.stat label { display: block; font-size: 10px; color: var(--dim); letter-spacing: .16em; margin-top: 4px; }
+
+#btn-mute {
+  position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+  font-family: var(--mono); font-size: 11px; padding: 7px 12px; z-index: 5;
+}
+body[data-mode="flying"] #btn-mute { opacity: .28; }
+body[data-mode="flying"] #btn-mute:hover { opacity: 1; }
+
+#fatal {
+  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  background: var(--bg); padding: 30px; text-align: center; flex-direction: column; gap: 12px;
+}
+#fatal h2 { margin: 0; font-size: 20px; }
+#fatal p { color: var(--dim); font-size: 14px; max-width: 460px; line-height: 1.6; }
+#fatal-msg { font-family: var(--mono); font-size: 12px; color: var(--bad); word-break: break-word; }
+</style>
+</head>
+<body data-mode="title">
+
+<canvas id="view"></canvas>
+
+<div id="hud" aria-hidden="true">
+  <div class="hud-tl">
+    <div id="hud-time">0:00.00</div>
+    <div id="hud-delta"></div>
+  </div>
+  <div class="hud-tr">
+    <div id="hud-day">DAILY</div>
+    <div id="hud-best">PB —</div>
+    <div id="hud-gates">0/0</div>
+  </div>
+  <div class="hud-bl">
+    <div class="speedrow"><div id="hud-speed">0</div><div class="unit">KM/H</div></div>
+    <div id="hud-boost"><div id="hud-boost-fill"></div></div>
+    <div class="boostlabel">SLIPSTREAM</div>
+  </div>
+  <div id="hud-progress">
+    <div id="hud-progress-fill"></div>
+    <div id="hud-progress-marks"></div>
+  </div>
+  <div id="hud-warn"></div>
+  <div id="hud-toast"></div>
+</div>
+
+<button id="btn-mute" aria-pressed="false">♪ on</button>
+
+<div class="overlay" id="title">
+  <div class="card">
+    <h1>SLIPSTREAM</h1>
+    <p class="tagline">
+      A canyon time trial that rebuilds itself every day.<br>
+      Fly <b>close to the rock</b> to charge your slipstream — speed is bought with risk.
+    </p>
+    <div class="meta">
+      <div class="chip"><b id="title-course">DAILY</b></div>
+      <div class="chip">SKY <b id="title-palette">—</b></div>
+      <div class="chip">BEST <b id="title-best">—</b></div>
+      <div class="chip ghost" id="title-ghost">GHOST <b>READY</b></div>
+    </div>
+    <div class="row"><button class="primary" id="btn-start">FLY</button></div>
+    <div class="row">
+      <button id="btn-daily">Today's course</button>
+      <button id="btn-free">Random course</button>
+    </div>
+    <div class="controls">
+      <div class="desktop-only">
+        <kbd>A</kbd><kbd>D</kbd> or <kbd>←</kbd><kbd>→</kbd> steer &nbsp;·&nbsp;
+        <kbd>W</kbd><kbd>S</kbd> pitch &nbsp;·&nbsp; <kbd>Space</kbd> airbrake<br>
+        or drag the mouse to fly &nbsp;·&nbsp; <kbd>R</kbd> restart
+      </div>
+      <div class="touch-only">
+        Drag anywhere to fly · second finger to airbrake
+      </div>
+      <div style="margin-top:8px">Miss a gate and it costs you two seconds.</div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="results">
+  <div class="card">
+    <div id="res-title">RUN COMPLETE</div>
+    <div id="res-time">0:00.00</div>
+    <div id="res-delta"></div>
+    <div id="res-clean"></div>
+    <div class="stats">
+      <div class="stat"><span id="res-gates">0/0</span><label>GATES</label></div>
+      <div class="stat"><span id="res-penalty">none</span><label>PENALTY</label></div>
+      <div class="stat"><span id="res-crashes">0</span><label>IMPACTS</label></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="btn-retry">RUN AGAIN</button>
+      <button id="btn-menu">Menu</button>
+    </div>
+  </div>
+</div>
+
+<div id="fatal">
+  <h2>This game needs WebGL2</h2>
+  <p>Your browser or device didn't provide a WebGL2 context. Try a current version of Chrome, Firefox, Edge or Safari, and make sure hardware acceleration is enabled.</p>
+  <div id="fatal-msg"></div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

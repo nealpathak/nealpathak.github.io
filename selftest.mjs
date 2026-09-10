@@ -12,6 +12,7 @@ const suites = [
   'tools/agent-control-plane/selftest.mjs',
   'tools/matter-portfolio/selftest.mjs',
   'tools/tcor-allocation/selftest.mjs',
+  'tools/contract-requirements/selftest.mjs',
   'tools/board-brief/selftest.mjs',
 ];
 let failed = 0;

@@ -102,6 +102,12 @@ $('#brief').innerHTML = `
   </section>
 
   <section>
+    <h2>Contracts and risk transfer</h2>
+    <p>${b.contracts.atRisk.length} of ${b.contracts.rows.length} live contracts, worth ${m(b.contracts.valueAtRisk)} a year, require limits or coverages the programme does not carry; the largest cause is ${b.contracts.drivers[0].label.toLowerCase()}. ${b.plan.steps.length ? `Within a ${m(100000)} budget the plan buys ${b.plan.steps.map(s => s.name.toLowerCase()).join(', then ')} for ${m(b.plan.spent)} a year, clearing ${m(b.plan.start - b.plan.remaining)}.` : ''} ${b.contracts.uncapped.length} contracts carry an uncapped indemnity and ${b.contracts.expiring.length} expire within six months.</p>
+    <p class="note"><a href="../contract-requirements/">Source: Contract Requirements &amp; Certificates</a></p>
+  </section>
+
+  <section>
     <h2>AI operations</h2>
     <p>${Object.values(b.fleet.status).filter(s => ['ok', 'held'].includes(s.state)).length} of ${Object.values(b.fleet.status).filter(s => s.state !== 'not-scheduled').length} scheduled agents completed today's run; ${b.fleet.denied.length} write${b.fleet.denied.length === 1 ? ' was' : 's were'} refused by the policy engine. Control coverage is ${fmt.pct(b.cov.share)}: ${b.cov.eligible.length} of ${b.cov.rows.length} agents are production-eligible${b.cov.gaps.length ? `; ${b.cov.gaps.map(g => byId(g.agent).name).join(', ')} remain${b.cov.gaps.length === 1 ? 's' : ''} in pilot` : ''}.</p>
     <p class="note"><a href="../agent-control-plane/">Source: Agent Control Plane</a></p>

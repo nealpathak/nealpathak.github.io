@@ -8,6 +8,7 @@ import { derivePaymentPattern, openingPosition, simulate, capitalForTolerance } 
 import { generatePortfolio, analysePortfolio, FIRMS } from '../matter-portfolio/engine.mjs';
 import { simulateDay, coverage, AGENTS, byId } from '../agent-control-plane/engine.mjs';
 import { costOfRisk, allocate, subsidy } from '../tcor-allocation/engine.mjs';
+import { generateContracts, analyseContracts, buyUpPlan } from '../contract-requirements/engine.mjs';
 import { dates } from '../../lib/format.mjs';
 
 export function buildBrief(book, { tolerance = 0.05, startingCapital = 9000000 } = {}) {
@@ -50,6 +51,10 @@ export function buildBrief(book, { tolerance = 0.05, startingCapital = 9000000 }
   const alloc = allocate(book, cor);
   const sub = subsidy(cor, alloc.window);
 
+  const register = generateContracts();
+  const contracts = analyseContracts(register);
+  const plan = buyUpPlan(register, { budget: 100000 });
+
   // Decisions the committee is asked to take, derived from the numbers.
   const decisions = [];
   for (const e of erosion) for (const y of e.breaches) decisions.push({ area: 'Renewal', text: `${e.name} ${policyYearLabel(y.py)} is projected to exceed its aggregate by ${money(y.excess)}. Confirm notice to the aggregate carrier and reflect the year in renewal pricing.`, amount: y.excess });
@@ -59,9 +64,10 @@ export function buildBrief(book, { tolerance = 0.05, startingCapital = 9000000 }
   const worstFirm = legal.firms[0];
   if (worstFirm && worstFirm.overShare > 0.05) decisions.push({ area: 'Outside counsel', text: `${worstFirm.name} has billed ${money(worstFirm.overGuideline)} above guideline rates (${pct(worstFirm.overShare)} of its invoicing). Authorise a rate conversation with the lines attached, and a hold on new assignments until resolved.`, amount: worstFirm.overGuideline });
   if (alloc.moved > 0) decisions.push({ area: 'Premium allocation', text: `Approve the ${policyYearLabel(alloc.nextPy)} premium allocation: ${money(alloc.moved)} moves between operating companies on experience, with no entity moving more than ${pct(alloc.params.cap)} from its exposure-based share.`, amount: alloc.moved });
+  if (plan.steps.length) decisions.push({ area: 'Contracts', text: `${contracts.atRisk.length} live contracts worth ${money(contracts.valueAtRisk)} a year require insurance the programme does not carry. Approve ${plan.steps[0].name.toLowerCase()} at ${money(plan.steps[0].cost)} a year, which clears ${money(plan.steps[0].clears)} of that, and refer the ${contracts.uncapped.length} uncapped indemnities to counsel.`, amount: plan.steps[0].cost });
   if (cov.gaps.length) decisions.push({ area: 'AI governance', text: `${cov.gaps.map(g => `${byId(g.agent).name} lacks ${g.control.toLowerCase()}`).join('; ')}. Note that ${cov.gaps.length === 1 ? 'it remains' : 'they remain'} in pilot until the control passes; no decision required.`, amount: null });
 
-  return { asOf, claims, dev, erosion, cap, need, noAgg, tolerance, startingCapital, opening, legal, fleet, cov, cor, alloc, sub, decisions, currentPy };
+  return { asOf, claims, dev, erosion, cap, need, noAgg, tolerance, startingCapital, opening, legal, fleet, cov, cor, alloc, sub, contracts, plan, decisions, currentPy };
 }
 
 function money(v) { const a = Math.abs(v); const s = a >= 1e6 ? (a / 1e6).toFixed(a >= 1e7 ? 1 : 2) + 'm' : Math.round(a / 1e3) + 'k'; return (v < 0 ? '−' : '') + '$' + s; }

@@ -20,6 +20,7 @@ check('every decision names an area and reads as a sentence', b.decisions.length
 check('a renewal decision exists for every breaching year', b.erosion.flatMap(e => e.breaches).length === b.decisions.filter(d => d.area === 'Renewal').length);
 check('capital decision appears only when above tolerance', (b.cap.breachAny > b.tolerance) === b.decisions.some(d => d.area === 'Capital'));
 check('legal and allocation sections are present', b.legal.totals.matters > 0 && b.alloc.byEntity.length === 5);
+check('contracts section and decision are present', b.contracts.rows.length > 0 && b.decisions.some(d => d.area === 'Contracts'));
 check('fleet ran and coverage computed', Object.keys(b.fleet.status).length === 10 && b.cov.total > 0);
 check('large open claims are sorted descending', b.claims.largeOpen.every((c, i, a) => i === 0 || c.incurred <= a[i - 1].incurred));
 const b2 = buildBrief(book);

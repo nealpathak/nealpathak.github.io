@@ -3,8 +3,9 @@
 Working demonstrations of the systems legal, risk and insurance teams run on:
 claims data pipelines, loss development and aggregate erosion, a captive
 capital model, a governance layer for a fleet of AI agents, legal operations
-analytics, cost of risk and premium allocation, and a board brief assembled
-from all of them. Plus four workflow reference designs.
+analytics, cost of risk and premium allocation, contract insurance
+requirements against the programme, and a board brief assembled from all of
+them. Plus four workflow reference designs.
 
 Live at https://nealpathak.github.io
 

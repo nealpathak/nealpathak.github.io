@@ -3,16 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neal Pathak — Legal operations, risk analytics, and AI systems</title>
-<meta name="description" content="Neal Pathak builds the systems legal, risk and insurance teams run on: claims data pipelines, executive reporting, capital models, and governed AI agents. Working demonstrations on synthetic data.">
+<title>Neal Pathak</title>
+<meta name="description" content="The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Neal Pathak builds the systems that produce them. Live demonstrations on synthetic data.">
+<link rel="canonical" href="https://nealpathak.github.io/">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f7f4ed" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Neal Pathak">
+<meta property="og:description" content="The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Live demonstrations on synthetic data.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nealpathak.github.io/">
 <link rel="stylesheet" href="assets/site.css">
 <style>
   .hero { padding: 4rem 0 3rem; border-bottom: 1px solid var(--rule); }
-  .hero h1 { font-size: 2.9rem; max-width: 20ch; }
+  .hero h1 { font-size: 2.7rem; max-width: 24ch; }
   .hero .lede-wide { margin-top: 1.4rem; }
-  @media (max-width: 620px) { .hero h1 { font-size: 2.2rem; } }
-  .pillar h3 { margin-bottom: 0.5rem; }
-  .pillar p { font-size: 0.95rem; color: var(--ink-2); }
+  @media (max-width: 620px) { .hero h1 { font-size: 2.05rem; } }
+  .decisions { list-style: none; margin: 0; padding: 0; }
+  .decisions li { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2rem; padding: 1.3rem 0; border-top: 1px solid var(--rule); }
+  .decisions li:last-child { border-bottom: 1px solid var(--rule); }
+  .decisions h3 { font-size: 1.15rem; margin-bottom: 0.3rem; }
+  .decisions h3 a { border: 0; }
+  .decisions h3 a:hover { color: var(--accent); }
+  .decisions .q { font-size: 0.95rem; color: var(--ink-2); margin: 0; }
+  .decisions .answer { font-size: 0.95rem; margin: 0; }
+  .decisions .answer strong { color: var(--accent); font-weight: 500; }
+  @media (max-width: 700px) { .decisions li { grid-template-columns: 1fr; gap: 0.5rem; } }
+  .offer h3 { margin-bottom: 0.4rem; }
+  .offer p { font-size: 0.95rem; color: var(--ink-2); }
   .contact-links { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; font-family: var(--sans); font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
 </style>
 </head>
@@ -20,45 +38,77 @@
 <div class="wrap">
   <header class="masthead">
     <a class="brand" href="./">Neal Pathak</a>
-    <nav><a href="#work">Work</a><a href="workflows/">Workflows</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+    <nav><a href="#decisions">Decisions</a><a href="#work">Tools</a><a href="workflows/">Workflows</a><a href="#engage">Engagements</a><a href="#contact">Contact</a></nav>
   </header>
 
   <div class="hero">
-    <p class="kicker">Legal operations · Risk analytics · AI systems</p>
-    <h1>I build the systems that legal, risk and insurance teams run on.</h1>
-    <p class="lede-wide">Claims data pipelines, executive reporting, capital and cash-flow models, and governed fleets of AI agents, for the people who have to price a renewal, defend a reserve, or explain to a board what the machines are doing. Everything below is a working demonstration on synthetic data: open it, change the inputs, and read the answer.</p>
+    <p class="kicker">For the people who sign the renewal, approve the budget, and answer to the board</p>
+    <h1>The numbers behind your renewal, your reserves and your legal spend should be computed, not assembled by hand.</h1>
+    <p class="lede-wide">Most of them are still put together in a spreadsheet by one person the week before the meeting. I build the systems that produce them instead: daily, reconciled, and explainable to your board, your actuary and your auditor in the same sentence. Everything on this page is live. Change the inputs and read the answer.</p>
   </div>
 
-  <section id="what">
+  <section id="decisions">
     <div class="section-head">
-      <div><p class="kicker">What I do</p><h2>Three kinds of work, one habit</h2></div>
-      <p class="method">The habit is to build the thing that computes an answer nobody had before, put the assumptions on the surface, and leave a person in the loop only where a person adds something. Each of the three areas below is a place I have done that end to end.</p>
+      <div><p class="kicker">Decisions</p><h2>Five decisions, and the number each one needs</h2></div>
+      <p class="method">A number is only worth having if it changes what you do. Each of these is a decision that gets made with real money, and the working tool that produces the number behind it. The answers shown are from the synthetic book on this site; yours would come from your own.</p>
     </div>
-    <div class="grid-3">
-      <div class="pillar"><h3>Claims and risk analytics</h3><p>Loss-run pipelines, loss development, aggregate erosion, total cost of risk, and capital adequacy for a captive or a self-insured programme. Numbers that reconcile, produced daily, that a board and an actuary can both read.</p></div>
-      <div class="pillar"><h3>Legal operations</h3><p>Matter intake, coverage and funding decisions, outside counsel and administrator oversight, contract portfolios, and platform rollouts across a group. The work of making a legal function measurable without making it slower.</p></div>
-      <div class="pillar"><h3>AI agents and their governance</h3><p>Fleets of agents that do real operational work, run on a schedule with named owners, scoped data access, human gates, kill switches and audit logs. Built to a standard an examiner would accept, sponsored so it holds.</p></div>
-    </div>
+    <ol class="decisions">
+      <li>
+        <div><h3><a href="tools/loss-development/">Renewal and capacity</a></h3><p class="q">Will this year's losses fit inside the aggregate we bought, and if not, by how much?</p></div>
+        <p class="answer">Developed to ultimate with two standard methods, one policy year and line is projected to use <strong>110% of its aggregate</strong>; the shortfall lands in the layer above. Known nine months before the renewal, that is a pricing conversation. Discovered at the renewal, it is a surprise.</p>
+      </li>
+      <li>
+        <div><h3><a href="tools/capital-model/">Capital</a></h3><p class="q">If next year goes badly, does the capital hold, and what is the cheapest way to make sure?</p></div>
+        <p class="answer">Two thousand simulated futures put the chance of breaching the capital requirement at <strong>about one in eleven</strong>. Holding roughly <strong>$700k more</strong> brings it under one in twenty. The aggregate cover as priced turns out to cost more certain capital than it protects.</p>
+      </li>
+      <li>
+        <div><h3><a href="tools/loss-run-pipeline/">Trusting the claims numbers</a></h3><p class="q">Is the file the administrator sent this morning fit to run the business on?</p></div>
+        <p class="answer">Of about 2,500 rows, <strong>12 could not be loaded</strong> and 22 were silently wrong; the release is held until a named person clears them. Yesterday's version of this was a spreadsheet nobody checked.</p>
+      </li>
+      <li>
+        <div><h3><a href="tools/matter-portfolio/">Legal spend</a></h3><p class="q">Which matters will cost more than we approved, and which firm is billing above the rates we agreed?</p></div>
+        <p class="answer">Six open matters are projected to exceed budget by <strong>$223k</strong> combined, before the invoices arrive. One panel firm has billed <strong>7.6% above guideline</strong> across three years, with the lines attached to prove it.</p>
+      </li>
+      <li>
+        <div><h3><a href="tools/agent-control-plane/">AI in the business</a></h3><p class="q">What are the agents touching, who can switch them off, and what does it cost when they do?</p></div>
+        <p class="answer">Ten agents, each with an owner, a data scope enforced at run time, and a gate before anything leaves the company. Switching off the first one idles five others and costs <strong>14½ people-hours a day</strong> in manual fallbacks. An examiner could read the log.</p>
+      </li>
+    </ol>
   </section>
 
   <section id="work">
     <div class="section-head">
-      <div><p class="kicker">Work</p><h2>Working tools on synthetic data</h2></div>
-      <p class="method">Each tool runs in the browser, starts from a seed committed to the repository, and ships with a self-test. None displays a dashboard for its own sake; each computes a number or a ranking and then argues for it. Nothing derives from any employer's data.</p>
+      <div><p class="kicker">Tools</p><h2>Working software on a synthetic book</h2></div>
+      <p class="method">Each tool runs in your browser from a seed committed to the repository, and ships with tests you can run. Nothing derives from any real insurer, insured, client, or employer; the five operating companies, the panel firms, and every claimant are invented. The methods are the ones your actuary and auditor already use.</p>
     </div>
     <ol class="work-list">
-      <li><span class="idx">01</span><div><h3><a href="tools/loss-run-pipeline/">Loss-Run Pipeline</a></h3><p>Ingests an administrator's daily loss run, standardises it, finds the defects, reconciles to the prior run, and holds the release when a person needs to look. Drop in your own file.</p><span class="meta">Claims data · Agent run log · Exports</span></div></li>
-      <li><span class="idx">02</span><div><h3><a href="tools/loss-development/">Loss Development &amp; Aggregate Erosion</a></h3><p>Chain-ladder and Bornhuetter–Ferguson ultimates with a fitted tail, then the question the board asks: how much of each policy year's aggregate will be used, and by how much will it be exceeded.</p><span class="meta">Reserving · Executive reporting · Backtested against the synthetic truth</span></div></li>
-      <li><span class="idx">03</span><div><h3><a href="tools/capital-model/">Capital &amp; Cash-Flow Model</a></h3><p>Quarterly assets, reserves and capital over three years, two thousand times, with stochastic loss ratios and reserve deterioration. Outputs the probability of breaching the capital requirement and the capital that holds it under a tolerance.</p><span class="meta">Capital adequacy · Monte Carlo · Scenario table</span></div></li>
-      <li><span class="idx">04</span><div><h3><a href="tools/agent-control-plane/">Agent Control Plane</a></h3><p>The governance layer for a fleet of ten agents: data authorisation enforced at run time, sequenced runs, human gates, kill switches with impact analysis, control coverage, and the audit log an examiner would read. Throw a switch and see what it costs.</p><span class="meta">AI governance · Policy engine · Operations</span></div></li>
-      <li><span class="idx">05</span><div><h3><a href="tools/matter-portfolio/">Matter Portfolio &amp; Intake Triage</a></h3><p>Which matters will exceed budget before the invoice arrives, which firm bills above the guideline and by how much, which matters have stalled, and where a new matter should go, with the rule that decided shown.</p><span class="meta">Legal operations · Invoice analytics · Rules with a trace</span></div></li>
+      <li><span class="idx">01</span><div><h3><a href="tools/loss-run-pipeline/">Loss-Run Pipeline</a></h3><p>The administrator's daily claim file, made fit to run the business on: standardised, checked, reconciled to yesterday, and held for a person when something is wrong. Drop in your own file and see what it finds.</p><span class="meta">Claims data · Daily · Exports for reserving and reporting</span></div></li>
+      <li><span class="idx">02</span><div><h3><a href="tools/loss-development/">Loss Development &amp; Aggregate Erosion</a></h3><p>What each policy year will ultimately cost and how much of its aggregate it will use, by line, with the estimate checked against the known answer. The page a renewal should be priced from.</p><span class="meta">Reserving · Renewal · Board reporting</span></div></li>
+      <li><span class="idx">03</span><div><h3><a href="tools/capital-model/">Capital &amp; Cash-Flow Model</a></h3><p>Three years of assets, reserves and capital by quarter, simulated thousands of times. The probability of breaching the capital requirement, the capital that holds it under your tolerance, and whether the reinsurance you are offered is worth its price.</p><span class="meta">Capital adequacy · Reinsurance purchase · Dividends</span></div></li>
+      <li><span class="idx">04</span><div><h3><a href="tools/agent-control-plane/">Agent Control Plane</a></h3><p>The governance layer over a fleet of ten agents running a claims operation. Who owns each, what it may read, where a person signs, what a kill switch costs, and the audit log. Inject a fault and watch a write get refused.</p><span class="meta">AI governance · Operations · Examiner-ready</span></div></li>
+      <li><span class="idx">05</span><div><h3><a href="tools/matter-portfolio/">Matter Portfolio &amp; Intake Triage</a></h3><p>Which open matters will exceed budget, projected from your own history; which firm bills above the agreed rates; which matters have stalled; and where a new matter should go, with the rule that decided it shown.</p><span class="meta">Legal spend · Outside counsel · Intake</span></div></li>
     </ol>
+  </section>
+
+  <section id="engage">
+    <div class="section-head">
+      <div><p class="kicker">Engagements</p><h2>What I do for a business</h2></div>
+      <p class="method">Consulting engagements, scoped to a decision rather than a deliverable. Each starts with the data you already have and ends with a number you can act on and a system that keeps producing it after I leave.</p>
+    </div>
+    <div class="grid-2">
+      <div class="offer"><h3>Make the claims numbers trustworthy</h3><p>A daily pipeline from your administrator's file to the exports your actuary, your finance team and your board read, with every defect caught and every release signed. The end of "which spreadsheet is right".</p></div>
+      <div class="offer"><h3>Price the renewal from your own book</h3><p>Loss development, aggregate erosion and total cost of risk by entity and line, refreshed daily, so the renewal is negotiated from your numbers rather than the carrier's.</p></div>
+      <div class="offer"><h3>Know whether the capital holds</h3><p>A capital and cash-flow model for a captive or self-insured programme that answers the board's question in one number, and shows what each reinsurance option is actually worth.</p></div>
+      <div class="offer"><h3>Put AI to work without losing control of it</h3><p>An operating model for agents that do real work: intake, classification, a committee that decides scope, controls that are enforced rather than documented, and a log an examiner can read.</p></div>
+      <div class="offer"><h3>Make the legal function measurable</h3><p>Intake that routes by rule, budgets that project before the invoice, invoice review against your own guidelines, and one platform across the group's entities and vendors.</p></div>
+      <div class="offer"><h3>Automate the thing one person still does by hand</h3><p>The court portal, the certificate request, the monthly report. Built to run unattended, to fail loudly, and to hand the decision to a person when it should.</p></div>
+    </div>
   </section>
 
   <section id="workflows">
     <div class="section-head">
-      <div><p class="kicker">Workflows</p><h2>Entire workflows, not just tools</h2></div>
-      <p class="method">Four end-to-end workflows I have designed and run, described generically with diagrams: a daily claims reporting pipeline, an intake-to-production operating model for AI agents, a matter management rollout across a group, and unattended court-portal filing retrieval. <a href="workflows/">Read the case studies.</a></p>
+      <div><p class="kicker">Workflows</p><h2>How the pieces fit together</h2></div>
+      <p class="method">The tools are components of larger workflows. <a href="workflows/">Four reference designs</a>, with diagrams, show where the people sit and what the business gets: a daily claims reporting pipeline, an operating model for AI agents, a matter platform that makes legal spend visible, and unattended retrieval of court filings.</p>
     </div>
   </section>
 
@@ -66,9 +116,9 @@
     <div class="section-head">
       <div><p class="kicker">About</p><h2>Neal Pathak</h2></div>
       <div class="method">
-        <p>I work in-house at the intersection of legal operations, captive insurance and risk analytics, where I lead an enterprise AI programme and build the systems described above: the claims pipeline that feeds reserving and the board, the models behind renewal and capacity decisions, the platform a group's legal function runs on, and the governance that decides what AI may do and what data it may touch.</p>
-        <p>Before that I managed litigation from pre-suit through appeal, drafted transactional documents, ran a contract portfolio and a compliance platform rollout, and started automating the parts of that work that did not need a person. The through-line is the same: find the process that runs on someone's memory, and build the thing that runs it instead.</p>
-        <p>This site is built the way I build the tools: plain HTML, CSS and JavaScript, no frameworks, no build step, no dependencies. Every engine has a self-test and every dataset comes from a seed you can read. The source is on <a href="https://github.com/nealpathak/nealpathak.github.io">GitHub</a>.</p>
+        <p>I came to this work from the legal side: litigation support, transactional drafting, contract management, compliance rollouts. Every function I worked in ran on a few people's memory and a great deal of manual reconciliation, and the software sold to fix it mostly added a place to type things. So I started building the pieces myself: first small automations that did one tedious thing reliably, then the data pipelines and models underneath a risk function, then agents, and then the governance that lets a company trust them.</p>
+        <p>Today I work in-house across legal, risk and captive insurance, and I lead the design of how AI is used there. The work I like most sits at the joins nobody owns: the contract clause and the policy limit, the loss run and the balance sheet, the agent and the audit log.</p>
+        <p>This site is built the way I build the tools. Plain HTML, CSS and JavaScript; no framework, no build step, no dependencies. Every engine has a self-test and every dataset comes from a seed you can read. The source is on <a href="https://github.com/nealpathak/nealpathak.github.io">GitHub</a>.</p>
       </div>
     </div>
   </section>
@@ -77,7 +127,7 @@
     <div class="section-head">
       <div><p class="kicker">Contact</p><h2>Open to the right conversation</h2></div>
       <div class="method">
-        <p>I take on consulting engagements in claims analytics, legal operations and AI governance, and I am open to conversations about roles where this kind of work is the job. If something on this site is close to a problem you have, that is a good reason to get in touch.</p>
+        <p>If one of the decisions above is on your desk, or you run a function that still assembles its numbers by hand, write to me. I take on consulting engagements in claims analytics, legal operations and AI governance, and I am open to roles where this kind of work is the job.</p>
         <div class="contact-links" id="contact-links"></div>
       </div>
     </div>
@@ -85,12 +135,11 @@
 
   <footer class="site">
     <span>Synthetic data throughout. Nothing here derives from any real insurer, insured, client, or employer.</span>
-    <span>Built without a framework, a build step, or a dependency.</span>
+    <span>No framework, no build step, no dependencies.</span>
   </footer>
 </div>
 <script>
-  // Fill in when ready. Leave a value empty to hide that link.
-  const LINKS = { linkedin: '', github: 'https://github.com/nealpathak' };
+  const LINKS = { linkedin: 'https://www.linkedin.com/in/nealpathak/', github: 'https://github.com/nealpathak' };
   const el = document.getElementById('contact-links');
   const items = [];
   if (LINKS.linkedin) items.push(`<a href="${LINKS.linkedin}" rel="me">LinkedIn</a>`);

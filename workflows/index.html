@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Workflows — Neal Pathak</title>
-<meta name="description" content="End-to-end workflows for legal, risk and insurance operations: a daily claims reporting pipeline, an AI intake-to-production operating model, a matter management rollout, and court-portal filing retrieval. Generic case studies with diagrams.">
+<meta name="description" content="Four reference designs for legal, risk and insurance operations: a daily claims reporting pipeline, an operating model for AI agents, a matter platform that makes legal spend visible, and unattended court-filing retrieval. With swim-lane diagrams.">
+<link rel="canonical" href="https://nealpathak.github.io/workflows/">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../assets/site.css">
 <style>
   .case { padding: 3rem 0 1rem; }
@@ -30,40 +32,40 @@
 
   <div class="tool-head">
     <p class="kicker">Workflows</p>
-    <h1>Entire workflows, not just tools</h1>
-    <p class="lede-wide">A tool is only useful inside the process that feeds it and the people who act on it. These are four workflows I have designed and run end to end, described generically: the problem as it presents, the shape of the solution, where the humans sit, and what changed. The interactive tools on the <a href="../#work">work</a> page are components of the first two.</p>
+    <h1>How the pieces fit together</h1>
+    <p class="lede-wide">A tool on its own changes nothing. What changes a business is the workflow around it: what feeds it, who acts on it, and what happens when it fails. These are four reference designs, described generically, for workflows a legal or risk function should be running. Each says what the business gets, where the people sit, and which of the <a href="../#work">tools</a> on this site are components of it.</p>
   </div>
 
   <article class="case" id="claims-pipeline">
     <p class="kicker">Workflow 01 · Claims reporting</p>
-    <h2>A daily claims pipeline that a board can rely on</h2>
-    <p class="lede-wide">From a third-party administrator's loss run to reserving exports, an activity brief, and live executive dashboards, every morning, with a person in the loop only where a person adds something.</p>
+    <h2>Claims numbers the board can rely on, every morning</h2>
+    <p class="lede-wide">From the administrator's daily file to the exports your actuary reads, the brief your claims manager reads, and the dashboards your board reads, with a person in the loop only where a person adds something.</p>
     <div class="diagram-wrap" id="d1"></div>
     <div class="grid-2">
       <div>
-        <h3>The problem as it presents</h3>
-        <p>The administrator sends a spreadsheet of a few thousand claims each day. Someone opens it, fixes the formats, deletes the duplicates, pastes it into a workbook, and emails the totals. The actuary gets a different cut. The dashboards lag by a week and nobody trusts the numbers enough to price a renewal off them. When the person who does this is on leave, it does not happen.</p>
-        <h3>The shape of the solution</h3>
+        <h3>What it costs to run this by hand</h3>
+        <p>An administrator sends a spreadsheet of a few thousand claims each day. Someone opens it, fixes the formats, deletes the duplicates, pastes it into a workbook, and emails the totals. The actuary gets a different cut. The dashboards lag by a week, and the renewal gets negotiated from the carrier's numbers because nobody trusts the internal ones. When the one person who does this is away, it does not happen.</p>
+        <h3>The design</h3>
         <ol>
-          <li>An ingest agent parses the file, maps the columns by pattern, standardises every date, amount and label, and validates against a rule set that grew out of the real defects seen over months.</li>
-          <li>Blocking exceptions quarantine the row and hold the release; warnings are corrected and listed. The exception file goes back to the administrator the same morning.</li>
-          <li>The standardised listing is reconciled to the prior day, producing the activity brief the claims manager reads over coffee.</li>
-          <li>Downstream agents produce the actuarial export, refresh the loss development and erosion views, and page the chief risk officer when a policy year crosses ninety per cent of its aggregate.</li>
+          <li>An ingest agent parses the file, maps the columns by pattern, standardises every date, amount and label, and validates against a rule set built from the defects actually seen.</li>
+          <li>Blocking exceptions quarantine the row and hold the release; warnings are corrected and listed. The exception file goes back to the administrator the same morning, so the file gets better over time.</li>
+          <li>The standardised listing is reconciled to the prior day, producing the activity brief: new claims, closures, reopenings, reserve movements above a threshold.</li>
+          <li>Downstream agents produce the reserving export, refresh loss development and aggregate erosion, and alert the chief risk officer when a policy year crosses ninety per cent of its aggregate.</li>
         </ol>
       </div>
       <div>
-        <h3>Where the humans sit</h3>
+        <h3>Where the people sit</h3>
         <ul>
-          <li>An analyst releases a held run, with the exception file already telling them what to do with each row.</li>
-          <li>The analytics lead signs off anything bound for the appointed actuary.</li>
+          <li>An analyst releases a held run, with the exception file already saying what to do with each row.</li>
+          <li>A named owner signs off anything bound for the appointed actuary.</li>
           <li>The claims manager gets the brief; the chief risk officer gets the alert; the board gets numbers that reconcile to the general ledger.</li>
-          <li>An exception monitor pages the owner when an input is late, a run fails, or a policy denies a write.</li>
+          <li>An exception monitor pages the owner when an input is late, a run fails, or a write is refused.</li>
         </ul>
-        <h3>What changed</h3>
+        <h3>What the business gets</h3>
         <div class="outcome">
-          <div class="stat"><div class="value">Same day</div><div class="label">Loss run to dashboards</div><div class="sub">from about a week</div></div>
-          <div class="stat"><div class="value">One</div><div class="label">Version of the truth</div><div class="sub">reserving, reporting and the board read the same export</div></div>
-          <div class="stat"><div class="value">Named</div><div class="label">Owner and fallback</div><div class="sub">for every step, so leave is not an outage</div></div>
+          <div class="stat"><div class="value">Same day</div><div class="label">Loss run to board view</div><div class="sub">instead of the following week</div></div>
+          <div class="stat"><div class="value">One</div><div class="label">Set of numbers</div><div class="sub">reserving, finance and the board read the same export</div></div>
+          <div class="stat"><div class="value">Named</div><div class="label">Owner and fallback per step</div><div class="sub">so a holiday is not an outage</div></div>
         </div>
         <p class="note" style="margin-top:1rem">Components: <a href="../tools/loss-run-pipeline/">Loss-Run Pipeline</a>, <a href="../tools/loss-development/">Loss Development &amp; Aggregate Erosion</a>, <a href="../tools/agent-control-plane/">Agent Control Plane</a>.</p>
       </div>
@@ -72,38 +74,38 @@
 
   <article class="case" id="ai-operating-model">
     <p class="kicker">Workflow 02 · AI governance</p>
-    <h2>An intake-to-production operating model for AI agents</h2>
-    <p class="lede-wide">How an idea for an agent becomes a governed production system, and how it gets switched off. Designed to a standard a regulatory examiner would accept, and sponsored at executive level so the standard holds.</p>
+    <h2>Putting AI agents to work without losing control of them</h2>
+    <p class="lede-wide">How an idea for an agent becomes a production system the company can defend to a regulator, an auditor or a board, and how it gets switched off when it should be.</p>
     <div class="diagram-wrap" id="d2"></div>
     <div class="grid-2">
       <div>
-        <h3>The problem as it presents</h3>
-        <p>Agents are easy to build and easy to sprawl. Within months there are a dozen, each touching data nobody catalogued, sending outputs nobody reviewed, owned by whoever built it, and impossible to describe to an auditor. The alternative most organisations reach for is a blanket ban, which loses the value and does not stop the sprawl.</p>
-        <h3>The shape of the solution</h3>
+        <h3>The two ways this goes wrong</h3>
+        <p>Agents are easy to build and easy to sprawl. Within months there are a dozen, each touching data nobody catalogued, sending outputs nobody reviewed, owned by whoever built it, impossible to describe to an examiner. The reaction is a blanket ban, which loses the value and does not stop the sprawl. The design below is the middle path: a small, enforced standard with an executive sponsor.</p>
+        <h3>The design</h3>
         <ol>
           <li><strong>Intake.</strong> A one-page proposal: what the agent does, what data it reads, where its output goes, who owns it, what the manual fallback is.</li>
-          <li><strong>Classification.</strong> The proposal is classified by data sensitivity and by whether any output leaves the company. That classification decides the controls required, not a debate each time.</li>
-          <li><strong>Committee.</strong> A standing committee with the chief risk officer, general counsel and the programme lead decides what the agent may do and what data it may touch. The decision is recorded as the agent's authorisation scope.</li>
-          <li><strong>Build and pilot.</strong> Built with tests, run in pilot with every gate on and every run logged, reviewed against the seven controls.</li>
-          <li><strong>Production.</strong> Only when all seven controls pass. Quarterly review; any control failing returns it to pilot.</li>
+          <li><strong>Classification.</strong> By data sensitivity and by whether any output leaves the company. The classification decides which controls apply, so it is not renegotiated each time.</li>
+          <li><strong>Decision.</strong> A standing committee of the chief risk officer, general counsel and the programme lead decides what the agent may do and what data it may touch. The decision becomes the agent's enforced scope.</li>
+          <li><strong>Build and pilot.</strong> Built with tests, run with every gate on and every run logged, reviewed against the controls.</li>
+          <li><strong>Production.</strong> Only when every control passes. Quarterly review; a failed control returns it to pilot.</li>
         </ol>
       </div>
       <div>
-        <h3>The seven controls</h3>
+        <h3>The controls, enforced rather than documented</h3>
         <ul>
           <li>A named owner who can be paged.</li>
-          <li>Data authorisation scoped and enforced at run time, not documented in a policy.</li>
+          <li>Data access scoped and checked at run time, not described in a policy.</li>
           <li>A kill switch, with the downstream impact and manual fallbacks known before it is thrown.</li>
-          <li>A per-run audit log: who, what, which data, what the policy engine decided.</li>
-          <li>A human gate before anything leaves the company.</li>
+          <li>A per-run log: who, what, which data, and what the policy engine decided.</li>
+          <li>A person signs before anything leaves the company.</li>
           <li>Automated tests that must pass before a switch is reset.</li>
           <li>A documented manual fallback with an owner and an hours estimate.</li>
         </ul>
-        <h3>What changed</h3>
+        <h3>What the business gets</h3>
         <div class="outcome">
-          <div class="stat"><div class="value">Yes</div><div class="label">An answer to "what does AI touch?"</div><div class="sub">in one matrix, approved and enforced</div></div>
-          <div class="stat"><div class="value">Minutes</div><div class="label">To know something did not run</div><div class="sub">rather than when someone notices a stale number</div></div>
-          <div class="stat"><div class="value">Sponsored</div><div class="label">At executive level</div><div class="sub">so the standard survives the next urgent request</div></div>
+          <div class="stat"><div class="value">One page</div><div class="label">Answers "what does AI touch?"</div><div class="sub">approved by the committee and enforced in code</div></div>
+          <div class="stat"><div class="value">Minutes</div><div class="label">To know something did not run</div><div class="sub">rather than when a stale number reaches the board</div></div>
+          <div class="stat"><div class="value">Known</div><div class="label">Cost of switching off</div><div class="sub">in people-hours, before it is needed</div></div>
         </div>
         <p class="note" style="margin-top:1rem">Component: <a href="../tools/agent-control-plane/">Agent Control Plane</a>.</p>
       </div>
@@ -112,34 +114,34 @@
 
   <article class="case" id="matter-management">
     <p class="kicker">Workflow 03 · Legal operations</p>
-    <h2>Standardising intake, coverage, funding and vendors on one matter platform</h2>
-    <p class="lede-wide">A matter management rollout across a captive and its operating companies, where the hard part was not the software but agreeing what a matter is, who pays for it, and what the vendors owe in return.</p>
+    <h2>Making legal spend visible across a group</h2>
+    <p class="lede-wide">One platform for matters across a group's entities, its captive and its vendors, where the hard part is not the software but settling what a matter is, who pays for it, and what the vendors owe in return.</p>
     <div class="diagram-wrap" id="d3"></div>
     <div class="grid-2">
       <div>
-        <h3>The problem as it presents</h3>
-        <p>Each operating company reports matters differently, or not at all. Coverage is decided by whoever is asked. Which entity or policy funds a matter is settled at invoice time, which is the worst time. Outside counsel and the administrator work to whatever guidelines they were last sent. Nobody can say what the group's litigation costs, or which firm is worth what it charges.</p>
-        <h3>The shape of the solution</h3>
+        <h3>What it costs to leave it alone</h3>
+        <p>Each entity reports matters differently, or not at all. Coverage is decided by whoever is asked. Which entity or policy funds a matter is settled at invoice time, which is the worst possible time. Outside counsel and the administrator work to whatever guidelines they were last sent. Nobody can say what the group's litigation costs, or whether the firm charging the most is worth it.</p>
+        <h3>The design</h3>
         <ol>
-          <li><strong>Intake standardisation.</strong> One form, one set of required facts, one identifier. Routing by written rules with the reasoning shown; notices fire on the facts.</li>
-          <li><strong>Coverage determination.</strong> A recorded decision on which line responds, made once, at intake, with the reservation of rights where needed.</li>
+          <li><strong>Intake.</strong> One form, one set of required facts, one identifier. Routing by written rules with the reasoning shown; notices fire on the facts.</li>
+          <li><strong>Coverage.</strong> A recorded decision on which line responds, made once, at intake, with the reservation of rights where needed.</li>
           <li><strong>Funding.</strong> Which entity or policy pays, and at what retention, decided before the first invoice rather than after it.</li>
-          <li><strong>Vendor workflows.</strong> Panel firms and the administrator onboarded to the same guidelines, budgets and reporting; invoices reviewed against them.</li>
+          <li><strong>Vendors.</strong> Panel firms and the administrator onboarded to the same guidelines, budgets and reporting; invoices reviewed against them.</li>
           <li><strong>Reporting.</strong> Budget burn, rate compliance, cycle time and reserves by entity, type and firm, from the platform rather than from memory.</li>
         </ol>
       </div>
       <div>
-        <h3>Where the humans sit</h3>
+        <h3>Where the people sit</h3>
         <ul>
-          <li>Entity contacts submit intake; they see the routing decision and why.</li>
-          <li>In-house legal owns coverage and funding decisions and reviews routing recommendations.</li>
-          <li>The captive sees every matter that touches its retention, from day one.</li>
+          <li>Entity contacts submit intake and see the routing decision and why.</li>
+          <li>In-house counsel owns coverage and funding decisions and reviews routing recommendations.</li>
+          <li>The captive sees every matter that touches its retention from day one.</li>
           <li>Vendors get budgets, guidelines and feedback on invoices, and are measured by the same yardstick.</li>
         </ul>
-        <h3>What changed</h3>
+        <h3>What the business gets</h3>
         <div class="outcome">
           <div class="stat"><div class="value">Day one</div><div class="label">Funding decided</div><div class="sub">not at invoice time</div></div>
-          <div class="stat"><div class="value">One</div><div class="label">Set of guidelines</div><div class="sub">every vendor works to and is measured against</div></div>
+          <div class="stat"><div class="value">Before</div><div class="label">The overrun, not after</div><div class="sub">budgets projected from the portfolio's own history</div></div>
           <div class="stat"><div class="value">By firm</div><div class="label">Cost and cycle time</div><div class="sub">so panel decisions rest on numbers</div></div>
         </div>
         <p class="note" style="margin-top:1rem">Component: <a href="../tools/matter-portfolio/">Matter Portfolio &amp; Intake Triage</a>.</p>
@@ -149,14 +151,14 @@
 
   <article class="case" id="court-portal">
     <p class="kicker">Workflow 04 · Litigation support</p>
-    <h2>Retrieving and filing court documents without a person watching the portal</h2>
-    <p class="lede-wide">A small, complete automation: new filings on a county court portal retrieved, named to the firm's convention, filed to the document system, and the responsible attorney told. Built to run unattended and to fail loudly.</p>
+    <h2>Court filings retrieved and filed without a person watching the portal</h2>
+    <p class="lede-wide">A small, complete automation: new filings on a court e-filing portal retrieved, named to the firm's convention, filed to the document system, and the responsible attorney told. Built to run unattended and to fail loudly.</p>
     <div class="diagram-wrap" id="d4"></div>
     <div class="grid-2">
       <div>
-        <h3>The problem as it presents</h3>
+        <h3>What it costs to do by hand</h3>
         <p>Someone checks the portal for each active case, downloads whatever is new, renames it by hand to the naming convention, files it in the right matter folder, and tells the attorney. It takes an hour a day, is easy to get wrong, and is the first thing dropped on a busy day, which is exactly when a deadline-bearing filing lands.</p>
-        <h3>The shape of the solution</h3>
+        <h3>The design</h3>
         <ol>
           <li>A scheduled job enumerates active case numbers from the matter list and checks each on the portal.</li>
           <li>New documents are retrieved, classified by type, and named to the convention: date, case, party, document type.</li>
@@ -165,16 +167,16 @@
         </ol>
       </div>
       <div>
-        <h3>What made it hold up</h3>
+        <h3>What makes it hold up</h3>
         <ul>
           <li>Idempotent: a document already filed is never filed twice, so the job can be re-run freely.</li>
           <li>Loud failures: a portal change or a login problem pages a person within the hour, rather than silently retrieving nothing.</li>
           <li>The naming convention is data, not code, so the firm can change it.</li>
-          <li>Deadlines extracted from the document are suggestions for the docket, confirmed by a person, never entered automatically.</li>
+          <li>Deadlines extracted from a document are suggestions for the docket, confirmed by a person, never entered automatically.</li>
         </ul>
-        <h3>What changed</h3>
+        <h3>What the business gets</h3>
         <div class="outcome">
-          <div class="stat"><div class="value">Hours</div><div class="label">Given back weekly</div><div class="sub">to work that needs a paralegal</div></div>
+          <div class="stat"><div class="value">Hours</div><div class="label">Given back each week</div><div class="sub">to work that needs a paralegal</div></div>
           <div class="stat"><div class="value">Minutes</div><div class="label">From filing to attorney</div><div class="sub">with the deadline flagged</div></div>
           <div class="stat"><div class="value">Zero</div><div class="label">Silent misses</div><div class="sub">failure is a page, not an absence</div></div>
         </div>
@@ -183,7 +185,7 @@
   </article>
 
   <footer class="site">
-    <span>Case studies are described generically. No client, employer, or matter is identified.</span>
+    <span>Reference designs, described generically. No client, employer, or matter is identified.</span>
     <a href="../">nealpathak.github.io</a>
   </footer>
 </div>

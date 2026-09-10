@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matter Portfolio &amp; Intake Triage — Neal Pathak</title>
+<meta name="description" content="Legal operations analytics on a synthetic matter portfolio: budget-burn projection, outside-counsel rate compliance, stage cycle times, and a rule-based intake router that shows its reasoning.">
+<link rel="stylesheet" href="../../assets/site.css">
+<style>
+  .trace { list-style: none; margin: 0.6rem 0 0; padding: 0; font-size: 0.9rem; }
+  .trace li { padding: 0.4rem 0 0.4rem 1.6rem; border-top: 1px solid var(--rule); position: relative; color: var(--muted); }
+  .trace li::before { content: '·'; position: absolute; left: 0.4rem; }
+  .trace li.fired { color: var(--ink); }
+  .trace li.fired::before { content: '●'; color: var(--accent); }
+  .trace li.skipped { color: var(--muted); text-decoration: line-through; }
+  .decision { border: 1px solid var(--ink); padding: 1rem 1.2rem; margin-top: 1rem; }
+  .decision .value { font-size: 1.5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="brand" href="../../">Neal Pathak</a>
+    <nav><a href="../../#work">Work</a><a href="../../workflows/">Workflows</a><a href="../../#about">About</a><a href="../../#contact">Contact</a></nav>
+  </header>
+
+  <div class="tool-head">
+    <p class="kicker">Tool 05 · Legal operations</p>
+    <h1>Matter Portfolio &amp; Intake Triage</h1>
+    <p class="lede-wide">A general counsel does not need another list of matters. They need to know which ones will blow their budget before the invoice arrives, which firm is quietly billing above the guideline, which matters have stalled, and where a new matter should go the moment it lands. This computes each of those from a synthetic portfolio of 150 matters and three years of invoices.</p>
+    <div class="meta"><span class="badge">Synthetic portfolio</span><span class="badge">Invoice line items</span><span class="badge">Rules with a trace</span><span class="badge">Self-tested</span></div>
+  </div>
+
+  <section style="padding-top:0">
+    <div class="finding" id="finding"></div>
+    <div class="grid-4" id="stats"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Budget</p><h2>Matters likely to exceed budget</h2></div>
+      <p class="method">Projected cost is what has been billed plus the median cost of the remaining stages, learned from this portfolio's own closed matters of the same type, discounted for the share that settle before trial. The list is what to raise with counsel this week, before the overrun is a fact.</p>
+    </div>
+    <div class="table-scroll" id="overbudget"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Rates</p><h2>Outside-counsel billing against the guidelines</h2></div>
+      <p class="method">Every invoice line is checked against the guideline rate for its timekeeper class, and its description against a vagueness test. The amount above guideline is a number that can go back to the firm with the lines attached.</p>
+    </div>
+    <figure id="firm-chart" style="max-width:760px"></figure>
+    <div class="table-scroll" id="firms"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Intake</p><h2>Where a new matter goes</h2></div>
+      <p class="method">Routing is a small set of ordered rules, and the trace shows which one decided. Notices are separate: they fire on the facts whatever the routing, because the excess carrier does not care who is handling the file.</p>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="controls" id="intake" style="margin-top:0">
+          <label><span class="name">Matter type</span><select data-param="type" id="type"></select></label>
+          <label><span class="name">Entity</span><select data-param="entity" id="entity"></select></label>
+          <label><span class="name">Exposure estimate <output for="exposure"></output></span><input type="range" id="exposure" data-param="exposure" data-type="number" data-format="money" min="5000" max="2000000" step="5000" value="180000"></label>
+          <label class="check"><input type="checkbox" id="suit" data-param="suit" checked> Suit has been filed</label>
+          <label class="check"><input type="checkbox" id="regulatory" data-param="regulatory"> A regulator or government body is a party</label>
+        </div>
+      </div>
+      <div id="routing"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Cycle time</p><h2>Stalled matters and stage durations</h2></div>
+      <p class="method">A matter is stalled when it has been in its current stage longer than the 90th percentile of matters of the same type that have been through that stage. The stage table is the yardstick.</p>
+    </div>
+    <div class="table-scroll" id="stuck"></div>
+    <div class="table-scroll" id="cycle"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Method</p><h2>Assumptions on the surface</h2></div>
+      <div class="method">
+        <dl>
+          <dt>Portfolio</dt><dd>150 matters across six types and five entities, opened over three years, with stage histories, exposures, budgets and monthly invoices from four panel firms. Firms differ in rate discipline by design; nothing is modelled on a real firm.</dd>
+          <dt>Projection</dt><dd>Median stage cost from closed matters of the same type, with the final two stages weighted at 40% to reflect settlement. Where a stage has no history, the type's planning figure is used.</dd>
+          <dt>Guidelines</dt><dd>Partner $425, associate $285, paralegal $145. Vague descriptions are matched against a short list; a real implementation uses the billing guidelines' own list and task codes.</dd>
+          <dt>Routing</dt><dd>Eight ordered rules and five notice rules. The point is not the rules, which any department will write differently, but that the decision arrives with its reasoning and the notices it triggers.</dd>
+          <dt>Tests</dt><dd><code>node tools/matter-portfolio/selftest.mjs</code> checks that invoices foot, that exactly one rule fires per intake, and that the projection and rate arithmetic hold.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <span>Synthetic data throughout. No matter, firm, or invoice here is real.</span>
+    <a href="../../">nealpathak.github.io</a>
+  </footer>
+</div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>

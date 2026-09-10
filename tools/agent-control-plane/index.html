@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Control Plane — Neal Pathak</title>
+<meta name="description" content="A governance and operations console for a fleet of AI agents: named owners, scoped data authorisation, sequenced daily runs, human gates, kill switches with impact analysis, and a per-run audit log. Synthetic fleet.">
+<link rel="stylesheet" href="../../assets/site.css">
+<style>
+  .switches { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.4rem 1.5rem; font-family: var(--sans); font-size: 0.8rem; margin: 0.6rem 0 0; }
+  .switches label { display: flex; align-items: center; gap: 0.5rem; color: var(--ink-2); }
+  .switches input { accent-color: var(--accent); }
+  .matrix td.yes { color: var(--ink); text-align: center; }
+  .matrix td.no { color: var(--rule-2); text-align: center; }
+  .matrix td.gap { color: var(--accent); text-align: center; font-weight: 600; }
+  .matrix th.rot { writing-mode: vertical-rl; transform: rotate(180deg); text-align: left; padding: 0.4rem 0.3rem; height: 9rem; vertical-align: bottom; }
+  .legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-family: var(--sans); font-size: 0.74rem; color: var(--muted); margin-top: 0.4rem; }
+  .legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; border: 1px solid var(--ink); margin-right: 0.35rem; vertical-align: -2px; }
+  .legend .ok::before { background: var(--paper); }
+  .legend .held::before { border-color: var(--accent); border-style: dashed; }
+  .legend .waiting::before { border-color: var(--muted); border-style: dotted; }
+  .legend .killed::before { background: var(--accent); border-color: var(--accent); }
+  .legend .blocked::before { border-color: var(--muted); background: var(--paper-2); }
+  .legend .idle::before { border-color: var(--rule-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="brand" href="../../">Neal Pathak</a>
+    <nav><a href="../../#work">Work</a><a href="../../workflows/">Workflows</a><a href="../../#about">About</a><a href="../../#contact">Contact</a></nav>
+  </header>
+
+  <div class="tool-head">
+    <p class="kicker">Tool 04 · AI governance and operations</p>
+    <h1>Agent Control Plane</h1>
+    <p class="lede-wide">Ten agents run a captive's claims reporting, certificates, matter intake and board pack. The interesting part is not the agents. It is the layer that decides what each may do and what data it may touch, sequences them, holds anything bound for the outside world until a person signs, and can prove all of it afterwards. This is that layer, on a synthetic fleet, with the switches live.</p>
+    <div class="meta"><span class="badge">Synthetic fleet</span><span class="badge">Policy engine</span><span class="badge">Kill switches</span><span class="badge">Audit log</span><span class="badge">Self-tested</span></div>
+  </div>
+
+  <div class="controls" id="controls">
+    <label><span class="name">What happens today</span>
+      <select data-param="fault" id="fault"></select></label>
+    <label><span class="name">Inspect impact of switching off</span>
+      <select data-param="inspect" id="inspect"></select></label>
+    <div style="grid-column: 1 / -1">
+      <span class="name" style="font-size:0.8rem;color:var(--ink-2)">Kill switches</span>
+      <div class="switches" id="switches"></div>
+    </div>
+  </div>
+
+  <section style="padding-top:0">
+    <div class="finding" id="finding"></div>
+    <div class="grid-4" id="stats"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Today's run</p><h2>Sequence and status</h2></div>
+      <p class="method">Agents run in dependency order. An exception hold on the claim listing stops everything that reads it; an external gate holds only the delivery, so internal reporting still refreshes. A thrown switch idles the agent and everything downstream, each with its documented fallback.</p>
+    </div>
+    <figure><div id="dag"></div><div class="legend"><span class="ok">Completed</span><span class="held">Held for a person</span><span class="waiting">Waiting on a release</span><span class="killed">Switched off</span><span class="blocked">Blocked upstream</span><span class="idle">Not due today</span></div></figure>
+    <div class="table-scroll" id="fleet"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Impact</p><h2>What a thrown switch costs</h2></div>
+      <p class="method">Every agent has a manual fallback with an owner and an hours estimate. Switching one off idles it and everything downstream; the number is the people-hours per day it takes to keep the business running by hand until it is back.</p>
+    </div>
+    <div class="grid-4" id="impact-stats"></div>
+    <div class="table-scroll" id="impact"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Authorisation</p><h2>What each agent may touch</h2></div>
+      <p class="method">The data authorisation matrix is the artefact a committee approves and an examiner asks for. Reads are enforced at run time; writes are checked against the destination, and claimant personal data can never be written to anything outside the company regardless of what an agent asks for.</p>
+    </div>
+    <div class="table-scroll" id="authz"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Controls</p><h2>Coverage by agent</h2></div>
+      <p class="method">Seven controls every production agent must carry. Coverage is computed, not asserted: an agent that fails a control is not eligible for production and stays in pilot until it passes.</p>
+    </div>
+    <div class="grid-4" id="coverage-stats"></div>
+    <div class="table-scroll" id="coverage"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Audit</p><h2>The run log an examiner would read</h2></div>
+      <p class="method">One row per action: who, what, on which data, and the decision the policy engine made. Denials and holds are the rows that matter; the rest is evidence that the ordinary case is ordinary.</p>
+    </div>
+    <div class="table-scroll" id="audit"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Method</p><h2>Assumptions on the surface</h2></div>
+      <div class="method">
+        <dl>
+          <dt>Fleet</dt><dd>Ten agents modelled on the shape of a captive's daily operation. Owners are roles. Schedules, data scopes, gates and fallbacks are illustrative but the relationships between them are the point.</dd>
+          <dt>Policy engine</dt><dd>A read is allowed if the data class is in the agent's authorised set. A write is allowed if the destination is in the agent's set, the payload contains only classes the agent may read, and no restricted class goes to an external destination. Privileged material needs a gate before any external destination.</dd>
+          <dt>Gates</dt><dd>Three kinds. An exception gate holds the release of an internal artefact and blocks dependants. An external gate holds delivery outside the company. An attorney gate queues recommendations for counsel.</dd>
+          <dt>Run simulation</dt><dd>Deterministic for a given day, set of switches and injected event. Durations are seeded noise; decisions are not.</dd>
+          <dt>Tests</dt><dd><code>node tools/agent-control-plane/selftest.mjs</code> checks dependency ordering, impact arithmetic, every authorisation rule, coverage detection, and each injected event's expected outcome.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <span>Synthetic fleet. No agent here touches real data; every name is a role.</span>
+    <a href="../../">nealpathak.github.io</a>
+  </footer>
+</div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>

@@ -245,3 +245,12 @@ export function trueUltimates(book, line = null) {
   for (const c of book.claims) if (!line || c.line === line) out[c.py] = round2(out[c.py] + c.retainedUltimate);
   return out;
 }
+
+// Exposure base for an entity, line and policy year (payroll $m, revenue $m,
+// or vehicle count), on the same growth path the generator uses.
+export function exposureFor(entityCode, lineCode, py) {
+  const ent = ENTITIES.find(e => e.code === entityCode);
+  const line = LINES[lineCode];
+  return ent[line.exposure] * Math.pow(1.045, py - 2018);
+}
+export const EXPOSURE_UNITS = { payroll: '$1m payroll', revenue: '$1m revenue', vehicles: 'vehicle' };

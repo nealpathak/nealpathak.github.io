@@ -11,6 +11,8 @@ const suites = [
   'tools/capital-model/selftest.mjs',
   'tools/agent-control-plane/selftest.mjs',
   'tools/matter-portfolio/selftest.mjs',
+  'tools/tcor-allocation/selftest.mjs',
+  'tools/board-brief/selftest.mjs',
 ];
 let failed = 0;
 for (const s of suites) {

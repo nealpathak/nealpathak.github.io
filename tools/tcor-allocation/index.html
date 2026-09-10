@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cost of Risk &amp; Premium Allocation — Neal Pathak</title>
+<meta name="description" content="What risk actually costs each operating company, and what each should pay the captive next year: exposure share adjusted by credibility-weighted experience, with the cap and the credibility as visible knobs. Synthetic data.">
+<link rel="canonical" href="https://nealpathak.github.io/tools/tcor-allocation/">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="brand" href="../../">Neal Pathak</a>
+    <nav><a href="../../#decisions">Decisions</a><a href="../../#work">Tools</a><a href="../../workflows/">Workflows</a><a href="../../#engage">Engagements</a><a href="../../#contact">Contact</a></nav>
+  </header>
+
+  <div class="tool-head">
+    <p class="kicker">Tool 06 · Owners and operating companies</p>
+    <h1>Cost of Risk &amp; Premium Allocation</h1>
+    <p class="lede-wide">Every owner of an operating company asks the captive the same two questions: what does risk actually cost my business, and why is my premium what it is. The first is answered by adding up what most reports leave out. The second is where the argument lives: how much of each company's own experience should count, and how far its premium is allowed to move in one year. Both knobs are on the page.</p>
+    <div class="meta"><span class="badge">Synthetic data</span><span class="badge">Credibility-weighted</span><span class="badge">Capped</span><span class="badge">Self-tested</span></div>
+  </div>
+
+  <div class="controls" id="controls">
+    <label><span class="name">Claims for half credibility <output for="credibilityK"></output></span><input type="range" id="credibilityK" data-param="credibilityK" data-type="number" data-format="int" min="25" max="1000" step="25" value="250"></label>
+    <label><span class="name">Experience window</span><select data-param="windowYears" data-type="number"><option value="3">Three years</option><option value="5" selected>Five years</option><option value="7">Seven years</option></select></label>
+    <label><span class="name">Cap on movement from exposure share <output for="cap"></output></span><input type="range" id="cap" data-param="cap" data-type="number" data-format="pct" min="0" max="0.5" step="0.05" value="0.25"></label>
+    <label><span class="name">Excess and aggregate premium, share of captive premium <output for="excessRate"></output></span><input type="range" id="excessRate" data-param="excessRate" data-type="number" data-format="pct" min="0" max="0.2" step="0.01" value="0.08"></label>
+    <label><span class="name">Administrator fee per claim <output for="handlingPerClaim"></output></span><input type="range" id="handlingPerClaim" data-param="handlingPerClaim" data-type="number" data-format="money" min="0" max="2500" step="50" value="850"></label>
+    <label><span class="name">Captive administration, share of premium <output for="adminRate"></output></span><input type="range" id="adminRate" data-param="adminRate" data-type="number" data-format="pct" min="0" max="0.15" step="0.01" value="0.06"></label>
+  </div>
+
+  <section style="padding-top:0">
+    <div class="finding" id="finding"></div>
+    <div class="grid-4" id="stats"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Allocation</p><h2 id="next-py">Next year's premium by operating company</h2></div>
+      <p class="method">The bar is the proposed premium; the mark is what a pure exposure-based allocation would charge. An entity moves away from its exposure share only as far as its own claims history is credible, and never further than the cap.</p>
+    </div>
+    <figure style="max-width:760px" id="alloc-chart"></figure>
+    <div class="table-scroll" id="alloc"></div>
+    <div class="table-scroll" id="alloc-lines"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Who has been paying for whom</p><h2>Premium against losses over the experience window</h2></div>
+      <p class="method">A captive pools risk, so some subsidy is the point. The question owners ask is whether it is deliberate. This is each company's premium against the losses it generated, developed to ultimate, over the same window the allocation uses.</p>
+    </div>
+    <div class="table-scroll" id="subsidy"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Cost of risk</p><h2 id="tcor-title">Total cost of risk by operating company</h2></div>
+      <p class="method">Retained losses developed to ultimate, plus the excess and aggregate premium, the administrator's handling fees, and the captive's own running costs, allocated to the company that generated them. Expressed per unit of exposure so companies of different sizes can be compared.</p>
+    </div>
+    <figure id="tcor-chart"></figure>
+    <div class="table-scroll" id="tcor"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div><p class="kicker">Method</p><h2>Assumptions on the surface</h2></div>
+      <div class="method">
+        <dl>
+          <dt>Entity ultimates</dt><dd>Each company's reported losses by line and policy year are developed with the line's factors from the loss development tool; green years use Bornhuetter–Ferguson with the company's exposure share of the priced expectation. Entity ultimates sum to the line ultimates.</dd>
+          <dt>Historical premium</dt><dd>Assumed to have been allocated by exposure share. That is what most captives do until someone builds this page.</dd>
+          <dt>Credibility</dt><dd>Classical: claims in the window divided by claims plus the constant. The constant is the number of claims at which a company's own experience gets half the weight. Actuaries argue about it; the slider lets the argument happen with the numbers visible.</dd>
+          <dt>Cap</dt><dd>Applied against the exposure-based figure, then renormalised so the line premium is fully allocated. A cap of zero reproduces the exposure allocation.</dd>
+          <dt>Not modelled</dt><dd>Large-loss capping inside the experience, schedule credits, and any deliberate cross-subsidy the owners have agreed. Each is a line of code once the policy is written.</dd>
+          <dt>Tests</dt><dd><code>node tools/tcor-allocation/selftest.mjs</code> checks that allocations fully allocate the premium, respect the cap, collapse to exposure share at zero credibility, and follow relativity at full credibility.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <span>Synthetic data throughout. The five operating companies are invented.</span>
+    <a href="../../">nealpathak.github.io</a>
+  </footer>
+</div>
+<script type="module" src="./app.mjs"></script>
+</body>
+</html>

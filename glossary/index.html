@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terms — Neal Pathak</title>
+<meta name="description" content="Plain-English explanations of the terms used across the tools: retention, aggregate, ultimate, IBNR, chain-ladder, Bornhuetter–Ferguson, credibility, total cost of risk, capital requirement, and the endorsements on a certificate.">
+<link rel="canonical" href="https://nealpathak.github.io/glossary/">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .terms { margin: 0; }
+  .terms dt { font-size: 1.15rem; margin-top: 1.6rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+  .terms dt small { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-left: 0.6rem; }
+  .terms dd { margin: 0.4rem 0 0; max-width: 66ch; color: var(--ink-2); }
+  .terms dd .why { display: block; margin-top: 0.4rem; color: var(--ink); }
+  .terms dd a { border-bottom-color: var(--rule); }
+  .groups { display: grid; grid-template-columns: 1fr 1fr; gap: 0 3rem; }
+  @media (max-width: 760px) { .groups { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="brand" href="../">Neal Pathak</a>
+    <nav><a href="../#decisions">Decisions</a><a href="../#work">Tools</a><a href="../workflows/">Workflows</a><a href="./" aria-current="page">Terms</a><a href="../#about">About</a></nav>
+  </header>
+
+  <div class="tool-head">
+    <p class="kicker">Terms</p>
+    <h1>The words, in plain English</h1>
+    <p class="lede-wide">The tools use the vocabulary an actuary, a broker and a general counsel use, because those are the people the numbers have to survive. But the decisions belong to people who do not use it every day. Each term below is explained once, with why it matters to the decision, and where it appears.</p>
+  </div>
+
+  <div class="groups">
+    <div>
+      <p class="kicker">The programme</p>
+      <dl class="terms">
+        <dt id="captive">Captive <small>Programme</small></dt>
+        <dd>An insurance company a group owns to insure itself. Premium the operating companies would have paid to a carrier is paid to the captive instead; the captive pays the claims, keeps what is left, and buys cover above what it can afford to lose.<span class="why">Why it matters: the group's own money is at risk, so every number on this site is a number about the owners' money.</span></dd>
+        <dt id="retention">Retention <small>Programme</small></dt>
+        <dd>The amount of any one claim the captive pays before a carrier above it pays the rest. On this book it is $250,000 per occurrence.<span class="why">Why it matters: a $2m claim costs the captive $250,000. The tools work in the retained layer, because that is what the group actually pays.</span></dd>
+        <dt id="aggregate">Aggregate <small>Programme</small></dt>
+        <dd>The most the captive will pay in total for one line in one policy year, across all claims. Above it, an aggregate carrier pays. It is set at renewal, usually a little above what the year is expected to cost.<span class="why">Why it matters: a year that exceeds its aggregate has used up its cushion; the carrier now has a claim and the next renewal gets harder. <a href="../tools/loss-development/">Projected use of the aggregate</a> is the number to watch.</span></dd>
+        <dt id="policy-year">Policy year <small>Programme</small></dt>
+        <dd>The twelve months a policy covers. On this book it runs 1 September to 31 August, so "2025–26" means claims from events between 1 September 2025 and 31 August 2026. Claims are grouped by the year the event happened, however long they take to settle.</dd>
+        <dt id="loss-ratio">Loss ratio <small>Programme</small></dt>
+        <dd>Losses divided by premium. A 75% loss ratio means three-quarters of the premium went to claims and a quarter was left for expenses and capital.<span class="why">Why it matters: it is the quickest read on whether a line, a year, or an operating company is paying its way. <a href="../tools/tcor-allocation/">Premium against losses by company</a> shows it per owner.</span></dd>
+      </dl>
+
+      <p class="kicker" style="margin-top:2.5rem">Claims and reserving</p>
+      <dl class="terms">
+        <dt id="loss-run">Loss run <small>Claims</small></dt>
+        <dd>The administrator's listing of every claim with what has been paid and what is still expected. It arrives as a spreadsheet, daily or monthly, and it is the raw material for everything else.<span class="why">Why it matters: if the loss run is wrong, every downstream number is wrong. The <a href="../tools/loss-run-pipeline/">pipeline</a> exists to make it trustworthy before anyone uses it.</span></dd>
+        <dt id="reserve">Case reserve <small>Claims</small></dt>
+        <dd>The adjuster's estimate of what a claim will still cost, on top of what has already been paid. Paid plus reserve is the claim's <em>incurred</em> value.<span class="why">Why it matters: reserves are opinions. They are usually set low at first and rise, which is why development is needed.</span></dd>
+        <dt id="ultimate">Ultimate <small>Reserving</small></dt>
+        <dd>What a policy year will finally have cost once every claim is closed, years from now. Nobody knows it; it is estimated from how earlier years developed.<span class="why">Why it matters: the renewal, the capital, and the aggregate question all turn on the ultimate, not on what has been paid so far.</span></dd>
+        <dt id="ibnr">IBNR <small>Reserving</small></dt>
+        <dd>"Incurred but not reported": the gap between the ultimate and what is on the books today. It covers claims that have happened but not yet been reported, and reserves that will turn out too low.<span class="why">Why it matters: IBNR is a liability the balance sheet has to carry before anyone has sent a bill.</span></dd>
+        <dt id="development">Development <small>Reserving</small></dt>
+        <dd>How a year's reported cost grows over time as claims are reported and reserves catch up. A "development factor" of 1.24 from 12 to 24 months means a year that shows $1m at one year old typically shows $1.24m at two.</dd>
+        <dt id="chain-ladder">Chain-ladder <small>Reserving</small></dt>
+        <dd>The standard method: take what a year shows today and multiply it by the development still expected, learned from older years. Reliable once a year is a few years old; jumpy when it is young, because a single large claim gets multiplied.</dd>
+        <dt id="bf">Bornhuetter–Ferguson <small>Reserving</small></dt>
+        <dd>The standard companion method for young years: what has been reported, plus the undeveloped share of what the year was <em>expected</em> to cost when it was priced. It leans on the pricing until the data can speak.<span class="why">Why it matters: the two methods disagree most on the newest year, which is exactly the one the renewal is about. The <a href="../tools/loss-development/">development tool</a> shows both and says which it picked.</span></dd>
+        <dt id="tail">Tail factor <small>Reserving</small></dt>
+        <dd>Development expected beyond the oldest year in the data. Small, but it applies to every year, so it is chosen carefully and stated.</dd>
+      </dl>
+    </div>
+
+    <div>
+      <p class="kicker">Capital</p>
+      <dl class="terms">
+        <dt id="capital-requirement">Capital requirement <small>Capital</small></dt>
+        <dd>The minimum capital a regulator or rating agency expects the captive to hold, usually a formula on premium and reserves. Capital divided by the requirement is the <em>adequacy ratio</em>; below 1.0× is a breach.<span class="why">Why it matters: a breach means a capital call on the owners or a forced shrinkage of the programme. The <a href="../tools/capital-model/">capital model</a> gives the probability of that in the next three years.</span></dd>
+        <dt id="monte-carlo">Simulation <small>Capital</small></dt>
+        <dd>Running the next three years thousands of times with different but plausible loss outcomes, then counting how often something bad happens. It replaces "what if next year is bad" with a percentage.<span class="why">Why it matters: "8.7% chance of breach" is a decision; "it depends" is not.</span></dd>
+        <dt id="stop-loss">Aggregate stop-loss <small>Capital</small></dt>
+        <dd>Reinsurance that caps a year's total retained losses at an agreed multiple of what was expected. It costs premium every year and pays only in bad ones.<span class="why">Why it matters: it can cost more certain capital than it protects. The model says whether the one on offer does.</span></dd>
+        <dt id="tcor">Total cost of risk <small>Capital</small></dt>
+        <dd>Everything risk costs a business added up: retained losses, premium for cover above the retention, claims handling fees, and the cost of running the programme. Usually quoted per unit of exposure so businesses of different sizes compare.<span class="why">Why it matters: it is the number an operating company's owner should be asking about, and the one an exposure-only premium hides. See <a href="../tools/tcor-allocation/">cost of risk by company</a>.</span></dd>
+        <dt id="credibility">Credibility <small>Capital</small></dt>
+        <dd>How much weight a company's own claims history deserves against the group average. A company with a few hundred claims has a record worth listening to; one with a dozen has luck. Credibility is the weight, between none and full.<span class="why">Why it matters: it is the honest answer to "why is my premium going up when I had a good year."</span></dd>
+      </dl>
+
+      <p class="kicker" style="margin-top:2.5rem">Contracts and certificates</p>
+      <dl class="terms">
+        <dt id="coi">Certificate of insurance <small>Contracts</small></dt>
+        <dd>A one-page summary of the cover a company carries, given to a counterparty who required it in a contract. It is evidence, not a policy; it does not change the cover.<span class="why">Why it matters: a certificate that does not match the contract is a breach waiting to be noticed. The <a href="../tools/contract-requirements/">contracts tool</a> drafts it from the programme and flags the mismatch first.</span></dd>
+        <dt id="additional-insured">Additional insured <small>Contracts</small></dt>
+        <dd>An endorsement extending a company's liability cover to its counterparty for claims arising from the company's work. Most contracts require it; most programmes grant it "blanket", meaning automatically wherever a written contract asks.</dd>
+        <dt id="waiver">Waiver of subrogation <small>Contracts</small></dt>
+        <dd>The insurer agrees not to chase the counterparty to recover what it paid. Commonly required; commonly granted blanket.</dd>
+        <dt id="pnc">Primary and non-contributory <small>Contracts</small></dt>
+        <dd>The company's policy pays first and does not ask the counterparty's insurer to share. A standard demand on the general liability line.</dd>
+        <dt id="umbrella">Umbrella / excess <small>Contracts</small></dt>
+        <dd>Extra liability limit sitting above the primary policies. Contracts with large counterparties ask for $5m, $10m or more; it is the most common reason a programme cannot satisfy a contract.</dd>
+        <dt id="indemnity">Indemnity <small>Contracts</small></dt>
+        <dd>A promise in a contract to cover the other side's losses. "Uncapped" means with no limit, which no insurance policy fully backs.<span class="why">Why it matters: an uncapped indemnity is a risk the company carries itself. It is a clause for a lawyer to renegotiate, not a limit for a broker to buy.</span></dd>
+      </dl>
+
+      <p class="kicker" style="margin-top:2.5rem">AI operations</p>
+      <dl class="terms">
+        <dt id="agent">Agent <small>AI</small></dt>
+        <dd>A piece of software, usually built on a language model, that does a job unattended on a schedule: reading a file, producing a report, drafting a document, routing a request. The word matters less than the controls around it.</dd>
+        <dt id="kill-switch">Kill switch <small>AI</small></dt>
+        <dd>A way for a named person to stop an agent immediately, with the consequences already known: what stops working downstream and who does it by hand until it is back.<span class="why">Why it matters: the question a board asks is not "can we stop it" but "what does it cost when we do." The <a href="../tools/agent-control-plane/">control plane</a> answers in people-hours.</span></dd>
+        <dt id="gate">Human gate <small>AI</small></dt>
+        <dd>A point where an agent's output waits for a person to sign before it goes anywhere, especially outside the company. Where a gate sits is a governance decision, not a technical one.</dd>
+        <dt id="audit-log">Audit log <small>AI</small></dt>
+        <dd>A record of every action an agent took: when, on what data, to what destination, and whether the rules allowed it. The thing an examiner asks for, and the thing that proves the rules are enforced rather than written down.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <footer class="site">
+    <span>Definitions are plain-English summaries, not legal or actuarial advice.</span>
+    <a href="../">nealpathak.github.io</a>
+  </footer>
+</div>
+</body>
+</html>

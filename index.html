@@ -38,11 +38,11 @@
 <div class="wrap">
   <header class="masthead">
     <a class="brand" href="./">Neal Pathak</a>
-    <nav><a href="#decisions">Decisions</a><a href="#work">Tools</a><a href="workflows/">Workflows</a><a href="#engage">Engagements</a><a href="#contact">Contact</a></nav>
+    <nav><a href="#decisions">Decisions</a><a href="#work">Tools</a><a href="workflows/">Workflows</a><a href="glossary/">Terms</a><a href="#about">About</a></nav>
   </header>
 
   <div class="hero">
-    <p class="kicker">For the people who sign the renewal, approve the budget, and answer to the board</p>
+    <p class="kicker">Systems for the people who sign the renewal, approve the budget, and answer to the board</p>
     <h1>The numbers behind your renewal, your reserves and your legal spend should be computed, not assembled by hand.</h1>
     <p class="lede-wide">Most of them are still put together in a spreadsheet by one person the week before the meeting. I build the systems that produce them instead: daily, reconciled, and explainable to your board, your actuary and your auditor in the same sentence. Everything on this page is live. Change the inputs and read the answer.</p>
   </div>
@@ -102,17 +102,17 @@
     </ol>
   </section>
 
-  <section id="engage">
+  <section id="practice">
     <div class="section-head">
-      <div><p class="kicker">Engagements</p><h2>What I do for a business</h2></div>
-      <p class="method">Consulting engagements, scoped to a decision rather than a deliverable. Each starts with the data you already have and ends with a number you can act on and a system that keeps producing it after I leave.</p>
+      <div><p class="kicker">In practice</p><h2>What this looks like inside a business</h2></div>
+      <p class="method">Each of these starts with data the business already has and ends with a number someone can act on, produced by a system that keeps producing it. The tools above are the parts; these are the whole.</p>
     </div>
     <div class="grid-2">
-      <div class="offer"><h3>Make the claims numbers trustworthy</h3><p>A daily pipeline from your administrator's file to the exports your actuary, your finance team and your board read, with every defect caught and every release signed. The end of "which spreadsheet is right".</p></div>
-      <div class="offer"><h3>Price the renewal from your own book</h3><p>Loss development, aggregate erosion and total cost of risk by entity and line, refreshed daily, so the renewal is negotiated from your numbers rather than the carrier's.</p></div>
+      <div class="offer"><h3>Make the claims numbers trustworthy</h3><p>A daily pipeline from the administrator's file to the exports the actuary, the finance team and the board read, with every defect caught and every release signed. The end of "which spreadsheet is right".</p></div>
+      <div class="offer"><h3>Price the renewal from your own book</h3><p>Loss development, aggregate erosion and total cost of risk by entity and line, refreshed daily, so the renewal is negotiated from the group's own numbers rather than the carrier's.</p></div>
       <div class="offer"><h3>Know whether the capital holds</h3><p>A capital and cash-flow model for a captive or self-insured programme that answers the board's question in one number, and shows what each reinsurance option is actually worth.</p></div>
       <div class="offer"><h3>Put AI to work without losing control of it</h3><p>An operating model for agents that do real work: intake, classification, a committee that decides scope, controls that are enforced rather than documented, and a log an examiner can read.</p></div>
-      <div class="offer"><h3>Make the legal function measurable</h3><p>Intake that routes by rule, budgets that project before the invoice, invoice review against your own guidelines, and one platform across the group's entities and vendors.</p></div>
+      <div class="offer"><h3>Make the legal function measurable</h3><p>Intake that routes by rule, budgets that project before the invoice, invoice review against the group's own guidelines, and one platform across its entities and vendors.</p></div>
       <div class="offer"><h3>Automate the thing one person still does by hand</h3><p>The court portal, the certificate request, the monthly report. Built to run unattended, to fail loudly, and to hand the decision to a person when it should.</p></div>
     </div>
   </section>
@@ -130,16 +130,16 @@
       <div class="method">
         <p>I came to this work from the legal side: litigation support, transactional drafting, contract management, compliance rollouts. Every function I worked in ran on a few people's memory and a great deal of manual reconciliation, and the software sold to fix it mostly added a place to type things. So I started building the pieces myself: first small automations that did one tedious thing reliably, then the data pipelines and models underneath a risk function, then agents, and then the governance that lets a company trust them.</p>
         <p>Today I work in-house across legal, risk and captive insurance, and I lead the design of how AI is used there. The work I like most sits at the joins nobody owns: the contract clause and the policy limit, the loss run and the balance sheet, the agent and the audit log.</p>
-        <p>This site is built the way I build the tools. Plain HTML, CSS and JavaScript; no framework, no build step, no dependencies. Every engine has a self-test and every dataset comes from a seed you can read. The source is on <a href="https://github.com/nealpathak/nealpathak.github.io">GitHub</a>.</p>
+        <p>This site is built the way I build the tools. Plain HTML, CSS and JavaScript; no framework, no build step, no dependencies. Every engine has a self-test and every dataset comes from a seed you can read.</p>
       </div>
     </div>
   </section>
 
   <section id="contact">
     <div class="section-head">
-      <div><p class="kicker">Contact</p><h2>Open to the right conversation</h2></div>
+      <div><p class="kicker">Contact</p><h2>Get in touch</h2></div>
       <div class="method">
-        <p>If one of the decisions above is on your desk, or you run a function that still assembles its numbers by hand, write to me. I take on consulting engagements in claims analytics, legal operations and AI governance, and I am open to roles where this kind of work is the job.</p>
+        <p>If one of the decisions above is on your desk, or something here is close to a problem you are working on, I am easy to reach and glad to compare notes.</p>
         <div class="contact-links" id="contact-links"></div>
       </div>
     </div>
@@ -151,11 +151,10 @@
   </footer>
 </div>
 <script>
-  const LINKS = { linkedin: 'https://www.linkedin.com/in/nealpathak/', github: 'https://github.com/nealpathak' };
+  const LINKS = { linkedin: 'https://www.linkedin.com/in/nealpathak/' };
   const el = document.getElementById('contact-links');
   const items = [];
   if (LINKS.linkedin) items.push(`<a href="${LINKS.linkedin}" rel="me">LinkedIn</a>`);
-  if (LINKS.github) items.push(`<a href="${LINKS.github}" rel="me">GitHub</a>`);
   el.innerHTML = items.join('') || '<span class="muted">Links to follow.</span>';
 </script>
 </body>

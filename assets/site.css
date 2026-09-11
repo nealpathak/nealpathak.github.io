@@ -185,3 +185,8 @@ footer.site a:hover { color: var(--accent); }
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 ::selection { background: var(--accent-soft); }
+
+/* related pages */
+nav.related { display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; margin-top: 3rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 0.8rem; letter-spacing: 0.03em; }
+nav.related a { border: 0; color: var(--ink-2); }
+nav.related a:hover { color: var(--accent); }

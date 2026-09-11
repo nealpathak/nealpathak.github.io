@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The loss run cannot be trusted as delivered — Neal Pathak</title>
+<meta name="description" content="Every number a captive reports starts with the administrator's claim file, and that file is never clean. What a fit-to-use loss run looks like, what goes wrong when nobody checks, and why the fix is a gate rather than a person.">
+<link rel="canonical" href="https://nealpathak.github.io/notes/loss-run/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Neal Pathak">
+<meta property="og:title" content="The loss run cannot be trusted as delivered">
+<meta property="og:description" content="Every number a captive reports starts with the administrator's claim file, and that file is never clean. What a fit-to-use loss run looks like, what goes wrong when nobody checks, and why the fix is a gate rather than a person.">
+<meta property="og:url" content="https://nealpathak.github.io/notes/loss-run/">
+<meta property="og:image" content="https://nealpathak.github.io/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The loss run cannot be trusted as delivered">
+<meta name="twitter:description" content="Every number a captive reports starts with the administrator's claim file, and that file is never clean. What a fit-to-use loss run looks like, what goes wrong when nobody checks, and why the fix is a gate rather than a person.">
+<meta name="twitter:image" content="https://nealpathak.github.io/assets/og.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "The loss run cannot be trusted as delivered", "url": "https://nealpathak.github.io/notes/loss-run/", "description": "Every number a captive reports starts with the administrator's claim file, and that file is never clean. What a fit-to-use loss run looks like, what goes wrong when nobody checks, and why the fix is a gate rather than a person.", "author": {"@type": "Person", "@id": "https://nealpathak.github.io/#person", "name": "Neal Pathak"}, "datePublished": "2026-09-10", "mainEntityOfPage": "https://nealpathak.github.io/notes/loss-run/", "image": "https://nealpathak.github.io/assets/og.png"}</script>
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/site.css">
+<link rel="stylesheet" href="../note.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <a class="brand" href="../../">Neal Pathak</a>
+    <nav><a href="../../#decisions">Decisions</a><a href="../../#work">Tools</a><a href="../../workflows/">Workflows</a><a href="../" aria-current="page">Notes</a><a href="../../glossary/">Terms</a><a href="../../#about">About</a></nav>
+  </header>
+
+  <article class="essay">
+    <p class="kicker">Notes · Claims data</p>
+    <h1>The loss run cannot be trusted as delivered</h1>
+    <p class="lede-wide">Every number a captive reports, reserves, or prices a renewal from starts with one spreadsheet: the administrator's loss run. It is the raw material for the actuary, the finance team and the board. And it is never clean.</p>
+
+    <h2>What arrives</h2>
+    <p>A few thousand rows, one per claim. Dates in whichever format the adjuster's screen used that day. Amounts as text, some with dollar signs, some in parentheses for negatives, some with a stray space. The same operating company spelled three ways. Status written as "Open", "OPEN", "O" and "Open " with a trailing space. A handful of claims that appear twice, with the older copy carrying stale numbers. A claim with no number at all. A paid amount that is negative because a recovery was posted as a payment. A total-incurred column that does not equal paid plus reserve, because it was computed on a different day.</p>
+    <p>None of this is malice or incompetence. It is what a file looks like when it has been touched by many hands over many years, and exported from a system that was never designed to feed yours.</p>
+
+    <h2>What happens when nobody checks</h2>
+    <p>Someone opens it, fixes what they notice, pastes it into a workbook, and emails the totals. Two things follow. The first is that the errors nobody noticed become the company's numbers. A duplicate row overstates incurred; a negative payment understates it; a row with a blank claim number silently vanishes from every report that keys on claim number. The board sees a figure that is wrong by an amount nobody can name.</p>
+    <p>The second is worse: the process depends on the person. When they are away, the file is not processed, or it is processed by someone who does not know which columns lie. The actuary receives a different cut from the one the board saw. Within a year there are three versions of the truth and a standing argument about which one is right.</p>
+
+    <h2>What a fit-to-use file looks like</h2>
+    <p>Every date in one format. Every amount a number. Every label from a fixed list. Every operating company resolved to a code. One row per claim, with a stated rule for which copy wins when there are two. Incurred recomputed, always, as paid plus reserve, and the administrator's own incurred column used only to detect disagreement. Personal data recognised and kept out of every export that leaves the company.</p>
+    <p>And, separately, a list of what was wrong. Not a count: a list, by row and by rule, with what was done about each. That list goes back to the administrator the same morning. Over months the file gets better, because for the first time someone is telling them what is wrong with it.</p>
+
+    <h2>Why the fix is a gate, not a person</h2>
+    <p>The instinct is to hire someone careful. The better answer is a pipeline that standardises the file the same way every day, validates it against rules that grew out of the defects actually seen, and refuses to release when something blocking is found. A blank claim number, a negative payment, a claim reported before its loss date: these quarantine the row and hold the whole release until a named person clears them. Everything else is corrected and listed.</p>
+    <p>The person is still there. They are just doing the part only a person can do: deciding what to do with the twelve rows that could not be loaded, rather than retyping two thousand that could.</p>
+
+    <h2>What it changes for the decision</h2>
+    <p>The board reads the same export the actuary reads. The renewal is negotiated from internal numbers that reconcile to the ledger, rather than from the carrier's. And when the numbers move, the activity brief says why: which claims were reported, which closed, which reserve moved by more than the threshold. That is a different conversation from "the total went up".</p>
+
+    <p class="note-link">The <a href="../../tools/loss-run-pipeline/">Loss-Run Pipeline</a> does all of this on a synthetic file with the defects above deliberately injected, and accepts a file of your own.</p>
+  </article>
+
+  <nav class="related" aria-label="Related pages"><a href="../">← All notes</a><a href="../aggregate-erosion/">The one number to know before the renewal →</a></nav>
+  <footer class="site">
+    <span>General observations; no particular programme, client, employer or administrator is described.</span>
+    <a href="../../">nealpathak.github.io</a>
+  </footer>
+</div>
+</body>
+</html>

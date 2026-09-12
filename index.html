@@ -25,7 +25,10 @@
 <link rel="modulepreload" href="data/book.mjs">
 <link rel="modulepreload" href="lib/rng.mjs">
 <link rel="modulepreload" href="lib/format.mjs">
+<link rel="modulepreload" href="lib/dom.mjs">
+<link rel="modulepreload" href="lib/svg.mjs">
 <link rel="modulepreload" href="renewal/model.mjs">
+<link rel="modulepreload" href="renewal/data.mjs">
 <link rel="modulepreload" href="renewal/runs.mjs">
 <link rel="stylesheet" href="assets/site.css">
 </head>
@@ -33,7 +36,7 @@
 <div class="wrap">
   <header class="masthead">
     <a class="brand" href="./">Neal Pathak</a>
-    <nav><a href="#workflow">The workflow</a><a href="#model">Where the AI is</a><a href="#assumptions">Assumptions</a><a href="#honest">What it does not change</a><a href="#about">About</a></nav>
+    <nav><a href="#workflow">Workflow</a><a href="#model">Where the AI is</a><a href="#assumptions">Assumptions</a><a href="#honest">Caveats</a><a href="#about">About</a></nav>
   </header>
 
   <div class="hero">
@@ -53,6 +56,7 @@
       <p class="method">Grey is the renewal as usually run; red is the pipeline. The pipeline's remaining length is mostly waiting: the reinsurance market takes what it takes to quote, and the board meets when it meets. Change either at the bottom of the page and both bars move.</p>
     </div>
     <figure id="gantt"></figure>
+    <nav class="step-index" id="step-index" aria-label="Jump to a step"></nav>
   </section>
 
   <section id="workflow">

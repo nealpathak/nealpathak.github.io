@@ -73,7 +73,8 @@ section + section { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
 .grid-2 > *, .grid-4 > * { min-width: 0; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin: 1.2rem 0 1.6rem; }
 @media (max-width: 900px) { .grid-4 { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 620px) { .grid-2, .grid-4 { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .grid-2 { grid-template-columns: 1fr; } .grid-4 { grid-template-columns: 1fr 1fr; gap: 1rem; } }
+@media (max-width: 360px) { .grid-4 { grid-template-columns: 1fr; } }
 
 /* hero */
 .hero { padding: 3.5rem 0 2.5rem; border-bottom: 1px solid var(--rule); }
@@ -140,6 +141,14 @@ svg.chart .label { font-size: 11px; fill: var(--ink); }
 svg.chart .label.num { font-variant-numeric: tabular-nums; }
 svg.gantt .label { font-size: 12px; }
 #gantt { max-width: 860px; }
+@media (max-width: 620px) { svg.gantt .label { font-size: 13px; paint-order: stroke; stroke: var(--paper); stroke-width: 4px; stroke-linejoin: round; } svg.gantt .tick { font-size: 12px; } }
+
+/* step index */
+.step-index { display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem; margin: 0.4rem 0 0; font-family: var(--sans); font-size: 0.78rem; }
+.step-index a { border: 1px solid var(--rule-2); padding: 0.3rem 0.6rem 0.3rem 0.45rem; color: var(--ink-2); display: inline-flex; align-items: center; gap: 0.4rem; }
+.step-index a .n { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.06em; }
+.step-index a:hover { border-color: var(--accent); color: var(--accent); }
+.step-index a:hover .n { color: var(--accent); }
 
 /* buttons, badges */
 .btn { font-family: var(--sans); font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.4rem 0.8rem; border: 1px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; border-radius: 0; }
@@ -221,3 +230,13 @@ footer.site { border-top: 1px solid var(--rule); margin-top: 4rem; padding: 1.6r
 footer.site a { border-bottom: 1px solid var(--rule-2); }
 footer.site a:hover { color: var(--accent); }
 ::selection { background: var(--accent-soft); }
+
+/* print */
+@media print {
+  .masthead nav, .step-index, #reset, details.prompt { display: none !important; }
+  body { font-size: 11pt; background: #fff; color: #000; }
+  details > summary { list-style: none; }
+  .track.ai .meter, .cmp-ai .v, .hero h1 span { color: #8a2f22 !important; }
+  .step, .brief { break-inside: avoid; }
+  a { border: 0; }
+}

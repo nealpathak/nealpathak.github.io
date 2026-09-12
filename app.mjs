@@ -1,14 +1,9 @@
 // The page. Renders the cost and time model from the assumptions, and every
 // artifact of the renewal live from the engines on the synthetic book.
 
-import { generateBook, snapshot, ENTITIES, LINES, POLICY_YEARS, policyYearLabel, exposureFor } from './data/book.mjs';
-import { buildRawLossRun, runPipeline } from './engines/loss-run-pipeline/engine.mjs';
-import { analyse } from './engines/loss-development/engine.mjs';
-import { derivePaymentPattern, openingPosition, simulate, capitalForTolerance, DEFAULTS as CAP } from './engines/capital-model/engine.mjs';
-import { costOfRisk, allocate, subsidy } from './engines/tcor-allocation/engine.mjs';
-import { generateContracts, analyseContracts, certificate } from './engines/contract-requirements/engine.mjs';
+import { ENTITIES, LINES, policyYearLabel } from './data/book.mjs';
 import { defaults, compute, STEPS, ROLES, FEES, FLOORS, SYSTEM, DAYS_PER_WEEK } from './renewal/model.mjs';
-import { RENEWAL, EXPOSURE_REPLIES, ADJUSTER_NOTES, QUOTES, WORDING } from './renewal/data.mjs';
+import { RENEWAL, EXPOSURE_REPLIES, QUOTES, WORDING } from './renewal/data.mjs';
 import { RUNS, byStep } from './renewal/runs.mjs';
 import { fmt } from './lib/format.mjs';
 import { $, $$, table, escapeHtml } from './lib/dom.mjs';
@@ -103,30 +98,36 @@ function renderModel() {
   $('#payback').textContent = R.paybackCycles === null ? 'On these numbers the pipeline does not pay for itself on the renewal alone.' : `Saving per renewal ${money(R.saving)}, less ${money(A.system.run)} a year to run, against ${money(A.system.build)} to build: pays back in about ${Math.round(R.paybackCycles * 10) / 10} renewals on this workflow alone. The monthly claims reporting it also produces is not counted.`;
 }
 
+const narrow = window.matchMedia('(max-width: 620px)');
+narrow.addEventListener?.('change', renderModel);
+
 function gantt(T, P) {
-  const width = 760, labelW = 250, rowH = 36, top = 26, right = 16;
+  const isNarrow = narrow.matches;
+  const width = isNarrow ? 380 : 760, labelW = isNarrow ? 6 : 250, rowH = isNarrow ? 52 : 36, top = isNarrow ? 28 : 26, right = isNarrow ? 6 : 16;
   const days = Math.max(T.elapsedDays, P.elapsedDays);
   const wk = Math.ceil(days / DAYS_PER_WEEK);
   const x = d => labelW + (d / (wk * DAYS_PER_WEEK)) * (width - labelW - right);
   const height = top + STEPS.length * rowH + 44;
   let s = `<svg viewBox="0 0 ${width} ${height}" class="chart gantt" role="img" aria-label="Seven steps as usually run and with the pipeline, on one calendar">`;
-  for (let w = 0; w <= wk; w += wk > 12 ? 2 : 1) {
+  for (let w = 0; w <= wk; w += (isNarrow ? (wk > 10 ? 4 : 2) : (wk > 12 ? 2 : 1))) {
     s += `<line x1="${x(w * 5)}" x2="${x(w * 5)}" y1="${top - 6}" y2="${height - 24}" stroke="${CH.rule}"/>`;
-    s += `<text x="${x(w * 5)}" y="${top - 10}" text-anchor="middle" class="tick">${w === 0 ? 'week 0' : w}</text>`;
+    s += `<text x="${x(w * 5)}" y="${top - 10}" text-anchor="${w === 0 && isNarrow ? 'start' : 'middle'}" class="tick">${w === 0 ? 'week 0' : w}</text>`;
   }
   STEPS.forEach((st, i) => {
     const t = T.rows[i], p = P.rows[i];
     const y = top + i * rowH;
-    s += `<text x="${labelW - 12}" y="${y + 14}" text-anchor="end" class="label">${st.n}. ${escapeHtml(st.name)}</text>`;
-    s += `<rect x="${x(t.start)}" y="${y + 2}" width="${Math.max(2, x(t.end) - x(t.start))}" height="10" fill="${CH.muted}" opacity="0.55"/>`;
-    s += `<rect x="${x(p.start)}" y="${y + 15}" width="${Math.max(2, x(p.end) - x(p.start))}" height="10" fill="${CH.accent}"/>`;
-    if (p.floorDays) s += `<rect x="${x(p.end - p.floorDays)}" y="${y + 15}" width="${Math.max(0, x(p.end) - x(p.end - p.floorDays))}" height="10" fill="${CH.accent}" opacity="0.35"/>`;
+    const by = isNarrow ? y + 18 : y;
+    if (isNarrow) s += `<text x="${labelW}" y="${y + 11}" class="label">${st.n}. ${escapeHtml(st.name)}</text>`;
+    else s += `<text x="${labelW - 12}" y="${y + 14}" text-anchor="end" class="label">${st.n}. ${escapeHtml(st.name)}</text>`;
+    s += `<rect x="${x(t.start)}" y="${by + 2}" width="${Math.max(2, x(t.end) - x(t.start))}" height="10" fill="${CH.muted}" opacity="0.55"/>`;
+    s += `<rect x="${x(p.start)}" y="${by + 15}" width="${Math.max(2, x(p.end) - x(p.start))}" height="10" fill="${CH.accent}"/>`;
+    if (p.floorDays) s += `<rect x="${x(p.end - p.floorDays)}" y="${by + 15}" width="${Math.max(0, x(p.end) - x(p.end - p.floorDays))}" height="10" fill="${CH.accent}" opacity="0.35"/>`;
   });
   const yb = top + STEPS.length * rowH + 4;
   s += `<line x1="${x(T.elapsedDays)}" x2="${x(T.elapsedDays)}" y1="${top - 4}" y2="${yb}" stroke="${CH.muted}" stroke-dasharray="3 3"/>`;
   s += `<text x="${x(T.elapsedDays)}" y="${yb + 28}" text-anchor="end" class="label">${escapeHtml(weeksText(T.elapsedDays))} as usually run</text>`;
   s += `<line x1="${x(P.elapsedDays)}" x2="${x(P.elapsedDays)}" y1="${top - 4}" y2="${yb}" stroke="${CH.accent}" stroke-dasharray="3 3"/>`;
-  s += `<text x="${x(P.elapsedDays) + 6}" y="${yb + 14}" class="label" fill="${CH.accent}">${escapeHtml(weeksText(P.elapsedDays))} with the pipeline</text>`;
+  s += `<text x="${isNarrow ? x(P.elapsedDays) - 6 : x(P.elapsedDays) + 6}" y="${yb + 14}" ${isNarrow ? 'text-anchor="end"' : ''} class="label" fill="${CH.accent}">${escapeHtml(weeksText(P.elapsedDays))} with the pipeline</text>`;
   return s + '</svg>';
 }
 
@@ -134,7 +135,7 @@ function gantt(T, P) {
 // Assumption inputs.
 
 function inputRow(label, path, value, unit = '', step = 1) {
-  return `<tr><td>${label}</td><td class="num"><input type="number" data-path="${path}" value="${value}" min="0" step="${step}"> <span class="unit">${unit}</span></td></tr>`;
+  return `<tr><td>${label}</td><td class="num"><input type="number" aria-label="${escapeHtml(label)}" data-path="${path}" value="${value}" min="0" step="${step}"> <span class="unit">${unit}</span></td></tr>`;
 }
 function renderAssumptions() {
   $('#rates').innerHTML = `<thead><tr><th>Role or fee</th><th class="num">Amount</th></tr></thead><tbody>` +
@@ -148,8 +149,8 @@ function renderAssumptions() {
   $('#hours').innerHTML = th + '<tbody>' + STEPS.map(s => {
     const th_ = Object.values(A.steps[s.id].today.hours).reduce((a, b) => a + b, 0);
     const ah = Object.values(A.steps[s.id].ai.hours).reduce((a, b) => a + b, 0);
-    const cell = (path, v, step) => `<td class="num"><input type="number" data-path="${path}" value="${v}" min="0" step="${step}"></td>`;
-    return `<tr><td>${s.n}. ${s.name}</td>${cell(`hours.${s.id}.today`, th_, 1)}${cell(`days.${s.id}.today`, A.steps[s.id].today.days, 0.5)}${cell(`hours.${s.id}.ai`, ah, 0.5)}${cell(`days.${s.id}.ai`, A.steps[s.id].ai.days, 0.5)}</tr>`;
+    const cell = (path, v, step, label) => `<td class="num"><input type="number" aria-label="${escapeHtml(s.name)}, ${label}" data-path="${path}" value="${v}" min="0" step="${step}"></td>`;
+    return `<tr><td>${s.n}. ${s.name}</td>${cell(`hours.${s.id}.today`, th_, 1, 'hours today')}${cell(`days.${s.id}.today`, A.steps[s.id].today.days, 0.5, 'days today')}${cell(`hours.${s.id}.ai`, ah, 0.5, 'hours with the pipeline')}${cell(`days.${s.id}.ai`, A.steps[s.id].ai.days, 0.5, 'days with the pipeline')}</tr>`;
   }).join('') + '</tbody>';
 }
 function applyInput(path, raw) {
@@ -211,6 +212,7 @@ function stepSkeleton(s) {
   </article>`;
 }
 $('#steps').innerHTML = STEPS.map(stepSkeleton).join('');
+$('#step-index').innerHTML = STEPS.map(s => `<a href="#step-${s.id}"><span class="n">${s.n}</span>${escapeHtml(s.name)}</a>`).join('');
 renderAssumptions();
 renderModel();
 
@@ -227,134 +229,131 @@ $('#model-table').innerHTML = table([
 ].sort((a, b) => a.n - b.n), { caption: 'Every task on the pipeline track, and whether a model or code does it' });
 
 // ---------------------------------------------------------------------------
-// Artifacts. Heavy work after first paint.
+// Artifacts. The engines run in a worker so the page stays smooth; if the
+// browser will not start one, they run here after first paint.
 
-setTimeout(renderArtifacts, 0);
+const entityName = code => ENTITIES.find(e => e.code === code)?.name || code;
+let ART = null;
 
-function renderArtifacts() {
-  const book = generateBook();
-  const snap = snapshot(book);
-  const entityName = code => ENTITIES.find(e => e.code === code)?.name || code;
+function startCompute() {
+  let worker = null;
+  try { worker = new Worker(new URL('./renewal/worker.mjs', import.meta.url), { type: 'module' }); } catch { worker = null; }
+  if (!worker) return computeInline();
+  let gotAny = false;
+  worker.onmessage = e => { gotAny = true; if (e.data.stage === 'artifacts') renderArtifacts(e.data.data); else if (e.data.stage === 'quotes') { renderQuotes(e.data.data); worker.terminate(); } };
+  worker.onerror = () => { worker.terminate(); if (!gotAny) computeInline(); };
+  worker.postMessage('go');
+}
+async function computeInline() {
+  const { computeArtifacts, priceQuotes } = await import('./renewal/compute.mjs');
+  await new Promise(r => setTimeout(r, 0));
+  const a = computeArtifacts();
+  const { _ctx, ...artifacts } = a;
+  renderArtifacts(artifacts);
+  setTimeout(() => renderQuotes(priceQuotes(_ctx)), 30);
+}
+startCompute();
 
-  // 1. Data call: the replies and the schedule the model produced.
+function renderArtifacts(A) {
+  ART = A;
+  // 1. Data call.
+  const gateNote = { NLL: 'As sent', HFD: 'Thousands confirmed with the sender', CVS: 'Fleet count arrived the next day', MHP: 'Existing operations; acquisition endorsed at closing', SBG: 'Trended 4.5% pending the budget' };
   $('#art-data').innerHTML = `
     <p class="kicker">The artifact</p>
     <p class="method">Five replies, five shapes. The model's schedule and exception list are in the run below; the replies themselves are here.</p>
     <details class="replies"><summary>The five replies as received</summary>${EXPOSURE_REPLIES.map(r => `<div class="reply"><p class="kicker">${escapeHtml(r.name)} · ${escapeHtml(r.format)}</p><pre>From: ${escapeHtml(r.from)}\nSubject: ${escapeHtml(r.subject)}\n\n${escapeHtml(r.body)}</pre></div>`).join('')}</details>
     <div class="table-scroll">${table([
-      { key: 'name', label: 'Company' }, { key: 'payroll', label: 'Payroll', num: true, render: v => money(v) }, { key: 'revenue', label: 'Revenue', num: true, render: v => money(v) }, { key: 'vehicles', label: 'Vehicles', num: true }, { key: 'note', label: 'What the gate decided' },
-    ], ENTITIES.map(e => ({ name: e.name, payroll: exposureFor(e.code, 'WC', RENEWAL.policyYear) * 1e6, revenue: exposureFor(e.code, 'GL', RENEWAL.policyYear) * 1e6, vehicles: Math.round(exposureFor(e.code, 'AL', RENEWAL.policyYear)), note: { NLL: 'As sent', HFD: 'Thousands confirmed with the sender', CVS: 'Fleet count arrived the next day', MHP: 'Existing operations; acquisition endorsed at closing', SBG: 'Trended 4.5% pending the budget' }[e.code] })), { caption: `The exposure schedule released for ${py(RENEWAL.policyYear)}` })}</div>`;
+      { key: 'name', label: 'Company' }, { key: 'payroll', label: 'Payroll', num: true, render: money }, { key: 'revenue', label: 'Revenue', num: true, render: money }, { key: 'vehicles', label: 'Vehicles', num: true }, { key: 'note', label: 'What the gate decided' },
+    ], A.exposure.map(e => ({ ...e, note: gateNote[e.code] })), { caption: `The exposure schedule released for ${py(RENEWAL.policyYear)}` })}</div>`;
 
-  // 2. Pipeline, run live.
-  const raw = buildRawLossRun(book);
-  const prior = snapshot(book, '2026-08-30');
-  const out = runPipeline(raw.text, { prior, asOf: book.evaluationDate, priorAsOf: '2026-08-30' });
-  const blocks = out.exceptions.filter(e => e.severity === 'block');
-  const warns = out.exceptions.length - blocks.length;
-  const exc = out.exceptions.slice().sort((a, b) => (a.severity === 'block' ? 0 : 1) - (b.severity === 'block' ? 0 : 1) || a.rule.localeCompare(b.rule)).slice(0, 14);
+  // 2. Pipeline.
+  const P = A.pipeline;
   $('#art-clean').innerHTML = `
     <p class="kicker">The artifact, run just now in your browser</p>
-    <div class="finding"><p>${out.gate.held ? 'The release is held.' : 'The release went through.'} Of ${fmt.num(out.steps[0].counts.rows)} rows in the administrator's file, ${out.quarantined.length} could not be loaded and ${warns} needed a correction the pipeline made itself.</p><p>${out.gate.held ? 'Before anything downstream refreshes, someone has to ' + out.gate.reasons.join(', and ') + '.' : ''} Yesterday's version of this was a spreadsheet nobody checked.</p></div>
-    <div class="grid-4">${stat(fmt.num(out.totals.claims), 'Claims loaded', `${fmt.num(out.totals.open)} open`)}${stat(String(out.quarantined.length), 'Quarantined', `${blocks.length} blocking`, 'accent')}${stat(String(warns), 'Corrected or noted')}${stat(m(out.totals.incurred), 'Total incurred', `${m(out.totals.outstanding)} outstanding`)}</div>
-    <details><summary>The exception file, first ${exc.length} of ${out.exceptions.length}</summary><div class="table-scroll">${table([
+    <div class="finding"><p>${P.gate.held ? 'The release is held.' : 'The release went through.'} Of ${fmt.num(P.rows)} rows in the administrator's file, ${P.quarantined} could not be loaded and ${P.warns} needed a correction the pipeline made itself.</p><p>${P.gate.held ? 'Before anything downstream refreshes, someone has to ' + P.gate.reasons.join(', and ') + '.' : ''} Yesterday's version of this was a spreadsheet nobody checked.</p></div>
+    <div class="grid-4">${stat(fmt.num(P.totals.claims), 'Claims loaded', `${fmt.num(P.totals.open)} open`)}${stat(String(P.quarantined), 'Quarantined', `${P.blocks} blocking`, 'accent')}${stat(String(P.warns), 'Corrected or noted')}${stat(m(P.totals.incurred), 'Total incurred', `${m(P.totals.outstanding)} outstanding`)}</div>
+    <details><summary>The exception file, first ${P.exceptions.length} of ${P.exceptionsTotal}</summary><div class="table-scroll">${table([
       { key: 'severity', label: 'Severity', render: v => `<span class="badge ${v === 'block' ? 'accent' : 'warn'}">${v === 'block' ? 'Blocking' : 'Warning'}</span>` },
       { key: 'rule', label: 'Rule' }, { key: 'claimId', label: 'Claim', class: 'mono' }, { key: 'row', label: 'Row', num: true }, { key: 'detail', label: 'Detail' }, { key: 'action', label: 'Action taken' },
-    ], exc.map(e => ({ ...e, _class: e.severity === 'block' ? 'flag' : '' })))}</div></details>`;
+    ], P.exceptions.map(e => ({ ...e, _class: e.severity === 'block' ? 'flag' : '' })))}</div></details>`;
 
   // 3. Development and capital.
-  const dev = analyse(book);
-  const op = openingPosition(book), pat = derivePaymentPattern(book);
-  const capBase = { ...CAP, expectedLossRatio: op.expectedLossRatio, startingCapital: RENEWAL.startingCapital, sims: 2000 };
-  const cap = simulate(capBase, op, pat);
-  const need = capitalForTolerance(capBase, op, pat, RENEWAL.tolerance);
-  const worst = dev.breaches.slice().sort((a, b) => b.excess - a.excess)[0];
-  const H = capBase.horizonQuarters;
+  const D = A.dev, C = A.capital;
+  const worst = D.breaches.slice().sort((a, b) => b.excess - a.excess)[0];
+  const H = C.params.horizonQuarters;
   const erosion = Object.keys(LINES).map(lc => {
-    const yrs = dev.perLine[lc].years;
+    const yrs = D.perLine[lc];
     const items = yrs.map(y => ({ label: `${py(y.py)} · ${y.age}m`, value: y.selected, marker: y.aggregate, color: y.excess > 0 ? CH.accent : (y.erodedUlt >= 0.9 ? CH.s6 : CH.ink) }));
     const max = Math.max(...yrs.map(y => Math.max(y.selected, y.aggregate))) * 1.12;
     return `<figure><figcaption class="top">${LINES[lc].name}: selected ultimate by policy year against that year's aggregate (the mark)</figcaption>${barChart({ items, max, barHeight: 16, gap: 6, labelWidth: 150, valueFormat: v => m(v), title: `${LINES[lc].name} projected ultimate against aggregate` })}</figure>`;
   }).join('');
   $('#art-actuarial').innerHTML = `
     <p class="kicker">The artifact, computed just now</p>
-    <div class="finding"><p>${worst ? `${LINES[worst.line].name} ${py(worst.py)} is projected to use ${pct(worst.erodedUlt)} of its aggregate; ${m(worst.excess)} falls into the aggregate layer on that year alone, ${m(dev.totals.excess)} across the ${dev.breaches.length} years that breach.` : 'No year is projected to exhaust its aggregate.'} With ${m(RENEWAL.startingCapital)} of capital the captive has a ${pct(cap.breachAny, 1)} chance of falling below its capital requirement within three years; holding ${m(need.capital)} would bring that under ${pct(RENEWAL.tolerance)}.</p><p>Known nine months before the renewal, both are pricing conversations. Discovered at the renewal, they are surprises. On this synthetic book the eventual cost of every claim is known, so the method can be checked: mature-year estimates land within ${pct(dev.backtest.matureError, 1)} of the truth.</p></div>
-    <div class="grid-4">${stat(m(dev.totals.selected), 'Selected ultimate', 'all lines, eight years')}${stat(m(dev.totals.ibnr), 'IBNR', `${pct(dev.totals.ibnr / dev.totals.latest, 1)} of reported`)}${stat(m(dev.totals.excess), 'Into the aggregate layer', `${dev.breaches.length} year-lines breach`, 'accent')}${stat(pct(cap.breachAny, 1), 'Capital breach probability', `${m(need.capital - RENEWAL.startingCapital)} more capital holds ${pct(RENEWAL.tolerance)}`, cap.breachAny > RENEWAL.tolerance ? 'accent' : '')}</div>
+    <div class="finding"><p>${worst ? `${LINES[worst.line].name} ${py(worst.py)} is projected to use ${pct(worst.erodedUlt)} of its aggregate; ${m(worst.excess)} falls into the aggregate layer on that year alone, ${m(D.totals.excess)} across the ${D.breaches.length} years that breach.` : 'No year is projected to exhaust its aggregate.'} With ${m(RENEWAL.startingCapital)} of capital the captive has a ${pct(C.breachAny, 1)} chance of falling below its capital requirement within three years; holding ${m(C.need)} would bring that under ${pct(RENEWAL.tolerance)}.</p><p>Known nine months before the renewal, both are pricing conversations. Discovered at the renewal, they are surprises. On this synthetic book the eventual cost of every claim is known, so the method can be checked: mature-year estimates land within ${pct(D.backtest.mature, 1)} of the truth.</p></div>
+    <div class="grid-4">${stat(m(D.totals.selected), 'Selected ultimate', 'all lines, eight years')}${stat(m(D.totals.ibnr), 'IBNR', `${pct(D.totals.ibnr / D.totals.latest, 1)} of reported`)}${stat(m(D.totals.excess), 'Into the aggregate layer', `${D.breaches.length} year-lines breach`, 'accent')}${stat(pct(C.breachAny, 1), 'Capital breach probability', `${m(C.need - RENEWAL.startingCapital)} more capital holds ${pct(RENEWAL.tolerance)}`, C.breachAny > RENEWAL.tolerance ? 'accent' : '')}</div>
     <details><summary>Aggregate erosion by line, all eight years</summary>${erosion}</details>
-    <details><summary>Capital against the requirement, twelve quarters, 2,000 paths</summary><figure>${fanChart({ x: Array.from({ length: H + 1 }, (_, q) => q), bands: [{ lo: cap.ratio.p5, hi: cap.ratio.p95, opacity: 0.12 }, { lo: cap.ratio.p25, hi: cap.ratio.p75, opacity: 0.2 }], median: cap.ratio.p50, yFormat: v => v.toFixed(1) + '×', xFormat: q => q === 0 ? 'open' : 'Q' + q, reference: 1, referenceLabel: 'requirement', width: 720, height: 240, title: 'Capital adequacy ratio by quarter' })}<figcaption>Capital divided by required capital. Bands are the 5th to 95th and 25th to 75th percentiles of 2,000 simulated paths.</figcaption></figure></details>`;
+    <details><summary>Capital against the requirement, twelve quarters, 2,000 paths</summary><figure>${fanChart({ x: Array.from({ length: H + 1 }, (_, q) => q), bands: [{ lo: C.ratio.p5, hi: C.ratio.p95, opacity: 0.12 }, { lo: C.ratio.p25, hi: C.ratio.p75, opacity: 0.2 }], median: C.ratio.p50, yFormat: v => v.toFixed(1) + '×', xFormat: q => q === 0 ? 'open' : 'Q' + q, reference: 1, referenceLabel: 'requirement', width: 720, height: 240, title: 'Capital adequacy ratio by quarter' })}<figcaption>Capital divided by required capital. Bands are the 5th to 95th and 25th to 75th percentiles of 2,000 simulated paths.</figcaption></figure></details>`;
 
   // 4. Allocation.
-  const cor = costOfRisk(book); const al = allocate(book, cor); const sub = subsidy(cor, al.window);
+  const L = A.alloc;
+  const lrs = L.byEntity.map(e => e.lossRatio);
   $('#art-allocation').innerHTML = `
     <p class="kicker">The artifact, computed just now</p>
-    <div class="finding"><p>${m(al.total)} of premium for ${py(al.nextPy)}. ${m(al.moved)} moves between the five companies on their own experience over ${py(al.window[0])} to ${py(al.window[al.window.length - 1])}, capped at ${pct(al.params.cap)} from exposure share. The company that has run at a ${pct(Math.min(...sub.map(s => s.lossRatio)))} loss ratio pays less; the one at ${pct(Math.max(...sub.map(s => s.lossRatio)))} pays more.</p></div>
-    <figure style="max-width:680px">${barChart({ items: al.byEntity.map(e => ({ label: e.name, value: e.allocated, marker: e.exposureBased, color: e.change > 0 ? CH.accent : CH.ink })), valueFormat: v => m(v), max: Math.max(...al.byEntity.map(e => Math.max(e.allocated, e.exposureBased))) * 1.15, title: 'Proposed premium by operating company' })}<figcaption>Proposed premium; the mark is what exposure share alone would give.</figcaption></figure>
+    <div class="finding"><p>${m(L.total)} of premium for ${py(L.nextPy)}. ${m(L.moved)} moves between the five companies on their own experience over ${py(L.window[0])} to ${py(L.window[L.window.length - 1])}, capped at ${pct(L.params.cap)} from exposure share. The company that has run at a ${pct(Math.min(...lrs))} loss ratio pays less; the one at ${pct(Math.max(...lrs))} pays more.</p></div>
+    <figure style="max-width:680px">${barChart({ items: L.byEntity.map(e => ({ label: e.name, value: e.allocated, marker: e.exposureBased, color: e.change > 0 ? CH.accent : CH.ink })), valueFormat: v => m(v), max: Math.max(...L.byEntity.map(e => Math.max(e.allocated, e.exposureBased))) * 1.15, title: 'Proposed premium by operating company' })}<figcaption>Proposed premium; the mark is what exposure share alone would give.</figcaption></figure>
     <details><summary>The allocation table</summary><div class="table-scroll">${table([
-      { key: 'name', label: 'Company' }, { key: 'exposureBased', label: 'Exposure-based', num: true, render: money }, { key: 'allocated', label: 'Allocated', num: true, render: v => `<strong>${money(v)}</strong>` }, { key: 'change', label: 'Change', num: true, render: v => (v >= 0 ? '+' : '−') + money(Math.abs(v)) }, { key: 'changePct', label: '', num: true, render: v => (v >= 0 ? '+' : '−') + pct(Math.abs(v), 1) }, { key: 'claims', label: 'Claims in window', num: true }, { key: 'lr', label: 'Loss ratio in window', num: true, render: v => pct(v) },
-    ], al.byEntity.map(e => ({ ...e, lr: sub.find(s => s.entity === e.entity).lossRatio })), { footer: { name: 'Total', exposureBased: money(al.byEntity.reduce((s, e) => s + e.exposureBased, 0)), allocated: money(al.total) } })}</div></details>`;
+      { key: 'name', label: 'Company' }, { key: 'exposureBased', label: 'Exposure-based', num: true, render: money }, { key: 'allocated', label: 'Allocated', num: true, render: v => `<strong>${money(v)}</strong>` }, { key: 'change', label: 'Change', num: true, render: v => (v >= 0 ? '+' : '−') + money(Math.abs(v)) }, { key: 'changePct', label: '', num: true, render: v => (v >= 0 ? '+' : '−') + pct(Math.abs(v), 1) }, { key: 'claims', label: 'Claims in window', num: true }, { key: 'lossRatio', label: 'Loss ratio in window', num: true, render: v => pct(v) },
+    ], L.byEntity, { footer: { name: 'Total', exposureBased: money(L.byEntity.reduce((s, e) => s + e.exposureBased, 0)), allocated: money(L.total) } })}</div></details>`;
 
-  // 5. Submission: notes behind the narratives, then quotes priced in the background.
-  const large = snap.filter(c => c.status !== 'Closed' && c.incurred >= 250000).sort((a, b) => b.incurred - a.incurred);
+  // 5. Submission.
   $('#art-submission').innerHTML = `
     <p class="kicker">The artifacts</p>
-    <p class="method">Three things go to market: the narrative, one paragraph for each of the ${large.length} open claims at or above the retention, and the exhibits (the pipeline's actuarial export and the engines' tables, attached unchanged). Then three quotes come back and the capital model prices them.</p>
-    <details><summary>The adjuster's notes behind the five largest claims, as the model read them</summary>${ADJUSTER_NOTES.map(n => { const c = snap.find(x => x.id === n.id); return `<div class="reply"><p class="kicker">${n.id} · ${entityName(c.entity)} · incurred ${money(c.incurred)}</p><pre>${escapeHtml(n.notes)}</pre></div>`; }).join('')}</details>
+    <p class="method">Three things go to market: the narrative, one paragraph for each of the ${A.large.length} open claims at or above the retention, and the exhibits (the pipeline's actuarial export and the engines' tables, attached unchanged). Then three quotes come back and the capital model prices them.</p>
+    <details><summary>The adjuster's notes behind the five largest claims, as the model read them</summary>${A.notes.map(n => `<div class="reply"><p class="kicker">${n.id} · ${entityName(n.entity)} · incurred ${money(n.incurred)}</p><pre>${escapeHtml(n.notes)}</pre></div>`).join('')}</details>
     <div id="quotes"><p class="note">Pricing three quotes and the no-cover option, 2,000 paths each…</p></div>`;
 
-  // 6 and 7 need the quote pricing; 7's certificate part does not.
-  const reg = generateContracts(); const ac = analyseContracts(reg);
-  const needCert = ac.rows.filter(r => r.holder);
-  const sample = needCert.find(r => r.gaps.some(g => g.kind === 'limit' || g.kind === 'coverage')) || needCert[0];
-  const cert = certificate(sample);
+  // 7. Bind.
+  const K = A.contracts, cert = K.cert;
   $('#art-bind').innerHTML = `
     <p class="kicker">The artifacts</p>
-    <p class="method">The wording review is the run below. Certificates: ${needCert.length} of the ${ac.rows.length} live contracts name a certificate holder. ${needCert.filter(r => r.atRisk).length} of those require a limit or a coverage the programme does not carry, and the certificate says so before it goes out rather than after.</p>
+    <p class="method">The wording review is the run below. Certificates: ${K.holders} of the ${K.live} live contracts name a certificate holder. ${K.holdersAtRisk} of those require a limit or a coverage the programme does not carry, and the certificate says so before it goes out rather than after.</p>
     <details><summary>The three term sheets as received</summary>${QUOTES.map(q => `<div class="reply"><p class="kicker">${escapeHtml(q.market)}</p><pre>${escapeHtml(q.terms)}</pre></div>`).join('')}</details>
     <details><summary>The expiring and drafted contract wording the model compared</summary><div class="grid-2"><div><p class="kicker">Expiring</p><pre>${escapeHtml(WORDING.expiring)}</pre></div><div><p class="kicker">Drafted</p><pre>${escapeHtml(WORDING.bound)}</pre></div></div></details>
     <details><summary>A generated certificate with a gap flagged: ${escapeHtml(cert.insured)} for ${escapeHtml(cert.holder)}</summary><div class="table-scroll">${table([
       { key: 'label', label: 'Coverage' }, { key: 'limit', label: 'Limit carried', num: true, render: v => typeof v === 'number' ? money(v) : v }, { key: 'required', label: 'Contract requires', num: true, render: v => v ? money(v) : '—' }, { key: 'ok', label: '', render: v => v ? '' : '<span class="badge accent">Gap</span>' }, { key: 'extra', label: 'Endorsement' },
     ], cert.coverages.map(c => ({ ...c, _class: c.ok ? '' : 'flag' })), { caption: `${cert.type}, contract ${cert.contract}` })}</div></details>`;
-
-  setTimeout(() => priceQuotes({ book, snap, dev, op, pat, capBase, cap, need, al, sub, ac, large }), 30);
 }
 
-function priceQuotes(ctx) {
-  const { dev, op, pat, capBase, al, sub, ac, large, snap } = ctx;
-  const prem = al.total;
-  const options = [{ id: 'none', name: 'No cover', over: { aggregate: false }, cost: 0 }, ...QUOTES.map(q => ({ id: q.id, name: q.market, over: { aggregateAttach: q.attach, aggregateCost: q.cost }, cost: q.cost, attach: q.attach }))];
-  const priced = options.map(o => {
-    const p = { ...capBase, ...o.over };
-    const s = simulate(p, op, pat); const n = capitalForTolerance(p, op, pat, RENEWAL.tolerance);
-    const contribution = n.capital === null ? null : Math.max(0, n.capital - RENEWAL.startingCapital);
-    const premium = prem * o.cost;
-    return { ...o, breach: s.breachAny, contribution, premium, annual: contribution === null ? null : premium + 0.1 * contribution };
-  });
-  const cheapest = priced.slice().sort((a, b) => a.annual - b.annual)[0];
+function renderQuotes(priced) {
+  const A = ART; if (!A) return;
+  const cheapest = priced.filter(p => p.annual !== null).sort((a, b) => a.annual - b.annual)[0];
+  const expiring = priced.find(p => p.id === 'A');
   $('#quotes').innerHTML = `
-    <div class="finding"><p>On premium plus a 10% cost of capital, the cheapest way to hold the ${pct(RENEWAL.tolerance)} tolerance on this book is ${cheapest.id === 'none' ? 'not to buy the cover at all' : cheapest.name}: ${money(cheapest.annual)} a year. The cover being renewed on autopilot, Market A at expiring terms, costs ${money(priced[1].annual - cheapest.annual)} a year more than that for a higher breach probability at today's capital.</p><p>The capital model prices the numbers. It does not read the wording, and two of the three term sheets give less than they appear to. That is the model's job, in the run below.</p></div>
+    <div class="finding"><p>On premium plus a 10% cost of capital, the cheapest way to hold the ${pct(RENEWAL.tolerance)} tolerance on this book is ${cheapest.id === 'none' ? 'not to buy the cover at all' : cheapest.name}: ${money(cheapest.annual)} a year. The cover being renewed on autopilot, Market A at expiring terms, costs ${money(expiring.annual - cheapest.annual)} a year more than that for a higher breach probability at today's capital.</p><p>The capital model prices the numbers. It does not read the wording, and two of the three term sheets give less than they appear to. That is the model's job, in the run below.</p></div>
     <div class="table-scroll">${table([
       { key: 'name', label: 'Option' }, { key: 'attach', label: 'Attachment', num: true, render: v => v ? pct(v) + ' of expected' : '—' }, { key: 'premium', label: 'Premium', num: true, render: money }, { key: 'breach', label: 'Breach probability at $9.0m', num: true, render: v => pct(v, 1) }, { key: 'contribution', label: `Capital to hold ${pct(RENEWAL.tolerance)}`, num: true, render: v => v === null ? 'out of range' : money(v) }, { key: 'annual', label: 'Premium + 10% of capital', num: true, render: v => v === null ? '—' : `<strong>${money(v)}</strong>` },
-    ], priced.map(p => ({ ...p, _class: p === cheapest ? '' : '' })), { caption: 'Three quotes and the no-cover option, priced by the capital model (2,000 paths each)' })}</div>`;
+    ], priced, { caption: 'Three quotes and the no-cover option, priced by the capital model (2,000 paths each)' })}</div>`;
 
   // 6. The brief.
   const B = priced.find(p => p.id === 'B'), N = priced.find(p => p.id === 'none');
-  const worst = dev.breaches.slice().sort((a, b) => b.excess - a.excess)[0];
+  const D = A.dev, L = A.alloc, K = A.contracts;
+  const worst = D.breaches.slice().sort((a, b) => b.excess - a.excess)[0];
   const decisions = [
     ['Reinsurance', `Do not renew the aggregate stop-loss at expiring terms. Choose between no cover with a capital contribution of ${money(N.contribution)}, and ${B.name} at ${money(B.premium)} subject to removal of the sunset clause and acceptance of the Meridian acquisition at a stated premium. The recommendation is ${B.name} unless the parent will commit up to $4.5m of capital at plausible volatility.`],
     ['Capital', `Approve a contribution of ${money(B.contribution)} if ${B.name} is bound, or ${money(N.contribution)} if no cover is bought, to hold the breach probability under ${pct(RENEWAL.tolerance)} over three years.`],
     ['Renewal', worst ? `${LINES[worst.line].name} ${py(worst.py)} is projected to exceed its aggregate by ${money(worst.excess)}. Confirm notice to the expiring aggregate carrier and reflect the year in the pricing conversation.` : 'No policy year is projected to exhaust its aggregate.'],
-    ['Premium allocation', `Approve the ${py(al.nextPy)} allocation: ${money(al.total)} in total, ${money(al.moved)} moving between operating companies on experience, no company more than ${pct(al.params.cap)} from its exposure-based share.`],
+    ['Premium allocation', `Approve the ${py(L.nextPy)} allocation: ${money(L.total)} in total, ${money(L.moved)} moving between operating companies on experience, no company more than ${pct(L.params.cap)} from its exposure-based share.`],
     ['Acquisition', `Note that Meridian Health Partners expects to close Red River Clinics on 1 December 2026, about $10.9m of payroll. It is excluded from the allocation and must be declared to the reinsurer within 30 days of closing if ${B.name} is bound.`],
-    ['Contracts', `${ac.atRisk.length} of ${ac.rows.length} live contracts, worth ${m(ac.valueAtRisk)} a year, require insurance the programme does not carry. Refer the ${ac.uncapped.length} uncapped indemnities to counsel; the buy-up plan follows separately.`],
+    ['Contracts', `${K.atRisk} of ${K.live} live contracts, worth ${m(K.valueAtRisk)} a year, require insurance the programme does not carry. Refer the ${K.uncapped} uncapped indemnities to counsel; the buy-up plan follows separately.`],
   ];
-  const open = snap.filter(c => c.status !== 'Closed');
   $('#art-board').innerHTML = `
     <p class="kicker">The artifact, generated just now</p>
     <div class="brief">
-      <div class="brief-head"><div><p class="kicker">Risk committee · Captive programme</p><h4>Renewal brief, ${fmt.date(RENEWAL.boardMeeting)}</h4></div><div class="meta">Prepared automatically from the daily claims pipeline<br>Data through ${fmt.date(RENEWAL.dataAsOf)} · ${fmt.num(snap.length)} claims · eight policy years</div></div>
+      <div class="brief-head"><div><p class="kicker">Risk committee · Captive programme</p><h4>Renewal brief, ${fmt.date(RENEWAL.boardMeeting)}</h4></div><div class="meta">Prepared automatically from the daily claims pipeline<br>Data through ${fmt.date(RENEWAL.dataAsOf)} · ${fmt.num(A.claims.count)} claims · eight policy years</div></div>
       <h5>Decisions requested</h5>
       <ol class="decision-list">${decisions.map(([area, text]) => `<li><span class="area">${area}</span><p>${escapeHtml(text)}</p></li>`).join('')}</ol>
       <h5>Position at a glance</h5>
-      <div class="glance">${stat(fmt.num(open.length), 'Open claims', `of ${fmt.num(snap.length)}`)}${stat(m(dev.totals.latest), 'Incurred to date', `${m(dev.totals.ibnr)} IBNR`)}${stat(m(dev.totals.excess), 'Into aggregate layer', `${dev.breaches.length} year-lines`, 'accent')}${stat(pct(ctx.cap.breachAny, 1), 'Breach probability', `at ${m(RENEWAL.startingCapital)} capital, expiring cover`, 'accent')}${stat(money(al.total), `Premium ${py(al.nextPy)}`, `${money(al.moved)} reallocated`)}${stat(String(large.length), 'Open claims at retention', 'narratives in the submission')}</div>
-      <p class="basis">Basis of preparation. Claims are the administrator's loss run at ${fmt.date(RENEWAL.dataAsOf)}, standardised and validated by the pipeline; quarantined rows excluded. Ultimates are chain-ladder with a fitted tail, Bornhuetter-Ferguson at or under 24 months. Capital is simulated over twelve quarters with a lognormal loss ratio at ${pct(capBase.lossRatioCv)} volatility; the requirement is ${pct(capBase.requiredPremiumFactor)} of premium plus ${pct(capBase.requiredReserveFactor)} of reserves. Allocation uses classical credibility with ${al.params.credibilityK} claims for half weight. Every figure is reproducible from the seed in the repository.</p>
+      <div class="glance">${stat(fmt.num(A.claims.open), 'Open claims', `of ${fmt.num(A.claims.count)}`)}${stat(m(D.totals.latest), 'Incurred to date', `${m(D.totals.ibnr)} IBNR`)}${stat(m(D.totals.excess), 'Into aggregate layer', `${D.breaches.length} year-lines`, 'accent')}${stat(pct(A.capital.breachAny, 1), 'Breach probability', `at ${m(RENEWAL.startingCapital)} capital, expiring cover`, 'accent')}${stat(money(L.total), `Premium ${py(L.nextPy)}`, `${money(L.moved)} reallocated`)}${stat(String(A.large.length), 'Open claims at retention', 'narratives in the submission')}</div>
+      <p class="basis">Basis of preparation. Claims are the administrator's loss run at ${fmt.date(RENEWAL.dataAsOf)}, standardised and validated by the pipeline; quarantined rows excluded. Ultimates are chain-ladder with a fitted tail, Bornhuetter-Ferguson at or under 24 months. Capital is simulated over twelve quarters with a lognormal loss ratio at ${pct(A.capital.params.lossRatioCv)} volatility; the requirement is ${pct(A.capital.params.requiredPremiumFactor)} of premium plus ${pct(A.capital.params.requiredReserveFactor)} of reserves. Allocation uses classical credibility with ${L.params.credibilityK} claims for half weight. Every figure is reproducible from the seed in the repository.</p>
     </div>`;
 }

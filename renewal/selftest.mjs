@@ -8,6 +8,7 @@ import { costOfRisk, allocate, subsidy } from '../engines/tcor-allocation/engine
 import { defaults, compute, STEPS, ROLES } from './model.mjs';
 import { EXPOSURE_REPLIES, ADJUSTER_NOTES, QUOTES, RENEWAL } from './data.mjs';
 import { RUNS } from './runs.mjs';
+import { computeArtifacts, priceQuotes } from './compute.mjs';
 
 let failures = 0;
 function check(name, ok, detail = '') {
@@ -85,6 +86,14 @@ for (const run of RUNS) {
     check(`${run.id}: ${f.key} = ${f.text}`, close && cited, `${close ? '' : `engine says ${v}`} ${cited ? '' : 'text not found'}`);
   }
 }
+console.log('page computation');
+const art = computeArtifacts();
+const { _ctx, ...plain } = art;
+check('artifacts serialise as plain data for the worker', JSON.stringify(plain).length > 5000 && typeof structuredClone === 'function' && !!structuredClone(plain));
+check('artifacts agree with the engines', plain.large.length === large.length && Math.abs(plain.alloc.total - al.total) < 1 && plain.pipeline.gate.held === true);
+const priced = priceQuotes(_ctx);
+check('quote pricing agrees with the recorded run', ['none', 'A', 'B', 'C'].every(id => Math.abs(priced.find(q => q.id === id).breach - cap(id).breach) < 1e-9));
+
 check('every run names a step that exists', RUNS.every(x => STEPS.some(s => s.id === x.step)));
 check('every run has a gate', RUNS.every(x => x.gate && x.gate.length > 40));
 

@@ -3,140 +3,109 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neal Pathak — Systems for legal, risk and insurance operations</title>
-<meta name="description" content="The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Neal Pathak builds the systems that produce them. Live demonstrations on synthetic data.">
+<title>The captive renewal, run twice — Neal Pathak</title>
+<meta name="description" content="One insurance workflow that takes seventeen weeks, rebuilt as a pipeline with people at the gates and a language model where there is text to read or write. Seven steps on a synthetic captive, with the clock and the cost meter running on both versions.">
 <link rel="canonical" href="https://nealpathak.github.io/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Neal Pathak">
-<meta property="og:title" content="Neal Pathak — Systems for legal, risk and insurance operations">
-<meta property="og:description" content="The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Neal Pathak builds the systems that produce them. Live demonstrations on synthetic data.">
+<meta property="og:title" content="The captive renewal, run twice">
+<meta property="og:description" content="Seventeen weeks and $62,000, or under eight weeks and $16,000. One insurance workflow rebuilt as a pipeline with people at the gates, step by step, on a synthetic captive.">
 <meta property="og:url" content="https://nealpathak.github.io/">
 <meta property="og:image" content="https://nealpathak.github.io/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Neal Pathak — Systems for legal, risk and insurance operations">
-<meta name="twitter:description" content="The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Neal Pathak builds the systems that produce them. Live demonstrations on synthetic data.">
+<meta name="twitter:title" content="The captive renewal, run twice">
+<meta name="twitter:description" content="Seventeen weeks and $62,000, or under eight weeks and $16,000. One insurance workflow rebuilt as a pipeline with people at the gates, step by step, on a synthetic captive.">
 <meta name="twitter:image" content="https://nealpathak.github.io/assets/og.png">
-<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Person", "@id": "https://nealpathak.github.io/#person", "name": "Neal Pathak", "url": "https://nealpathak.github.io/", "sameAs": ["https://www.linkedin.com/in/nealpathak/"], "knowsAbout": ["captive insurance", "claims analytics", "loss development", "capital modelling", "legal operations", "AI governance"]}, {"@type": "WebSite", "@id": "https://nealpathak.github.io/#website", "url": "https://nealpathak.github.io/", "name": "Neal Pathak", "description": "The numbers behind a renewal, a reserve, a capital decision or a legal budget should be computed, not assembled by hand. Neal Pathak builds the systems that produce them. Live demonstrations on synthetic data.", "author": {"@id": "https://nealpathak.github.io/#person"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Person", "@id": "https://nealpathak.github.io/#person", "name": "Neal Pathak", "url": "https://nealpathak.github.io/", "sameAs": ["https://www.linkedin.com/in/nealpathak/"], "knowsAbout": ["captive insurance", "claims analytics", "loss development", "capital modelling", "reinsurance", "AI in insurance operations"]}, {"@type": "WebPage", "@id": "https://nealpathak.github.io/#page", "url": "https://nealpathak.github.io/", "name": "The captive renewal, run twice", "description": "One insurance workflow that takes seventeen weeks, rebuilt as a pipeline with people at the gates and a language model where there is text to read or write.", "author": {"@id": "https://nealpathak.github.io/#person"}}]}</script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#f7f4ed" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)">
+<link rel="modulepreload" href="data/book.mjs">
+<link rel="modulepreload" href="lib/rng.mjs">
+<link rel="modulepreload" href="lib/format.mjs">
+<link rel="modulepreload" href="renewal/model.mjs">
+<link rel="modulepreload" href="renewal/runs.mjs">
 <link rel="stylesheet" href="assets/site.css">
-<style>
-  .hero { padding: 4rem 0 3rem; border-bottom: 1px solid var(--rule); }
-  .hero h1 { font-size: 2.7rem; max-width: 24ch; }
-  .hero .lede-wide { margin-top: 1.4rem; }
-  @media (max-width: 620px) { .hero h1 { font-size: 2.05rem; } }
-  .decisions { list-style: none; margin: 0; padding: 0; }
-  .decisions li { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2rem; padding: 1.3rem 0; border-top: 1px solid var(--rule); }
-  .decisions li:last-child { border-bottom: 1px solid var(--rule); }
-  .decisions h3 { font-size: 1.15rem; margin-bottom: 0.3rem; }
-  .decisions h3 a { border: 0; }
-  .decisions h3 a:hover { color: var(--accent); }
-  .decisions .q { font-size: 0.95rem; color: var(--ink-2); margin: 0; }
-  .decisions .answer { font-size: 0.95rem; margin: 0; }
-  .decisions .answer strong { color: var(--accent); font-weight: 500; }
-  @media (max-width: 700px) { .decisions li { grid-template-columns: 1fr; gap: 0.5rem; } }
-  .offer h3 { margin-bottom: 0.4rem; }
-  .offer p { font-size: 0.95rem; color: var(--ink-2); }
-  .contact-links { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem; font-family: var(--sans); font-size: 0.85rem; letter-spacing: 0.04em; text-transform: uppercase; }
-</style>
 </head>
 <body>
 <div class="wrap">
   <header class="masthead">
     <a class="brand" href="./">Neal Pathak</a>
-    <nav><a href="#decisions">Decisions</a><a href="#work">Tools</a><a href="workflows/">Workflows</a><a href="notes/">Notes</a><a href="glossary/">Terms</a><a href="#about">About</a></nav>
+    <nav><a href="#workflow">The workflow</a><a href="#model">Where the AI is</a><a href="#assumptions">Assumptions</a><a href="#honest">What it does not change</a><a href="#about">About</a></nav>
   </header>
 
   <div class="hero">
-    <p class="kicker">Systems for the people who sign the renewal, approve the budget, and answer to the board</p>
-    <h1>The numbers behind your renewal, your reserves and your legal spend should be computed, not assembled by hand.</h1>
-    <p class="lede-wide">Most of them are still put together in a spreadsheet by one person the week before the meeting. I build the systems that produce them instead: daily, reconciled, and explainable to your board, your actuary and your auditor in the same sentence. Everything on this page is live. Change the inputs and read the answer.</p>
+    <p class="kicker">One insurance workflow, run twice</p>
+    <h1>Renewing a captive takes about <span data-out="today.weeks">17 weeks</span> and <span data-out="today.cost">$62,000</span>. The same renewal, run as a pipeline with people at the gates, takes about <span data-out="ai.weeks">8 weeks</span> and <span data-out="ai.cost">$16,000</span>.</h1>
+    <p class="lede-wide">Below is the annual renewal of a captive insurer, seven steps from the first data request to the bound policy, on a synthetic captive with five operating companies and $15m of premium. Each step is shown as it is usually done, and then as a pipeline: deterministic engines for the numbers, a language model where there is text to read or write, and a person at four named gates. Every artifact is produced live from the demo data. Every hour, rate and fee is an assumption you can change at the bottom of the page.</p>
   </div>
 
-  <section id="decisions">
-    <div class="section-head">
-      <div><p class="kicker">Decisions</p><h2>Seven decisions, and the number each one needs</h2></div>
-      <p class="method">A number is only worth having if it changes what you do. Each of these is a decision that gets made with real money, and the working tool that produces the number behind it. The answers shown come from the synthetic book on this site; a real one would come from your own data. If the vocabulary is unfamiliar, the <a href="glossary/">terms page</a> explains each word once, in plain English.</p>
-    </div>
-    <ol class="decisions">
-      <li>
-        <div><h3><a href="tools/loss-development/">Renewal and capacity</a></h3><p class="q">Will this year's losses fit inside the aggregate we bought, and if not, by how much?</p></div>
-        <p class="answer">Developed to ultimate with two standard methods, one policy year and line is projected to use <strong>110% of its aggregate</strong>; the shortfall lands in the layer above. Known nine months before the renewal, that is a pricing conversation. Discovered at the renewal, it is a surprise.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/capital-model/">Capital</a></h3><p class="q">If next year goes badly, does the capital hold, and what is the cheapest way to make sure?</p></div>
-        <p class="answer">Two thousand simulated futures put the chance of breaching the capital requirement at <strong>about one in eleven</strong>. Holding roughly <strong>$700k more</strong> brings it under one in twenty. The aggregate cover as priced turns out to cost more certain capital than it protects.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/loss-run-pipeline/">Trusting the claims numbers</a></h3><p class="q">Is the file the administrator sent this morning fit to run the business on?</p></div>
-        <p class="answer">Of about 2,500 rows, <strong>12 could not be loaded</strong> and 22 were silently wrong; the release is held until a named person clears them. Yesterday's version of this was a spreadsheet nobody checked.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/matter-portfolio/">Legal spend</a></h3><p class="q">Which matters will cost more than we approved, and which firm is billing above the rates we agreed?</p></div>
-        <p class="answer">Six open matters are projected to exceed budget by <strong>$223k</strong> combined, before the invoices arrive. One panel firm has billed <strong>7.6% above guideline</strong> across three years, with the lines attached to prove it.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/tcor-allocation/">Who pays what</a></h3><p class="q">What does risk actually cost each operating company, and what should each pay the captive next year?</p></div>
-        <p class="answer">On exposure alone one company would pay its share; on its own record it should pay more. A credibility-weighted allocation moves <strong>$142k</strong> between five companies next year, capped at 25% from exposure share, and shows which company has been running at a <strong>65% loss ratio</strong> while another runs at 80%.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/contract-requirements/">The contracts we signed</a></h3><p class="q">How much revenue sits behind insurance clauses the programme does not actually satisfy, and what is the cheapest way to close it?</p></div>
-        <p class="answer">Every live contract's insurance clause joined to the programme the group carries. About <strong>a third of contracted revenue</strong> requires limits or coverages the group does not have; the first buy-up on the rate card clears the most per dollar, and the certificate draft flags the gap before it reaches the counterparty.</p>
-      </li>
-      <li>
-        <div><h3><a href="tools/agent-control-plane/">AI in the business</a></h3><p class="q">What are the agents touching, who can switch them off, and what does it cost when they do?</p></div>
-        <p class="answer">Ten agents, each with an owner, a data scope enforced at run time, and a gate before anything leaves the company. Switching off the first one idles five others and costs <strong>14½ people-hours a day</strong> in manual fallbacks. An examiner could read the log.</p>
-      </li>
-    </ol>
-    <p class="method" style="margin-top:1.5rem">All of it lands on one page: the <a href="tools/board-brief/">risk committee brief</a>, assembled automatically from the same engines, with the decisions requested at the top.</p>
+  <section id="headline" class="headline">
+    <div class="compare-grid" id="compare"></div>
+    <p class="note" id="compare-note"></p>
   </section>
 
-  <section id="work">
+  <section id="timeline">
     <div class="section-head">
-      <div><p class="kicker">Tools</p><h2>Working software on a synthetic book</h2></div>
-      <p class="method">Each tool runs in your browser from a seed committed to the repository, and ships with tests you can run. Nothing derives from any real insurer, insured, client, or employer; the five operating companies, the panel firms, and every claimant are invented. The methods are the ones your actuary and auditor already use.</p>
+      <div><p class="kicker">The calendar</p><h2>Seven steps on one axis</h2></div>
+      <p class="method">Grey is the renewal as usually run; red is the pipeline. The pipeline's remaining length is mostly waiting: the reinsurance market takes what it takes to quote, and the board meets when it meets. Change either at the bottom of the page and both bars move.</p>
     </div>
-    <ol class="work-list">
-      <li><span class="idx">01</span><div><h3><a href="tools/loss-run-pipeline/">Loss-Run Pipeline</a></h3><p>The administrator's daily claim file, made fit to run the business on: standardised, checked, reconciled to yesterday, and held for a person when something is wrong. Drop in your own file and see what it finds.</p><span class="meta">Claims data · Daily · Exports for reserving and reporting</span></div></li>
-      <li><span class="idx">02</span><div><h3><a href="tools/loss-development/">Loss Development &amp; Aggregate Erosion</a></h3><p>What each policy year will ultimately cost and how much of its aggregate it will use, by line, with the estimate checked against the known answer. The page a renewal should be priced from.</p><span class="meta">Reserving · Renewal · Board reporting</span></div></li>
-      <li><span class="idx">03</span><div><h3><a href="tools/capital-model/">Capital &amp; Cash-Flow Model</a></h3><p>Three years of assets, reserves and capital by quarter, simulated thousands of times. The probability of breaching the capital requirement, the capital that holds it under your tolerance, and whether the reinsurance you are offered is worth its price.</p><span class="meta">Capital adequacy · Reinsurance purchase · Dividends</span></div></li>
-      <li><span class="idx">04</span><div><h3><a href="tools/agent-control-plane/">Agent Control Plane</a></h3><p>The governance layer over a fleet of ten agents running a claims operation. Who owns each, what it may read, where a person signs, what a kill switch costs, and the audit log. Inject a fault and watch a write get refused.</p><span class="meta">AI governance · Operations · Examiner-ready</span></div></li>
-      <li><span class="idx">05</span><div><h3><a href="tools/matter-portfolio/">Matter Portfolio &amp; Intake Triage</a></h3><p>Which open matters will exceed budget, projected from your own history; which firm bills above the agreed rates; which matters have stalled; and where a new matter should go, with the rule that decided it shown.</p><span class="meta">Legal spend · Outside counsel · Intake</span></div></li>
-      <li><span class="idx">06</span><div><h3><a href="tools/tcor-allocation/">Cost of Risk &amp; Premium Allocation</a></h3><p>What risk costs each operating company once everything is counted, who has been paying for whom, and next year's premium allocation with the credibility and the cap as visible knobs. The page that settles the owners' argument with numbers.</p><span class="meta">Owners · Total cost of risk · Allocation</span></div></li>
-      <li><span class="idx">07</span><div><h3><a href="tools/contract-requirements/">Contract Requirements &amp; Certificates</a></h3><p>Every contract's insurance clause against the programme the group actually carries: the revenue sitting behind requirements it does not meet, the cheapest buy-ups that clear the most of it, the clauses that need a lawyer rather than a broker, and a certificate draft with the gaps flagged.</p><span class="meta">Contracts · Risk transfer · Certificates</span></div></li>
-      <li><span class="idx">08</span><div><h3><a href="tools/board-brief/">Risk Committee Brief</a></h3><p>One printable page assembled from every engine above: decisions requested, claims position, aggregate erosion, capital, legal spend, premium allocation, and AI operations, with the basis of preparation. Nothing on it is typed.</p><span class="meta">Executive reporting · Board pack · Print-ready</span></div></li>
-    </ol>
+    <figure id="gantt"></figure>
   </section>
 
-  <section id="practice">
+  <section id="workflow">
     <div class="section-head">
-      <div><p class="kicker">In practice</p><h2>What this looks like inside a business</h2></div>
-      <p class="method">Each of these starts with data the business already has and ends with a number someone can act on, produced by a system that keeps producing it. The tools above are the parts; these are the whole.</p>
+      <div><p class="kicker">The workflow</p><h2>Each step, both ways</h2></div>
+      <p class="method">For every step: who does the work today and for how long, what the pipeline does instead, where a person signs, and the thing that gets produced, computed from the demo book as you read. Where a language model is used, the exact prompt and its recorded output are there to open. Where one is not, the step says so.</p>
     </div>
-    <div class="grid-2">
-      <div class="offer"><h3>Make the claims numbers trustworthy</h3><p>A daily pipeline from the administrator's file to the exports the actuary, the finance team and the board read, with every defect caught and every release signed. The end of "which spreadsheet is right".</p></div>
-      <div class="offer"><h3>Price the renewal from your own book</h3><p>Loss development, aggregate erosion and total cost of risk by entity and line, refreshed daily, so the renewal is negotiated from the group's own numbers rather than the carrier's.</p></div>
-      <div class="offer"><h3>Know whether the capital holds</h3><p>A capital and cash-flow model for a captive or self-insured programme that answers the board's question in one number, and shows what each reinsurance option is actually worth.</p></div>
-      <div class="offer"><h3>Put AI to work without losing control of it</h3><p>An operating model for agents that do real work: intake, classification, a committee that decides scope, controls that are enforced rather than documented, and a log an examiner can read.</p></div>
-      <div class="offer"><h3>Make the legal function measurable</h3><p>Intake that routes by rule, budgets that project before the invoice, invoice review against the group's own guidelines, and one platform across its entities and vendors.</p></div>
-      <div class="offer"><h3>Automate the thing one person still does by hand</h3><p>The court portal, the certificate request, the monthly report. Built to run unattended, to fail loudly, and to hand the decision to a person when it should.</p></div>
+    <div id="steps"></div>
+  </section>
+
+  <section id="model">
+    <div class="section-head">
+      <div><p class="kicker">Where the AI is</p><h2>Six uses of a language model, and what the rest is</h2></div>
+      <p class="method">Most of the saving comes from the pipeline and the engines: code that does the same thing every day, with a test. The model earns its place where the input is prose and the output is prose: five messy replies, adjuster notes, term sheets, a contract. Each use is listed with the gate after it. The site has no backend, so the runs are recorded: made once, committed with their prompts, and checked by the test suite against the engines so that every number in the text is still the engines' number.</p>
+    </div>
+    <div class="table-scroll" id="model-table"></div>
+  </section>
+
+  <section id="assumptions">
+    <div class="section-head">
+      <div><p class="kicker">Assumptions</p><h2>Your numbers, not mine</h2></div>
+      <p class="method">The headline is arithmetic on these. Rates are loaded, blended defaults for a mid-sized programme; hours and elapsed days are what each step typically takes. Change any of them and everything above recomputes. <button class="btn" id="reset" type="button">Reset to defaults</button></p>
+    </div>
+    <div class="grid-2 assume">
+      <div>
+        <h3>Rates and fees</h3>
+        <table class="data inputs" id="rates"></table>
+        <h3>Waiting time nobody controls</h3>
+        <table class="data inputs" id="floors"></table>
+        <h3>What it costs to build</h3>
+        <table class="data inputs" id="system"></table>
+        <p class="note" id="payback"></p>
+      </div>
+      <div>
+        <h3>Hours and days by step</h3>
+        <div class="table-scroll"><table class="data inputs" id="hours"></table></div>
+        <p class="note">Cost per step is hours times a blended rate for the people on it; the mix by role is in the step above. The pipeline's own run cost is in the build table, not in the per-cycle figure.</p>
+      </div>
     </div>
   </section>
 
-  <section id="workflows">
+  <section id="honest">
     <div class="section-head">
-      <div><p class="kicker">Workflows</p><h2>How the pieces fit together</h2></div>
-      <p class="method">The tools are components of larger workflows. <a href="workflows/">Four reference designs</a>, with diagrams, show where the people sit and what the business gets: a daily claims reporting pipeline, an operating model for AI agents, a matter platform that makes legal spend visible, and unattended retrieval of court filings.</p>
-    </div>
-  </section>
-
-  <section id="notes">
-    <div class="section-head">
-      <div><p class="kicker">Notes</p><h2>Three arguments, made once</h2></div>
-      <p class="method">Short pieces for someone with a renewal, a budget or a board meeting coming: <a href="notes/loss-run/">why the loss run cannot be trusted as delivered</a>, <a href="notes/aggregate-erosion/">the one number to know before the renewal</a>, and <a href="notes/agents-in-claims/">the seven controls to have before an AI agent touches claims data</a>. <a href="notes/">All notes.</a></p>
+      <div><p class="kicker">What it does not change</p><h2>Read this before the headline</h2></div>
+      <div class="method">
+        <p><strong>The market's clock.</strong> Reinsurers take weeks to quote and a board meets on its date. The pipeline compresses everything around that waiting; it cannot compress the waiting. Of the <span data-out="ai.days">38</span> business days in the pipeline track, <span data-out="waiting">25</span> are waiting.</p>
+        <p><strong>The actuary.</strong> The statutory opinion at year end is unchanged and outside this workflow. What changes is the renewal analysis: the actuary reviews and opines on what the engines produced, at a smaller fixed fee, rather than building it from a data package.</p>
+        <p><strong>Commission, fronting, taxes.</strong> Not in either column. They are the same either way.</p>
+        <p><strong>The baseline is a model, not a measurement.</strong> Hours times rates is an estimate of what the renewal costs today. If yours is cheaper or dearer, the table above is where to say so.</p>
+        <p><strong>The build.</strong> The pipeline costs something to build and something to run, and neither is in the per-cycle figure. On the defaults it pays for itself in about <span data-out="payback">2</span> renewals on the renewal alone. The same pipeline produces the monthly claims reporting for the other eleven months, which is where the larger return sits.</p>
+        <p><strong>The data.</strong> Every figure comes from a synthetic book generated from a seed in the repository. No real insurer, insured, claimant, administrator, reinsurer or employer is described. The book is evaluated at policy-year end, 31 August 2026, and the renewal is modelled from it; a live renewal would evaluate at 31 May and project the last quarter, which changes nothing about the process.</p>
+        <p><strong>The reinsurance finding.</strong> On this book, the cover that was being renewed on autopilot turned out not to be worth its price at today's capital, and the board was given a real choice instead. That is a property of this synthetic book and its volatility assumption, not a general truth about aggregate stop-loss. It is on the page because it is the kind of thing a computed renewal finds and a hand-assembled one does not.</p>
+      </div>
     </div>
   </section>
 
@@ -144,34 +113,18 @@
     <div class="section-head">
       <div><p class="kicker">About</p><h2>Neal Pathak</h2></div>
       <div class="method">
-        <p>I came to this work from the legal side: litigation support, transactional drafting, contract management, compliance rollouts. Every function I worked in ran on a few people's memory and a great deal of manual reconciliation, and the software sold to fix it mostly added a place to type things. So I started building the pieces myself: first small automations that did one tedious thing reliably, then the data pipelines and models underneath a risk function, then agents, and then the governance that lets a company trust them.</p>
-        <p>Today I work in-house across legal, risk and captive insurance, and I lead the design of how AI is used there. The work I like most sits at the joins nobody owns: the contract clause and the policy limit, the loss run and the balance sheet, the agent and the audit log.</p>
-        <p>This site is built the way I build the tools. Plain HTML, CSS and JavaScript; no framework, no build step, no dependencies. Every engine has a self-test and every dataset comes from a seed you can read.</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="contact">
-    <div class="section-head">
-      <div><p class="kicker">Contact</p><h2>Get in touch</h2></div>
-      <div class="method">
-        <p>If one of the decisions above is on your desk, or something here is close to a problem you are working on, I am easy to reach and glad to compare notes.</p>
-        <div class="contact-links" id="contact-links"></div>
+        <p>I came to this work from the legal side: litigation support, transactional drafting, contract management, compliance. Every function I worked in ran on a few people's memory and a great deal of manual reconciliation, and the software sold to fix it mostly added a place to type things. So I started building the pieces myself: first small automations that did one tedious thing reliably, then the data pipelines and models underneath a risk function, then the language-model steps, and then the gates that let a company trust them.</p>
+        <p>Today I work in-house across legal, risk and captive insurance, and I lead the design of how AI is used there. This page is built the way I build the real thing: plain HTML and JavaScript, no framework, no build step, every engine with a self-test, every dataset from a seed you can read, every model run recorded with its prompt.</p>
+        <p>If a renewal, a reserve or a board pack on your desk still gets assembled by hand, I am glad to compare notes. <a href="https://www.linkedin.com/in/nealpathak/" rel="me">LinkedIn</a>.</p>
       </div>
     </div>
   </section>
 
   <footer class="site">
-    <span>Synthetic data throughout. Nothing here derives from any real insurer, insured, client, or employer.</span>
-    <span>No framework, no build step, no dependencies.</span>
+    <span>Synthetic data throughout. Nothing here derives from any real insurer, insured, claimant, administrator, reinsurer or employer.</span>
+    <span>No framework, no build step, no backend. <a href="https://github.com/nealpathak/nealpathak.github.io">Source and tests</a>.</span>
   </footer>
 </div>
-<script>
-  const LINKS = { linkedin: 'https://www.linkedin.com/in/nealpathak/' };
-  const el = document.getElementById('contact-links');
-  const items = [];
-  if (LINKS.linkedin) items.push(`<a href="${LINKS.linkedin}" rel="me">LinkedIn</a>`);
-  el.innerHTML = items.join('') || '<span class="muted">Links to follow.</span>';
-</script>
+<script type="module" src="./app.mjs"></script>
 </body>
 </html>

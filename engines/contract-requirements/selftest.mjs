@@ -1,4 +1,4 @@
-// Run: node tools/contract-requirements/selftest.mjs
+// Run: node engines/contract-requirements/selftest.mjs
 import { generateContracts, gaps, analyseContracts, buyUpPlan, certificate, PROGRAMME, BUYUPS } from './engine.mjs';
 
 let failures = 0;

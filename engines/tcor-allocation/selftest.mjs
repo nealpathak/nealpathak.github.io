@@ -1,4 +1,4 @@
-// Run: node tools/tcor-allocation/selftest.mjs
+// Run: node engines/tcor-allocation/selftest.mjs
 import { generateBook, ENTITIES, POLICY_YEARS } from '../../data/book.mjs';
 import { analyse } from '../loss-development/engine.mjs';
 import { costOfRisk, byEntityYear, allocate, subsidy } from './engine.mjs';

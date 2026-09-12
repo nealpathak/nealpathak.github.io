@@ -1,4 +1,4 @@
-// Run: node tools/capital-model/selftest.mjs
+// Run: node engines/capital-model/selftest.mjs
 import { generateBook } from '../../data/book.mjs';
 import { derivePaymentPattern, openingPosition, simulate, simulatePath, capitalForTolerance, DEFAULTS } from './engine.mjs';
 import { makeRng } from '../../lib/rng.mjs';

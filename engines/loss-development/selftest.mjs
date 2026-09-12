@@ -1,4 +1,4 @@
-// Run: node tools/loss-development/selftest.mjs
+// Run: node engines/loss-development/selftest.mjs
 import { generateBook, triangles } from '../../data/book.mjs';
 import { ageToAge, fitTail, cumulativeFactors, project, analyse } from './engine.mjs';
 

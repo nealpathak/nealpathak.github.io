@@ -1,4 +1,4 @@
-// Run: node tools/loss-run-pipeline/selftest.mjs
+// Run: node engines/loss-run-pipeline/selftest.mjs
 import { generateBook, snapshot } from '../../data/book.mjs';
 import { buildRawLossRun, runPipeline, parseDate, parseMoney, parseStatus, parseState, mapColumns } from './engine.mjs';
 import { dates } from '../../lib/format.mjs';
